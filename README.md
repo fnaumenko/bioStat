@@ -1,15 +1,15 @@
 # biostat
 Statistical package for NGS data.
 It includes next utilities:
-  cc		    advanced correlation calculator for basic bioinformatics file formats
-  fragdist	calls fragment size distribution
-  readdens	read density profile calculator
-  valign	  alignment verifier
-  fqstatn	  calculates statistics of occurrence of ambiguous code N in fastq
+  [cc](#biocc)		advanced correlation calculator for basic bioinformatics file formats<br>
+  [fragdist](#fragdist)	calls fragment size distribution<br>
+  [readdens](#readdens)	read density profile calculator<br>
+  [valign](#valign)	alignment verifier<br>
+  [fqstatn](#valign)	calculates statistics of occurrence of ambiguous code N in fastq
 
 ## Usage
-`biostat <command> [options] [<file>…]`
-or
+`biostat <command> [options] [<file>…]`<br>
+or<br>
 `Command [options] [<file>…]`
 
 ## Installation
