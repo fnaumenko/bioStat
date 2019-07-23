@@ -1,10 +1,10 @@
 # bioStat
 Statistical package for NGS data.<br>
 It includes next utilities:<br>
- * [cc](#biocc)      advanced correlation calculator for basic bioinformatics file formats<br>
- * [fragdist](#fragdist)  calls fragment size distribution<br>
- * [readdens](#readdens)  read density profile calculator<br>
- * [valign](#valign)    alignment verifier<br>
+ * [**cc**](#biocc)      advanced correlation calculator for basic bioinformatics file formats<br>
+ * [**fragdist**](#fragdist)  calls fragment size distribution<br>
+ * **[readdens](#readdens)**  read density profile calculator<br>
+ * **[valign]**(#valign)    alignment verifier<br>
  * [fqstatn](#valign)   fastq 'N' statistics calculator
 
 ## Usage
@@ -301,20 +301,16 @@ in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistrib
 
 ### Usage
 
-```
-  biostat fragdist [options] <alignment>
-```
-or
-```
-  fragDist [options] <alignment>
-```
+`biostat fragdist [options] <in-file>`<br>
+or<br>
+`fragDist [options] <in-file>`
 
 ### Options
 ```
   -c|--chr <name>       treat specified chromosome only
   -D|--dist             print fragment size frequency distribution
   -o|--out [<name>]     duplicate standard output to specified file
-                        or to <alignment>.dist if file is not specified
+                        or to <in-file>.dist if file is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit
@@ -330,10 +326,10 @@ This means that reads belonging to the same chromosome must be arranged sequenti
 The simplest way to ensure this is to pre-sort the alignment.<br>
 BAM files are read 2-4 times slower than even zipped BED files.<br>
 The program can also accept a file with a ready-made lognormal size frequency distribution, in order to determine its parameters. 
-Distribution format is described in the comments to the option `-D|--dist`. This file should have .dist extension.
+Distribution format is described in the comments to the option `-D|--dist`. This file should have *.dist* extension.
 
 #### Output
-Called (calculated) lognormal mean, sigma, Mode and Mean (expected size). 
+Called (calculated) lognormal mean, sigma, Mode and Mean (expected size).<br>
 Fragment size frequency distribution is printed optionally.
 
 #### Options description
@@ -356,8 +352,8 @@ It is an analogue of the **tee** Linux command and is constructed rather for the
 
 ## readDens
 
-Calculates alignment density profile and precise mean density into inside and outside given regions.
-Density profile is not a coverage. 
+Calculates alignment density profile and precise mean density into inside and outside given regions.<br>
+Density profile is NOT a coverage. 
 It means a set of frequencies of the observed equal parts of the sequence with the same density. 
 The program splits each given region into non-overlapping equal parts (windows), 
 and then counts the number of windows containing the same number of reads.<br>
@@ -365,13 +361,9 @@ Precise means that all the undefined regions in the reference genome are exclude
 If the input regions are not defined, then only mean density is calculated for each chromosome.
 
 ### Usage
-```
-  biostat readdens [options] <alignment>
-```
-or
-```
-  readDens [options] <alignment>
-```
+`biostat readdens [options] <in-file>`<br>
+or<br>
+`readDens [options] <in-file>`
 
 ### Options:
 ```
@@ -390,7 +382,7 @@ Treatment:
 Output:
   -W|--win-freq         print windows frequency distribution
   -o|--out [<name>]     duplicate standard output to specified file
-                        or to <alignment>_dens.txt if file is not specified
+                        or to <in-file>_dens.txt if file is not specified
 Other:
   -t|--time             print run time
   -v|--version          print program's version and exit
@@ -399,7 +391,7 @@ Other:
 
 ### Details
 
-####Input
+#### Input
 Aligned DNA sequence in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) 
 or [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format. 
 Format is automatically recognized by file extension, so it should be BAM or BED (case-insensitive).<br>
@@ -503,13 +495,9 @@ in the [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) file.<br>
 These statistics helps to better evaluate the quality of the sequencer output.
 
 ### Usage
-```
-  biostat fqstatn [options] <sequence>
-```
-or
-```
-  fqStatN [options] <sequence>
-```
+`biostat fqstatn [options] <sequence>`<br>
+or<br>
+`fqStatN [options] <sequence>`
 
 ### Options:
 ```
@@ -523,8 +511,9 @@ or
 ### Details
 
 #### Input
-DNA sequence in FASTQ format.
-Output
+DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format.
+
+#### Output
 The program displays the frequency of occurrence of 'N' in the position in the read, as well as the frequency of the template of the reads containing code N.
 Example  of output:
 ```
@@ -556,6 +545,6 @@ N.................................................    29566     0.172%
 'N' relative to the total number of nucleotides: 0.00483%
 Reads that include 'N' relative to the total number of reads: 0.211%
 ```
-
+<br>
 ##
 If you face to bugs, incorrect English, or have commentary/suggestions, please do not hesitate to write me on fedor.naumenko@gmail.com
