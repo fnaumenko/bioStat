@@ -1,11 +1,11 @@
-# biostat
-Statistical package for NGS data.
+# bioStat
+Statistical package for NGS data.<br>
 It includes next utilities:<br>
- * [cc](#biocc)		advanced correlation calculator for basic bioinformatics file formats<br>
- * [fragdist](#fragdist)	calls fragment size distribution<br>
- * [readdens](#readdens)	read density profile calculator<br>
- * [valign](#valign)	alignment verifier<br>
- * [fqstatn](#valign)	calculates statistics of occurrence of ambiguous code N in fastq
+ * [cc](#biocc)      advanced correlation calculator for basic bioinformatics file formats<br>
+ * [fragdist](#fragdist)  calls fragment size distribution<br>
+ * [readdens](#readdens)  read density profile calculator<br>
+ * [valign](#valign)    alignment verifier<br>
+ * [fqstatn](#valign)   fastq 'N' statistics calculator
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
@@ -14,6 +14,25 @@ or<br>
 
 ## Installation
 ### Executable file
+
+[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/1.0/isChIP-Linux-x64.gz)<br>
+[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/1.0/isChIP-Windows-x64.zip)
+
+Alterative for Linux: type in the desired directory:<br>
+`wget -O biostat.gz https://github.com/fnaumenko/bioStat/releases/download/1.0/isChIP-Linux-x64.gz`<br>
+`gzip -d biostat.gz`<br>
+`chmod +x biostat`
+
+### Compiling in Linux
+Required libraries:<br>
+g++<br>
+zlib
+
+Type in the desired directory:<br>
+`wget -O bioCC.zip https://github.com/fnaumenko/bioStat/archive/1.0.zip`<br>
+`unzip bioCC.zip`<br>
+`cd bioCC-1.0`<br>
+`make```
 
 
 ## bioCC
@@ -26,13 +45,13 @@ It can print coefficients for each predefined region and coefficients frequency 
 
 ### Usage
 ```
-  biostat cc [options] -g|--gen <name> file0 file1 ...
-  biostat cc [options] -g|--gen <name> -l|--list <file>
+  biostat cc [options] file0 file1 ...
+  biostat cc [options] -l|--list <file>
 ```
 or
 ```
-  bioCC [options] -g|--gen <name> file0 file1 ...
-  bioCC [options] -g|--gen <name> -l|--list <file>
+  bioCC [options] file0 file1 ...
+  bioCC [options] -l|--list <file>
 ```
 
 ### Help
@@ -259,9 +278,10 @@ The only difference between them is the subtraction of the mean value in covaria
 What consequences does it entail, and which coefficient is better to choose?
 
 A. Coverage/density distributions.<br>
-To be more clear there are 3 illustrations of pair of signals.<br>
-Both of coefficients demonstrate value’s normalization independence (![fig 1-3](https://github.com/fnaumenko/bioCC/tree/master/pict/Signal-Pearson.png)).<br>
-Signal method is a bit more sensible, but it is sensitive to the mean amplitude (*DC offset* in terms of signal function), as it it we can see on ![fig 2](https://github.com/fnaumenko/bioCC/tree/master/pict/Signal-Pearson.png).
+To be more clear there are 3 illustrations of pair of signals:<br>
+![signal-Pearson](https://github.com/fnaumenko/bioStat/blob/master/pict/Signal-Pearson_.png)
+Both of coefficients demonstrate value’s normalization independence (fig 1-3).<br>
+Signal method is a bit more sensible, but it is sensitive to the mean amplitude (*DC offset* in terms of signal function), as it it we can see on (fig 2).
 This means that the greater the background level of the compared distributions, the less relevant is the Signal method.<br>
 For this reason, Pearson’s method is recommended for the distributions comparison.<br>
 But if background’s level is considered part of the measure of similarity (for example, by comparing two replicas for noise level),
@@ -277,7 +297,7 @@ Thus, for the features only the Pearson method is correct.
 
 Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the [figure]().
+in the ![figure]((https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs.png).
 
 ### Usage
 
