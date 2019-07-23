@@ -21,7 +21,7 @@ and extract **biostat** folder typing `tar -xf biostat-Linux-x64.tar.gz`.<br>
 and extract **biostat** folder using [WinRAR](https://www.win-rar.com/download.html?&L=0) or another ZIP-archiver.
 
 Alternative download in Linux:<br>
-`wget -O biostat.gz https://github.com/fnaumenko/bioStat/releases/download/1.0/biostat-Linux-x64.tar.gz`<br>
+`wget https://github.com/fnaumenko/bioStat/releases/download/1.0/biostat-Linux-x64.tar.gz`<br>
 
 Add **biostat** to the PATH environment variable.
 
@@ -30,7 +30,7 @@ Required libraries:<br>
 g++<br>
 zlib
 
-To compile from git, type:
+To compile from Git, type:
 ```
 git clone https://github.com/fnaumenko/bioStat
 cd bioStat
@@ -303,6 +303,7 @@ For example, by comparison two mutually complementary beds (while function1 have
 Although the correct answer is -1.<br>
 Thus, for the features only the Pearson method is correct.
 
+---
 ## fragDist
 
 Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
@@ -354,6 +355,7 @@ constructed as input alignment short name (without path and extension) with addi
 If the option is last and its value is not set, the next (and the last) token is treated as a program parameter. 
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
+---
 ## readDens
 
 Calculates alignment density profile and precise mean density into inside and outside given regions.<br>
@@ -361,8 +363,9 @@ Density profile is NOT a coverage.
 It means a set of frequencies of the observed equal parts of the sequence with the same density. 
 The program splits each given region into non-overlapping equal parts (windows), 
 and then counts the number of windows containing the same number of reads.<br>
-Precise means that all the undefined regions in the reference genome are excluded from consideration. 
-If the input regions are not defined, then only mean density is calculated for each chromosome.
+'Precise' means that all the undefined regions in the reference genome are excluded from consideration. 
+If the input regions are not defined, then only mean density is calculated for each chromosome.<br>
+Example of density profiles of 8 experimental datasets from NCBI database are shown in the [figure](#https://github.com/fnaumenko/bioStat/tree/master/pict/readDensProfile_Oct4-Sox2.png).
 
 ### Usage
 `biostat readdens [options] <in-file>`<br>
@@ -489,6 +492,7 @@ constructed as input alignment short name (without path and extension) with addi
 If the option is last and its value is not set, the next (and the last) token is treated as a program parameter.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
+---
 ## vAlign
 **V**erify **Align**ment is a fast verifier of reads forming the aligned DNA sequence, 
 which is recalled from an artificial [FastQ](https://en.wikipedia.org/wiki/FASTQ_format) sequence. 
@@ -557,7 +561,7 @@ constructed as input alignment short name (without path and extension) with addi
 If the option is last and its value is not set, the next (and the last) token is treated as a program parameter.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
-
+---
 ## fqStatN
 
 Calculates the statistics of occurrence of ambiguous code N, and patterns of reads including N 
