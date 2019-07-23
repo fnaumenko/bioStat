@@ -509,6 +509,46 @@ Other:
   -v|--version          print program's version and exit
   -h|--help WARNING     print usage information and exit
 ```
+#### Input
+See Input section [here](#input_).<br>
+The program can also accept a file with a ready-made lognormal size frequency distribution, in order to determine its parameters. 
+Distribution format is described in the comments to the option `-D|--dist`. This file should have *.dist* extension.
+
+#### Output
+**vAlign** outputs number of exactly matched reads, and number of wrong placed reads with 0, 1, 2, … N mismatches, where N is length of read.
+
+#### Options description
+`-g|--gen <name>`<br>
+specifies reference genome library or single nucleotide sequence.<br>
+Genome library is a directory containing nucleotide sequences for each chromosome in [FASTA](https://en.wikipedia.org/wiki/FASTA_format) format.<br>
+If `name` is a .fa[.gz] file, **vALign** accepts the corresponding chromosome as the only treated.<br>
+Otherwise first the program searches for .fa files in the directory `name`. If there are no such files in this directory, **vALign** searches for .fa.gz files.<br>
+If chromosome is specified by option `–c|--chr`, the program searches for the corresponding .fa[.gz] file.
+
+One can obtain a genome library in UCSC ftp://hgdownload.soe.ucsc.edu/goldenPath/ or in Ensemble ftp://ftp.ensembl.org/pub/release-73/fasta storage. 
+In the second case please copy genomic sequences with the same masked type only, f.e. unmasked (‘dna'), since program does not recognise mask’s types.<br>
+This option is required.
+
+`-c|--chr <name>`<br>
+treats specified chromosome only. The value `name` is the chromosome identifier; 
+it is a number or character, for example, 10 or X.
+The indication of one chromosome reduces run time on 1.5-20 times depending on how far this chromosome is placed in an alignment. 
+This simultaneously reduces statistical completeness.
+
+`--min-scr <int>`<br>
+specifies score threshold for treated reads. Reads with the score equal or less then specified will be ignored.<br>
+Default: all reads are accepted.
+
+`--char-case <OFF|ON>`<br>
+turns off/on recognition of uppercase and lowercase characters in template and test as different.<br>
+Default: `OFF`.
+
+`-o|--out`<br>
+duplicates standard output to specified file. If file is not specified, duplicates output to file with name, 
+constructed as input alignment short name (without path and extension) with addition of the suffix “_valign.txt”.<br>
+If the option is last and its value is not set, the next (and the last) token is treated as a program parameter.<br>
+It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
+
 
 ## fqStatN
 
