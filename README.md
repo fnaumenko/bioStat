@@ -36,7 +36,7 @@ git clone https://github.com/fnaumenko/bioStat
 cd bioStat
 make
 ```
-ALternative:<br>
+Alternative:
 ```
 wget -O biostat.tar.gz https://github.com/fnaumenko/bioStat/archive/v1.0.tar.gz
 tar -xf biostat.tar.gz
@@ -365,7 +365,7 @@ The program splits each given region into non-overlapping equal parts (windows),
 and then counts the number of windows containing the same number of reads.<br>
 'Precise' means that all the undefined regions in the reference genome are excluded from consideration. 
 If the input regions are not defined, then only mean density is calculated for each chromosome.<br>
-Example of density profiles of 8 experimental datasets from NCBI database are shown in the [figure](#https://github.com/fnaumenko/bioStat/tree/master/pict/readDensProfile_Oct4-Sox2.png).
+Example of density profiles of 8 experimental datasets from NCBI database are shown in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/readDensProfile_Oct4-Sox2.png).
 
 ### Usage
 `biostat readdens [options] <in-file>`<br>
