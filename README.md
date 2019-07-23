@@ -15,26 +15,36 @@ or<br>
 ## Installation
 ### Executable file
 
-[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/1.0/isChIP-Linux-x64.gz)<br>
-[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/1.0/isChIP-Windows-x64.zip)
+[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/1.0/biostat-Linux-x64.tar.gz) 
+and extract **biostat** folder typing `tar -xf biostat-Linux-x64.tar.gz`.<br>
+[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/1.0/biostat-Windows-x64.zip) 
+and extract **biostat** folder using [WinRAR](https://www.win-rar.com/download.html?&L=0) or another ZIP-archiver.
 
-Alterative for Linux: type in the desired directory:<br>
-`wget -O biostat.gz https://github.com/fnaumenko/bioStat/releases/download/1.0/isChIP-Linux-x64.gz`<br>
-`gzip -d biostat.gz`<br>
-`chmod +x biostat`
+Alternative download in Linux:<br>
+`wget -O biostat.gz https://github.com/fnaumenko/bioStat/releases/download/1.0/biostat-Linux-x64.tar.gz`<br>
+
+Add **biostat** to the PATH environment variable.
 
 ### Compiling in Linux
 Required libraries:<br>
 g++<br>
 zlib
 
-Type in the desired directory:<br>
-`wget -O bioCC.zip https://github.com/fnaumenko/bioStat/archive/1.0.zip`<br>
-`unzip bioCC.zip`<br>
-`cd bioCC-1.0`<br>
-`make```
+To compile from git, type:
+```
+git clone https://github.com/fnaumenko/bioStat
+cd bioStat
+make
+```
+ALternative:<br>
+```
+wget -O biostat.tar.gz https://github.com/fnaumenko/bioStat/archive/v1.0.tar.gz
+tar -xf biostat.tar.gz
+cd bioStat-1.0
+make
+```
 
-
+---
 ## bioCC
 fast advanced **C**orrelation **C**alculator for basic **bio**informatics file formats.<br>
 It computes Pearson’s and signal’s correlation coefficients for densities, coverage and features.<br>
@@ -510,9 +520,7 @@ Other:
   -h|--help WARNING     print usage information and exit
 ```
 #### Input
-See Input section [here](#input_).<br>
-The program can also accept a file with a ready-made lognormal size frequency distribution, in order to determine its parameters. 
-Distribution format is described in the comments to the option `-D|--dist`. This file should have *.dist* extension.
+See Input section [here](#input_).
 
 #### Output
 **vAlign** outputs number of exactly matched reads, and number of wrong placed reads with 0, 1, 2, … N mismatches, where N is length of read.
@@ -607,6 +615,6 @@ N.................................................    29566     0.172%
 'N' relative to the total number of nucleotides: 0.00483%
 Reads that include 'N' relative to the total number of reads: 0.211%
 ```
-<br>
-##
+
+---
 If you face to bugs, incorrect English, or have commentary/suggestions, please do not hesitate to write me on fedor.naumenko@gmail.com
