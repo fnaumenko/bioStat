@@ -1,5 +1,5 @@
  /*
-fqStatN outputs statistic of ambiguous reference characters â€˜Nâ€™ in fq-file.
+fqStatN outputs statistic of ambiguous reference characters ‘N’ in fq-file.
 
 Copyright (C) 2018 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
