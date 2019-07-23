@@ -279,7 +279,7 @@ What consequences does it entail, and which coefficient is better to choose?
 
 A. Coverage/density distributions.<br>
 To be more clear there are 3 illustrations of pair of signals:<br>
-![signal-Pearson](https://github.com/fnaumenko/bioStat/blob/master/pict/Signal-Pearson_.png)
+![signal-Pearson](https://github.com/fnaumenko/bioStat/blob/master/pict/Signal-Pearson_50.png)<br>
 Both of coefficients demonstrate value’s normalization independence (fig 1-3).<br>
 Signal method is a bit more sensible, but it is sensitive to the mean amplitude (*DC offset* in terms of signal function), as it it we can see on (fig 2).
 This means that the greater the background level of the compared distributions, the less relevant is the Signal method.<br>
@@ -297,7 +297,7 @@ Thus, for the features only the Pearson method is correct.
 
 Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![figure]((https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs.png).
+in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs_75.png).
 
 ### Usage
 
@@ -527,7 +527,7 @@ DNA sequence in FASTQ format.
 Output
 The program displays the frequency of occurrence of 'N' in the position in the read, as well as the frequency of the template of the reads containing code N.
 Example  of output:
-
+```
 'N' POSITION STATISTICS
 pos     count   % of total 'N'
 ------------------------------
@@ -555,7 +555,7 @@ N.................................................    29566     0.172%
 
 'N' relative to the total number of nucleotides: 0.00483%
 Reads that include 'N' relative to the total number of reads: 0.211%
-
+```
 
 ##
 If you face to bugs, incorrect English, or have commentary/suggestions, please do not hesitate to write me on fedor.naumenko@gmail.com
