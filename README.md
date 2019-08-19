@@ -10,7 +10,7 @@ It includes next utilities:<br>
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
 or<br>
-`Command [options] [<file>…]`
+`<Command> [options] [<file>…]`
 
 ## Installation
 ### Executable file
@@ -308,7 +308,7 @@ Thus, for the features only the Pearson method is correct.
 
 Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs_75.png).
+in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs_medium.png).
 
 ### Usage
 
