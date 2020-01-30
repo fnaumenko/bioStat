@@ -10,7 +10,7 @@ It includes next utilities:<br>
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
 or<br>
-`<Command> [options] [<file>…]`<br>
+`<Command> [options] [<file>…]`<br><br>
 In the second case, the output to the terminal is carried out immediately, which can be informative when processing large input files.
 
 ## Installation
