@@ -1,10 +1,10 @@
 /************************************************************************************
 biostat: biostatistical package for NGS data
 This is a command shell for calling statistical programs.
-	
+
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 21.07.2019
+Last modified: 30.01.2020
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -15,23 +15,26 @@ See the	GNU General Public License for more details.
 #include <iostream>	
 #include <iomanip>      // std::setw
 #ifdef _WIN32
-	#include <windows.h>
+#include <windows.h>
 #else
-	#include <string.h>
-	#include <stdio.h>
-	#include <sstream>
-	#include <sys/stat.h>	// struct stat
-	#include <unistd.h>		// getcwd() & realink
-	#include <limits.h>		// PATH_MAX
-	typedef unsigned char BYTE;
+#include <string.h>
+#include <stdio.h>
+#include <sstream>
+#include <sys/stat.h>	// struct stat
+#include <unistd.h>		// getcwd() & realink
+#include <limits.h>		// PATH_MAX
+typedef unsigned char BYTE;
+#endif
+
+#ifdef _DEBUG
+#define LPWSTR	LPSTR	// type of second param in CreateProcess() WINIP
 #endif
 
 #define HPH		'-'
 #define BLANK	' '
 #define EOL		'\n'	// LF, 10
-#define TAB		'\t'
 
-using namespace std;
+//using namespace std;
 
 struct pairCommand { const char* first; const char* second; };
 
@@ -42,57 +45,60 @@ const pairCommand commands[] = {
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
-const BYTE	commCnt = sizeof(commands)/sizeof(pairCommand);
+const BYTE	commCnt = sizeof(commands) / sizeof(pairCommand);
 
-const string appName = "biostat";
+const std::string appName = "biostat";
 const char* optSumm = "--summ";
 
 int PrintUsage(bool prTitle);
-void CallApp(BYTE ind, const char* params, size_t paramsLen);
+int CallApp(BYTE ind, const char* argv[] = NULL, int paramsCnt = 3);
 
-
-int main(int argc, char* argv[])
+// Incapsulates command line to launch utility
+class CommLine
 {
-	if(argc < 2)	return PrintUsage(true);
-	if(*argv[1] == HPH) {
-		if(argv[1][1]=='h' || (*(argv[1]+1)==HPH && !strcmp((const char*)(argv[1]+2), "help")))
-			return PrintUsage(true);
-		cout << "wrong option; use -h|--help for help\n";
-		return 1;
-	}
-	// define command
-	char ind = -1;		// index
-	for(char i=0; i<commCnt; i++)
-		if(!strcmp(argv[1], commands[i].first))	{ ind = i; break; }
-	if(ind == -1) {
-		cout << "unrecognized command: " << argv[1] << EOL;
-		return PrintUsage(false);
-	}
-	
-	size_t len = 0;
-	for(int i=2; i<argc; i++)	len += strlen(argv[i]) + 1;
-	if(len)	CallApp(ind, argv[2], len);
-	else	CallApp(ind, optSumm, strlen(optSumm));
+	char* _comm;	// C-string contained utility name and parameters
 
-	return 0;
-}
+public:
+	// Constructor
+	//	@app: utility name
+	//	@argv: program arguments
+	//	@argc: number of program arguments
+	CommLine(const char* app, const char* argv[], int argc) {
+		const size_t appLen = strlen(app);
+		size_t	shift, parsLen,
+				commLen = appLen + 1;	// command line length: +1 for closing 0
+		
+		// calculate commLen
+		for (int i = 2; i < argc; commLen += strlen(argv[i++]) + 1);	// +1 for blank
 
-int PrintUsage(bool prTitle)
-{
-	const char* ver = "1.0";
-	if(prTitle)
-		cout << appName.c_str() << ": statistical tools for NGS data\nVersion: "
-			 << ver << "\n\nUsage:\t"
-			 << appName.c_str() << " <command> [options]\n";
-	cout << "\nCommands:\n";
-	for(BYTE i=0; i<commCnt; i++) {
-		cout << setw(10) << commands[i].first << setw(2) << BLANK;
-		//cout << commands[i].second << EOL;
-		CallApp(i, optSumm, strlen(optSumm));
+		// in Debug mode the utilities are launched from their original (development) folders
+#ifdef _DEBUG
+		const char* pathHead = "D:\\Documents\\source\\reposCPP\\";
+		const char* pathTail = "\\Release\\";
+		commLen += strlen(pathHead) + strlen(pathTail) + appLen;
+#endif // _DEBUG
+		_comm = new char[commLen + 1];	// +1 for 0
+		memset(_comm, BLANK, commLen);
+#ifdef _DEBUG
+		memcpy(_comm, pathHead, shift = strlen(pathHead));
+		memcpy(_comm + shift, app, appLen);
+		memcpy(_comm + (shift += appLen), pathTail, strlen(pathTail));
+		memcpy(_comm + (shift += strlen(pathTail)), app, appLen);
+		shift += appLen;
+#else
+		memcpy(_comm, app, shift = appLen);
+#endif // _DEBUG
+		for (int i = 2; i < argc; i++) {
+			memcpy(_comm + ++shift, argv[i], parsLen = strlen(argv[i]));
+			shift += parsLen;
+		}
+		_comm[commLen] = '\0';		// end string
 	}
-	cout << EOL;
-	return !prTitle;
-}
+
+	inline const char* Get() const { return _comm; }
+
+	inline ~CommLine() { delete[] _comm; }
+};
 
 #ifndef _WIN32
 // Returns true if file exists in called folder
@@ -100,69 +106,97 @@ bool IsFileExist(const char* fname)
 {
 	// find real folder from which the main app was called
 	char result[PATH_MAX];
-	ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-	string path = string(result, (count > 0) ? count : 0);
+	ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+	std::string path = std::string(result, (count > 0) ? count : 0);
 	// replace main app name by util name
-	path = path.substr(0, path.rfind(appName)) + string(fname);
+	path = path.substr(0, path.rfind(appName)) + std::string(fname);
 	// check if util is exists in this folder
 	struct stat st;
 	return (!stat(path.c_str(), &st) && st.st_mode & S_IFREG);
 }
 #endif
 
-//void CallApp(const char* app, const char* params, size_t paramsLen)
-void CallApp(BYTE ind, const char* params, size_t paramsLen)
+int main(int argc, char* argv[])
 {
-	const char* missUtil = " is missing\n";
-	const char* app = commands[ind].second;
-
-#ifndef _WIN32
-	if(!IsFileExist(app)) {	cerr << app << missUtil; return; }
-#endif
-
-	size_t appLen = strlen(app) + 1;	// strlen with closing 0!
-	char* comm = new char[appLen + paramsLen];
-	memcpy(comm, app, appLen);			// as we know appLen it's faster than strcpy
-	memcpy(comm + appLen, params, paramsLen);
-	{	// replace 0 with blank
-		size_t i = --appLen;
-		appLen += paramsLen;
-		for(; i<appLen; i++)
-			if(!comm[i])	comm[i] = BLANK;
+	if (argc < 2)	return PrintUsage(true);
+	if (*argv[1] == HPH) {
+		char secLit = *(argv[1] + 1);
+		if (secLit == 'h' || (secLit == HPH && !strcmp((const char*)(argv[1] + 2), "help")))
+			return PrintUsage(true);
+		std::cout << "wrong option; use -h|--help for help\n";
+		return 1;
 	}
-	memset(comm + ++appLen, '\0', 1);		// set final closing 0
+	// define command
+	char ind = -1;		// index
+	for (char i = 0; i < commCnt; i++)
+		if (!strcmp(argv[1], commands[i].first)) { ind = i; break; }
+	if (ind == -1) {
+		std::cout << "unrecognized command: " << argv[1] << EOL;
+		return PrintUsage(false);
+	}
+	return CallApp(ind, (const char**)argv, argc);
+}
 
+int PrintUsage(bool prTitle)
+{
+	const char* ver = "1.0";
+	if (prTitle)
+		std::cout << appName.c_str() << ": statistical tools for NGS data\nVersion: "
+		<< ver << "\n\nUsage:\t"
+		<< appName.c_str() << " <command> [options]\n";
+	std::cout << "\nCommands:\n";
+	for (BYTE i = 0; i < commCnt; i++) {
+		std::cout << std::setw(10) << commands[i].first << std::setw(2) << BLANK;
+		CallApp(i);
+	}
+	std::cout << EOL;
+	return !prTitle;
+}
+
+// Calls package
+//	@ind: index of package in commands[]
+//	@argv: program arguments
+//	@argc: number of program arguments
+//	return: exit code
+int CallApp(BYTE ind, const char* argv[], int argc)
+{
+	const char* missUtil = ":\t this utility is missing\n";
+	const char* app = commands[ind].second;
+	const char* helpParams[] = { NULL, NULL, optSumm };
+	int ret = 0;
+
+	CommLine cm(app, argv ? argv : helpParams, argc);
+	//std::cout << cm.Get() << EOL;	return 0;	// control output
 #ifdef _WIN32
-	STARTUPINFO si;     
+	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
-	ZeroMemory( &si, sizeof(si) );		// set the size of the structures
+	ZeroMemory(&si, sizeof(si));		// set the size of the structures
 	si.cb = sizeof(si);
-	ZeroMemory( &pi, sizeof(pi) );
+	ZeroMemory(&pi, sizeof(pi));
 	// start the program up
-	if( CreateProcess(NULL, (LPSTR)comm, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi) )
-	{
-		// Wait until child process exits.
-		WaitForSingleObject( pi.hProcess, INFINITE );
-		
+	if (CreateProcess(NULL, (LPWSTR)cm.Get(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+		WaitForSingleObject(pi.hProcess, INFINITE);	// Wait until child process exits.
 		// Close process and thread handles. 
-		CloseHandle( pi.hProcess );
-		CloseHandle( pi.hThread );
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
 	else {
-		unsigned int err = GetLastError();
-		if(err == 2)	cerr << app << missUtil;
-		else			cerr << "error " << err << EOL;
+		ret = GetLastError();
+		if (ret == 2)	std::cerr << app << missUtil;
+		else			std::cerr << "error " << ret << EOL;
 	}
 #else
-	FILE *fp = popen(comm, "r");
-	if(fp) {
-		char buff[256];
-		while(fgets(buff, sizeof(buff), fp)) cout << buff;
-		pclose(fp);
+	if (IsFileExist(app)) {
+		FILE* fp = popen(cm.Get(), "r");
+		if (fp) {
+			char buff[256];
+			while (fgets(buff, sizeof(buff), fp)) std::cout << buff;
+			pclose(fp);
+		}
+		else { std::cerr << app << " open error\n";	ret = 1; }
 	}
-	else 	cerr << app << " open error\n";
+	else { std::cerr << app << missUtil; ret = 2; }
 #endif
-
-	delete [] comm;
+	return ret;
 }
