@@ -309,7 +309,7 @@ Thus, for the features only the Pearson method is correct.
 
 Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs_medium.png).
+in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs.png).
 
 ### Usage
 
