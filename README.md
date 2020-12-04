@@ -15,13 +15,13 @@ In the second case, the output to the terminal is carried out immediately, which
 ## Installation
 ### Executable file
 
-[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/1.0/biostat-Linux-x64.tar.gz) 
+[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/v1.0/biostat-Linux-x64.tar.gz) 
 and extract **biostat** folder typing `tar -xf biostat-Linux-x64.tar.gz`.<br>
-[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/1.0/biostat-Windows-x64.zip) 
+[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/v1.0/biostat-Windows-x64.zip) 
 and extract **biostat** folder using [WinRAR](https://www.win-rar.com/download.html?&L=0) or any other ZIP-archiver.
 
 Alternative download in Linux:<br>
-`wget https://github.com/fnaumenko/bioStat/releases/download/1.0/biostat-Linux-x64.tar.gz`<br>
+`wget https://github.com/fnaumenko/bioStat/releases/download/v1.0/biostat-Linux-x64.tar.gz`<br>
 
 Add **biostat** to the PATH environment variable.
 
