@@ -1,5 +1,5 @@
 #--- compiler and linker
-cc_flag	:= -c -O3 -D_BIOSTAT
+cc_flag	:= -c -std=c++11 -O3 -D_BIOSTAT
 l_flag	:= -lz
 cc	:= g++
 #--- print message
@@ -11,7 +11,7 @@ endef
 progMAIN:= biostat
 progCC	:= bioCC
 progFD	:= fragDist
-progRD	:= readDens
+#progRD	:= readDens
 progVA	:= vAlign
 progFQS	:= fqStatN
 #--- sources directories
@@ -20,10 +20,11 @@ dirBAM	:= $(dirROOT)/bam
 dirCMN	:= $(dirROOT)/common
 dirCC	:= $(dirROOT)/biocc
 dirFD	:= $(dirROOT)/fragdist
-dirRD	:= $(dirROOT)/readdens
+#dirRD	:= $(dirROOT)/readdens
 dirVA	:= $(dirROOT)/valign
 dirFQS	:= $(dirROOT)/fqstatn
-dirALL	:= $(dirCC) $(dirFD) $(dirRD) $(dirVA) $(dirFQS)
+#dirALL	:= $(dirCC) $(dirFD) $(dirRD) $(dirVA) $(dirFQS)
+dirALL	:= $(dirCC) $(dirFD) $(dirVA) $(dirFQS)
 #--- sources
 srcBAM	:= $(wildcard $(dirBAM)/*.cpp)
 srcCMN	:= $(wildcard $(dirCMN)/*.cpp)
@@ -31,7 +32,7 @@ srcCMN_	:= $(notdir $(srcCMN))
 srcMAIN	:= $(wildcard $(dirROOT)/*.cpp)
 srcCC	:= $(addprefix $(dirCC)/, $(srcCMN_) Calc.cpp bioCC.cpp)
 srcFD	:= $(addprefix $(dirFD)/, $(srcCMN_) fragDist.cpp)
-srcRD	:= $(addprefix $(dirRD)/, $(srcCMN_) readDens.cpp)
+#srcRD	:= $(addprefix $(dirRD)/, $(srcCMN_) readDens.cpp)
 srcVA	:= $(addprefix $(dirVA)/, $(srcCMN_) vAlign.cpp)
 srcFQS	:= $(addprefix $(dirFQS)/, $(addsuffix .cpp, fqStatN common TxtFile))
 
@@ -40,15 +41,13 @@ objBAM	:= $(srcBAM:.cpp=.o)
 objMAIN	:= $(srcMAIN:.cpp=.o)
 objCC	:= $(srcCC:.cpp=.o)
 objFD	:= $(srcFD:.cpp=.o)
-objRD	:= $(srcRD:.cpp=.o)
+#objRD	:= $(srcRD:.cpp=.o)
 objVA	:= $(srcVA:.cpp=.o)
 objFQS	:= $(srcFQS:.cpp=.o)
 
 .PHONY: all
 
-# all: copySRC $(srcBAM) $(srcMAIN) $(srcCMN) $(progFD) $(progMAIN)
-# all: copySRC $(srcBAM) $(srcMAIN) $(srcCMN) $(progCC) $(progFD) $(progRD) $(progVA) $(progFQS) $(progMAIN)
-all: copySRC $(progCC) $(progFD) $(progRD) $(progVA) $(progFQS) $(progMAIN)
+all: copySRC $(progCC) $(progFD) $(progVA) $(progFQS) $(progMAIN)
 
 $(progCC): $(srcCC) $(objCC) $(objBAM)
 	$(cc) $(l_flag) $(objCC) $(objBAM) -o $@
@@ -57,10 +56,6 @@ $(progCC): $(srcCC) $(objCC) $(objBAM)
 $(progFD): $(srcFD) $(objFD) $(objBAM)
 	$(cc) $(l_flag) $(objFD) $(objBAM) -o $@
 	$(call printMSG,$(progFD))
-
-$(progRD): $(srcRD) $(objRD) $(objBAM)
-	$(cc) $(l_flag) $(objRD) $(objBAM) -o $@
-	$(call printMSG,$(progRD))
 
 $(progVA): $(srcVA) $(objVA) $(objBAM)
 	$(cc) $(l_flag) $(objVA) $(objBAM) -o $@
@@ -84,4 +79,5 @@ copySRC:	# copy newer common files to prog folders
 	done
 
 clean:
-	find $(dirALL) -type f -name '*.o' -exec rm {} +
+	@find $(dirALL) -type f -name '*.o' -exec rm {} +
+	@echo cleaning done
