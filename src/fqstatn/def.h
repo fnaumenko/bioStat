@@ -2,3 +2,6 @@
 
 #define	_FQSTATN
 //#define NO_ZLIB
+#ifndef _DUP_OUTPUT
+#define _DUP_OUTPUT	// duplicated output
+#endif

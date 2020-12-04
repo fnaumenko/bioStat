@@ -4,8 +4,8 @@
 enum optValue {
 	oOUTFILE,
 	oTIME,
-	oVERSION,
 	oSUMM,
+	oVERSION,
 	oHELP
 };
 
