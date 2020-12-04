@@ -2,4 +2,6 @@
 
 #define	_FRAGDIST
 #define	_BAM
-//#define _BIOSTAT	// compile as part of bioStat package; defined in makefile
+#ifndef _DUP_OUTPUT
+#define _DUP_OUTPUT	// duplicated output
+#endif
