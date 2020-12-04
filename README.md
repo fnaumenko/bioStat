@@ -145,7 +145,7 @@ For more details about list of file names see `-l|--list` option.
 #### Output
 The program displays (and optionally duplicates to the file) the coefficients for each chromosome and the total, if it is specified.<br>
 An example of the extended output for one chromosome, showing regional coefficients and their histograms histograms 
-(here`$SM` stores the full chromosome sizes filename): 
+(here`$SM` stores the chromosome sizes filename): 
 ```
 $ bioCC -tF -c 1 -f 2455_th09.bed -e 300 -B 0.1 -g $SM m36.wig 2455_M1.wig
 template 2455_th09.bed: 65 features per chrom 1 (00:00)
@@ -340,7 +340,7 @@ Read size distribution is called based on original DNA sequence in [FASTQ](https
 or aligned DNA sequence in BAM/BED format.<br>
 Note that the number of mapped reads can be significantly less than the initial one, which can lead to distortion 
 of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
-in ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
+in ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
 The program can also accept a file containing the finished distribution, in order to call its parameters. 
 This is a plain text file with *.dist* extension, each line of which corresponds to one distribution point, 
 i.e. a <frequency>-<size> pair. 
