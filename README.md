@@ -106,13 +106,13 @@ Other:
 ### Details
 
 #### Input data
-Dense continuous data (coverage) are чcompared using wiggle data in [WIG](https://genome.ucsc.edu/goldenpath/help/wiggle.html) format.
+Dense continuous data (coverage) are compared using wiggle data in [WIG](https://genome.ucsc.edu/goldenpath/help/wiggle.html) format.
 Features are compared using ordinary [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.
 Read densities are compared using aligned DNA sequences (alignments) in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) or BED format.
 The program recognizes the file format automatically by their extension (case-insensitive).
 
 **Coverage**<br>
-All type of coverage representation – ([BedGraph](https://genome.ucsc.edu/goldenPath/help/bedgraph.html), 
+All type of coverage representation – [BedGraph](https://genome.ucsc.edu/goldenPath/help/bedgraph.html), 
 [wiggle](https://genome.ucsc.edu/goldenpath/help/wiggle.html) variable step, fixed step – can be used in any combination.
 
 **Features**<br>
@@ -123,9 +123,9 @@ See `-a|--align` option for more details.
 
 **Read density**<br>
 Each read is counted not by its length (this will be the read coverage, the corresponding WIG file can be obtained 
-with standard tool, such as [bedtools genomecov](https://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html), 
+with standard tool such as [bedtools genomecov](https://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html), 
 [deepTools bamCoverage](https://deeptools.readthedocs.io/en/develop/content/tools/bamCoverage.html), 
-[peakranger wigpe](http://ranger.sourceforge.net/manual1.18.html), but by its 5’ position. 
+[peakranger wigpe](http://ranger.sourceforge.net/manual1.18.html)), but by its 5’ position. 
 Thus, two internal views of the coverage with span=1 are formed, which are then compared with each other.
 
 BAM/BED do not have to be sorted by chromosomes, 
@@ -138,8 +138,9 @@ In both cases the first file in a list – *primary* – is compared to the othe
 Only common chromosomes for the compared pair are considered (unless it is limited by the option `-c|--chr`). 
 
 Be careful by using standard naming conventions like *abc?.bed*, *a\*.bed*. 
-You must be sure that first of the lexically recognized files is really primary, and that all other files really need to be compared.<br>
-For more details about file name list see ```-l|--list``` option.
+You must be sure that first of the lexically recognized files is really primary, and that all other files really need to be compared.
+
+For more details about list of file names see `-l|--list` option.
 
 #### Output
 The program displays (and optionally duplicates to the file) the coefficients for each chromosome and the total, if it is specified.<br>
@@ -229,7 +230,7 @@ This option is ignored for the *ordinary* bed files.
 specifies the value by which all features in a 'template' bed file or in a *primary ordinary* bed file should be stretched in both directions before comparison.<br>
 If stretched features become intersected, they are joined.<br>
 This option is mainly constructed for enriched region comparison while initial binding sites are represented by ‘template’. 
-In the case of *ordinary* bed, the *primary* file acts as a template. 
+In case of *ordinary* bed, the *primary* file acts as a template. 
 An example of using this option is given in the [Output](#output) section.<br>
 Range: 0-1000<br>
 Default: 0
@@ -267,9 +268,9 @@ This option is topical only with option `-f|--fbed`.<br>
 
 `-i|--info <LAC|NM|CNT|STAT>`<br>
 outputs information about items (features/reads/intervals).<br>
-`LAC`:  laconic output. This value minimizes the output as possible to remain clear, e.g. for use in batch file.<br>
-`NM`:   brief output. Prints results and input file names.<br>
-`CNT`:  prints file names and number of all accepted items.<br>
+`LAC`:&nbsp;&nbsp; laconic output. This value minimizes the output as possible to remain clear, e.g. for use in batch file.<br>
+`NM`:&nbsp;&nbsp;&nbsp; brief output. Prints results and input file names.<br>
+`CNT`:&nbsp;&nbsp; prints file names and number of all accepted items.<br>
 `STAT`: prints item ambiguities statistics, if they exist. 
 In the current version, statistics are displayed only for *ordinary* bed files, including template.<br>
 Default: `NM`
@@ -308,9 +309,9 @@ Thus, for the features only the Pearson method is correct.
 Calculates paired-end fragment size lognormal/normal distribution parameters or read length normal distribution parameters 
 (for reads of variable length).<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![FragDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs.png).<br>
+in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
-in the ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distribs.png).
+in the ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png).
 
 ### Usage
 
@@ -339,7 +340,7 @@ Read size distribution is called based on original DNA sequence in [FASTQ](https
 or aligned DNA sequence in BAM/BED format.<br>
 Note that the number of mapped reads can be significantly less than the initial one, which can lead to distortion 
 of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
-in ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distribs.png)).<br>
+in ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
 The program can also accept a file containing the finished distribution, in order to call its parameters. 
 This is a plain text file with *.dist* extension, each line of which corresponds to one distribution point, 
 i.e. a <frequency>-<size> pair. 
@@ -351,8 +352,8 @@ The program recognizes the file format automatically by their extension (case-in
 Called distribution parameters and Pearson correlation coefficient for the original and called distributions, 
 calculated on the basis of the \<start of the sequence\> – \<the first frequency value less than 0.1% of the maximum\>.<br>
 If the original distribution is assumed to be lognormal, 
-the program also outputs the parameters and Pearson's coefficient for the normal distribution if it looks like lognormal.<br>
-An example of the extended output (optional original distribution output is truncated):
+the program also outputs the parameters and Pearson's coefficient for the normal distribution if it looks similar.<br>
+An example of the extended output:
 ```
 $ fragDist -D 965515.bam
 <in-file> 965515.bam: 1334196 reads
@@ -376,10 +377,10 @@ length	frequency
 
 `-i|--inp <FRAG|READ>`<br>
 sets the subject of distribution parameter calling: `FRAG` - fragments, `READ` - reads<br>
-*WARNING*: in the Windows version, while trying to call fragment distribution with single-end BAM file, 
+WARNING: in the Windows version, while trying to call fragment distribution with single-end BAM file, 
 the program will crash silently instead of printing the corresponding message. 
 This is due to an incorrectness in the external BamTools library being used. 
-With single-end BED alignment fragDist exits correctly, as well as with both formats under Linux.<br>
+With single-end BED alignment **fragDist** exits correctly, as well as with both formats under Linux.<br>
 Default: `FRAG`
 
 `-n|--norm`
@@ -407,8 +408,8 @@ which is recalled from an artificial [FastQ](https://en.wikipedia.org/wiki/FASTQ
 It compares the original and mapped coordinates of each read and prints statistics of right and wrong mappings.
 
 To do this each read in an initial artificial sequence should keep its location as a part of its name. 
-Read’s name format should be /<some_text/>:chr/<ID/>:/<original_start_pos/>./<uniq_number/> for sigle-end reads and 
-/<some_text/>:chr/<ID/>:/<original_frag_start_pos/>-/<original_frag_end_pos/>./<uniq_number/>//<mate/> for paired-end reads.<br>
+Read’s name format should be \<some_text\>:chr\<ID\>:\<original_start_pos\>.\<uniq_number\> for sigle-end reads and 
+\<some_text\>:chr\<ID\>:\<original_frag_start_pos\>-\<original_frag_end_pos\>.\<uniq_number\>/\<mate\> for paired-end reads.<br>
 Such template sequence can be generated by [**isChIP**](https://github.com/fnaumenko/isChIP) software. 
 
 ### Usage
@@ -462,10 +463,10 @@ reads per different chroms:	134950	7.14285%
 chr2
 ...
 ```
-"mism" – mismatches – means the number of erroneous nucleotides in a read (limited by the length of the read);<br>
-"readCnt" – number of reads with given mismatches number;<br>
-"quality" – average quality value in relative units for given reads;<br>
-"precise" means the number of reads mapped to true coordinates without mismatches. 
+`mism` – mismatches – means the number of erroneous nucleotides in a read (limited by the length of the read);<br>
+`readCnt` – number of reads with given mismatches number;<br>
+`quality` – average quality value in relative units for given reads;<br>
+`precise` means the number of reads mapped to true coordinates without mismatches. 
 Zero mismatches denotes reads without mismatches but mapped to "false" position (different from the original).
 
 #### Options description
