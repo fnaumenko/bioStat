@@ -2,7 +2,7 @@
 vAlign.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 02.04.2019
+Last modified: 1.1.2020
 -------------------------
 Provides option emum and main functionality
 ***********************************************************/
@@ -18,6 +18,7 @@ enum optValue {
 	oALARM,
 	oOUTFILE,
 	oTIME,
+	oSUMM,
 	oVERSION,
 	oHELP
 };
@@ -57,7 +58,7 @@ private:
 		void Print(float maxScore) {
 			dout << _count;
 			if( _count )	dout << TAB << (_avrScore/maxScore);
-			dout << EOL;
+			dout << LF;
 		}
 	};
 
@@ -73,8 +74,8 @@ private:
 
 	// Gets count of mismatches for tested Read
 	//	@seq: chromosome sequence
-	//	@templPos: start position of template Read
-	//	@testPos: start position of tested Read
+	//	@templPos: template Read start position 
+	//	@testPos: tested Read start position
 	//	return: count of testet Read's mismatches in comparison with template Read
 	readlen VerifyRead(const RefSeq& seq, chrlen templPos, chrlen testPos);
 
@@ -86,4 +87,3 @@ public:
 	//	@rCnt: total count of Reads for given chrom
 	void PrintStats(chrid cID, size_t rCnt);
 };
-
