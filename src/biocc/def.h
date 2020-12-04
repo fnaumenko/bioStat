@@ -3,4 +3,9 @@
 #define	_BIOCC
 #define _FEATURES
 #define _BAM
-//#define _BIOSTAT	// compile as part of bioStat package; defined in makefile
+#define _WIG
+#define DEBUG
+//#define _NO_ZLIB
+#ifndef _DUP_OUTPUT
+#define _DUP_OUTPUT	// duplicated output
+#endif

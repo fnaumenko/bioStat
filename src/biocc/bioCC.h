@@ -2,7 +2,7 @@
 bioCC.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 08.06.2019
+Last modified: 27.11.2020
 -------------------------
 Provides option emum and FileList class
 ***********************************************************/
@@ -13,22 +13,16 @@ enum optValue {
 	oGEN,
 	oGAPLEN,
 	oDUPL,
-	//oDIFFSZ,
 	oFILE_LIST,
 	oCHROM,
 	oCC,
-	oSPACE,
 	oFBED,
 	oEXTLEN,
 	oEXTSTEP,
 	oPRCC,
 	oBINWIDTH,
-	oFRES,
-	oFNORM,
-	//oCROSS,
-	//oCIRC,
-	//oSTEP,
-	oINFO,
+	oPRFCC,
+	oVERB,
 	oWARN,
 	oOUTFILE,
 	oTIME,
@@ -48,20 +42,19 @@ class FileList
 private:
 	char **_files;		// file names
 	short _count;		// count of file names
-	bool _memRelease;	// true if memory should be free in destructor
+	//bool _memRelease;	// true if memory should be free in destructor
 
 public:
 	// Constructor for argument list.
-	FileList	(char* files[], short cntFiles);
+	//FileList	(char* files[], short cntFiles);
 	
 	// Constructor for list from input file.
 	// Lines begining with '#" are commetns and would be skipped.
 	FileList	(const char* fileName);
 
 	~FileList()	{
-		if( _files && _memRelease ) {
-			for(short i=0; i<_count; i++)
-				free(_files[i]);
+		if( _files /*&& _memRelease*/ ) {
+			for (int i = 0; i < _count; delete [] _files[i++]);
 			delete [] _files;
 		}
 	}
@@ -73,14 +66,13 @@ public:
 	
 	inline const char* operator[](int i) const { return _files[i]; }
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	void Print() const {
 		if( _files )
 			for(short i=0; i<_count; i++)
-				cout << _files[i] << EOL;
+				cout << _files[i] << LF;
 		else
 			cout << "Empty\n";
 	}
 #endif
 };
-
