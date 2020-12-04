@@ -2,7 +2,7 @@
 Data.cpp (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 22.06.2019
+Last modified: 3.12.2020
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -12,7 +12,7 @@ Provides common data functionality
 	#include "isChIP.h"
 #endif	//_BIOCC
 #include <fstream>	// to write simple files without _FILE_WRITE
-
+#include <memory>	// uniq_ptr
 
 static const char* Per = " per ";
 
@@ -58,38 +58,37 @@ chrlen Obj::Spotter::Count() const
 }
 
 // Print given spotter as line alarm
-//	@spotter: given spotter
-void Obj::Spotter::PrintLineAlarm(eCase spotter) const
+//	@ecase: spotter's case
+void Obj::Spotter::PrintLineAlarm(eCase ecase) const
 {
 	if( _alarm ) {
-		if( !_alarmPrinted )	{ dout << EOL;	_alarmPrinted = true; }
-		//Err(_Msgs[spotter].LineAlarm + BLANK + ItemTitle() + SepCl, _file->LineNumbToStr().c_str()).
-		Err(_Msgs[spotter].LineAlarm + BLANK + ItemTitle() + SepCl, _file->LineNumbToStr().c_str()).
-			Warning(Message(spotter));
+		if( !_alarmPrinted )	{ dout << LF;	_alarmPrinted = true; }
+		Err(_Msgs[ecase].LineAlarm + SPACE + ItemTitle() + SepCl, _file->LineNumbToStr().c_str()).
+			Warning(Message(ecase));
 	}
 }
 
 // Outputs case statistics
-//	@spotter: spotter's case
+//	@ecase: spotter's case
 //	@allCnt: total count of ambiguities
 //	@total: if true then prints total warning case
-void Obj::Spotter::PrintCaseStat(eCase spotter, chrlen allCnt, bool total) const
+void Obj::Spotter::PrintCaseStat(eCase ecase, chrlen allCnt, bool total) const
 {
-	chrlen cnt = _cases[spotter].Count;	// count of case's ambiguities
+	chrlen cnt = _cases[ecase].Count;	// count of case's ambiguities
 	if( !cnt )	return;
-	const char* totalAlarm = _Msgs[spotter].TotalAlarm;
-	if(total)	dout << Notice;
+	const char* totalAlarm = _Msgs[ecase].TotalAlarm;
+	if(total)	dout << "NOTICE: ";
 	else		dout << TAB;
 	dout<< cnt
-		<< sPercent(ULLONG(cnt), ULLONG(allCnt), 4, 0, true) << BLANK
-		<< _Msgs[spotter].StatInfo << BLANK
+		<< sPercent(ULLONG(cnt), ULLONG(allCnt), 4, 0, true) << SPACE
+		<< _Msgs[ecase].StatInfo << SPACE
 		<< ItemTitle(cnt);
 
 	//if(unsortedItems)		dout << " arisen after sorting";
-	if(totalAlarm)	dout << BLANK << totalAlarm;
-	dout << SepSCl << Message(spotter);
+	if(totalAlarm)	dout << SPACE << totalAlarm;
+	dout << SepSCl << Message(ecase);
 	if(totalAlarm)	dout << '!';
-	dout << EOL;
+	dout << LF;
 }
 
 const char* ACCEPTED = " accepted";
@@ -97,15 +96,13 @@ const char* ACCEPTED = " accepted";
 // Prints accepted items with specifying chrom
 //	@cID: readed chromosome's ID or Chrom::UnID if all
 //	@prAcceptItems: if true then prints number of accepted items
-//	@itemCnt: count of accepted items after treatment
-void Obj::Spotter::PrintItems(chrid cID, bool prAcceptItems, long itemCnt) const
+//	@estItemCnt: count of accepted items after treatment
+void Obj::Spotter::PrintItems(chrid cID, bool prAcceptItems, long estItemCnt) const
 {
-	if(prAcceptItems) {
-		dout << itemCnt;
-		dout << ACCEPTED;
-	}
-	if(_info > Obj::iNM) {
-		dout << BLANK << ItemTitle(itemCnt);
+	if (prAcceptItems || cID != Chrom::UnID)	dout << estItemCnt;
+	if (prAcceptItems)							dout << ACCEPTED;
+	if(_info > Obj::eInfo::NM) {
+		dout << SPACE << ItemTitle(estItemCnt);
 		if( cID != Chrom::UnID )	dout << Per << Chrom::ShortName(cID);
 	}
 }
@@ -113,79 +110,87 @@ void Obj::Spotter::PrintItems(chrid cID, bool prAcceptItems, long itemCnt) const
 // Creates an instance with omitted COVER, SHORT, SCORE and NEGL cases,
 // and Features cases by default:
 // omitted DUPL cases and handled CROSS and ADJAC 
-Obj::Spotter::Spotter (eInfo info, bool alarm, FT::fType format,
+Obj::Spotter::Spotter (FT::eType format, eInfo info, bool alarm,
 	eAction dupl, eAction crossANDadjac, eAction diffsz) :
 	_info(info),
 	_alarm(alarm),
 	_fType(format),
-	_alarmPrinted(info <= Obj::iLAC),	// if LAC, do not print EOL at the first time
+	_alarmPrinted(info <= Obj::eInfo::LAC),	// if LAC, do not print LF at the first time
 	_count(CHRLEN_UNDEF),
 	_file(NULL),
 #ifdef _BIOCC
 	_treatcID(vUNDEF),
 #endif
 	unsortedItems(false),
-	wasPrinted(false),
+	hasPrinted(false),
 	chrLen(CHRLEN_UNDEF)
 {
-	noCheck = info != Obj::iSTAT && dupl == ACCEPT && diffsz == ACCEPT && !alarm;
+	noCheck = info != Obj::eInfo::STAT && dupl == eAction::ACCEPT && diffsz == eAction::ACCEPT && !alarm;
 	memset(_cases, 0, _CasesCnt*sizeof(Case));	// initialize by 0
 	_cases[DUPL].Action = dupl;
 	_cases[CROSS].Action = _cases[ADJAC].Action = crossANDadjac;
-	_cases[COVER].Action = _cases[SHORT].Action = _cases[SCORE].Action = OMIT;
+	_cases[COVER].Action = _cases[SHORT].Action = _cases[SCORE].Action = eAction::OMIT;
 	_cases[DIFFSZ].Action = diffsz;
-	_cases[EXCEED].Action = OMIT;
+	_cases[EXCEED].Action = eAction::OMIT;
 }
 
 // Initializes given Region by second and third current reading line positions, with validating
 //	@rgn: Region that should be initialized
-//	@prevStart: previous start position
 //	return: true if Region was initialized successfully
-bool Obj::Spotter::InitRegn(Region& rgn, chrlen prevStart)
+bool Obj::Spotter::InitRegn(Region& rgn)
 {
 	// dismiss check for negative
 	//long start = _file->LongField(1);
 	//if(start < 0)		ThrowExcept(Err::B_NEGPOS);
 	//rgn.Set(start, _file->LongField(2));
 
-	rgn.Set( _file->ItemStart(), _file->ItemEnd());
+	chrlen end = _file->ItemEnd();
+	if (end < rgn.Start)		
+		unsortedItems = true;
+	rgn.Set( _file->ItemStart(), end);
 	if(rgn.Invalid())	ThrowExcept(Err::B_BADEND);
-	if(rgn.End>chrLen && TreatCase(EXCEED)<0)	return false;	// exceeding chrom
-	if(rgn.End < prevStart)		unsortedItems = true;
-	return true;
+	return (end <= chrLen || TreatCase(EXCEED) >= 0);		// false if exceeding chrom
+
+	//if(end>chrLen && TreatCase(EXCEED)<0)	return false;	// exceeding chrom
+	//return true;
 }
 
 // Prints statistics.
 //	@cID: readed chromosome's ID or Chrom::UnID if all
 //	@title: string at the beginning; if NULL then this instance is used while initialization and don't feeds line
 //	@itemCnts: pair of count of all items AND count of accepted items 
-//	The last line never ends with EOL 
+//	The last line never ends with LF 
 void Obj::Spotter::Print(chrid cID, const char* title, const p_ulong& itemCnts)
 {
-	if(_info <= Obj::iLAC || !itemCnts.first)		return;
+	if(_info <= Obj::eInfo::LAC || !itemCnts.first)		return;
 	bool noSpotters = itemCnts.first == itemCnts.second;
 
-	if(wasPrinted)	dout << EOL;	// "sorting" was printed
+	//if(hasPrinted)	dout << LF;	// "sorting" was printed
 	if( title )	{		// additional mode: after extension
-		if(_info < Obj::iEXT || noSpotters)		return;	// no ambigs
+		if(_info < Obj::eInfo::STD || noSpotters)		return;	// no ambigs
 		dout << "    " << title << SepCl;
-		if(_info==Obj::iEXT)
+		if(_info==Obj::eInfo::STD)
 			PrintItems(cID, true, itemCnts.second);
-		dout << EOL;
+		dout << LF;
 	}
 	else {				// main mode: addition to file name
-		bool printAccept = _info==Obj::iEXT && !noSpotters;		// print accepted items
+		//bool printAccept = itemCnts.first != itemCnts.second
+		//|| (_info==Obj::eInfo::STD && !noSpotters);		// print accepted items
+		bool printAccept = _info == Obj::eInfo::STD && !noSpotters;		// print accepted items
 
-		if(_info > Obj::iNM) {
-			dout << SepCl << itemCnts.first;
-			if(!noSpotters)	dout << BLANK << Total;
+		if(_info > Obj::eInfo::NM ) {
+			dout << SepCl;
+			if (cID == Chrom::UnID) {
+				dout << itemCnts.first;
+				if (!noSpotters)	dout << SPACE << sTotal;
+			}
+			if (printAccept)		dout << SepCm;
+			PrintItems(cID, printAccept, itemCnts.second);
+			hasPrinted = true;
 		}
-		if(printAccept)		dout << SepCm;
-		PrintItems(cID, printAccept, itemCnts.second);
-		wasPrinted = true;
 	}
-	if(Count() && _info == Obj::iSTAT) {
-		if(!title)		dout << SepCm << "from which" << EOL;
+	if(Count() && _info == Obj::eInfo::STAT) {
+		if(!title)		dout << SepCm << "from which" << LF;
 		for(BYTE i=0; i<_CasesCnt; i++)
 			PrintCaseStat(static_cast<eCase>(i), itemCnts.first);
 
@@ -196,17 +201,17 @@ void Obj::Spotter::Print(chrid cID, const char* title, const p_ulong& itemCnts)
 			_cases[NEGL_CHR].Count = itemCnts.first - itemCnts.second - Count();
 			// correct (add) accepted features
 			for(BYTE i=0; i<_CasesCnt-1; i++)	// loop excepting NEGL chroms case
-				if( _cases[i].Action == Spotter::ACCEPT )	_cases[NEGL_CHR].Count += _cases[i].Count;
+				if( _cases[i].Action == Spotter::eAction::ACCEPT )	_cases[NEGL_CHR].Count += _cases[i].Count;
 			
 			PrintCaseStat(NEGL_CHR, itemCnts.first);
 		}
 		// print total remained entities
-		dout<< TAB << Total << ACCEPTED << SepCl << itemCnts.second
-			<< sPercent(ULLONG(itemCnts.second), ULLONG(itemCnts.first), 4, 0, true) << BLANK
+		dout<< TAB << sTotal << ACCEPTED << SepCl << itemCnts.second
+			<< sPercent(ULLONG(itemCnts.second), ULLONG(itemCnts.first), 4, 0, true) << SPACE
 			<< ItemTitle(itemCnts.second);
-		wasPrinted = true;
+		hasPrinted = true;
 	}
-	fflush(stdout);
+	//fflush(stdout);
 }
 
 #ifdef _BIOCC
@@ -218,8 +223,8 @@ void Obj::Spotter::SetTreatedChrom(chrid cid)
 }
 #endif
 
-// EOL rules.
-// appearance of info on the screen while Init() and others | ended by EOL
+// LF rules.
+// appearance of info on the screen while Init() and others | ended by LF
 // -----------------------------------------------------------------------
 //	exception throwing from file.LongField() etc.	-
 //	exception throwing from ChildInit()				-
@@ -239,20 +244,20 @@ void Obj::Spotter::SetTreatedChrom(chrid cid)
 //	@cSizes: chrom sizes to control chrom length exceedeing
 //	@isInfo: true if file info should be printed
 //	@abortInval: true if invalid instance shold be completed by throwing exception
-//	@scoreInd: index of 'score' filed; is set for FBED only
+//	@scoreNumb: number of 'score' filed (for FBED and BedGraph)
 void Obj::Init	(const char* title, const string& fName, Spotter& spotter,
-	ChromSizes& cSizes, bool isInfo, bool abortInval, BYTE scoreInd)
+	ChromSizes& cSizes, bool isInfo, bool abortInval, BYTE scoreNumb)
 {
 	p_ulong items;
 	Timer	timer(isInfo);
 
-	if(isInfo) {
-		if(title)	dout << title << BLANK;
-		dout << fName, fflush(stdout), _EOLneeded = true;
+	if(isInfo) {	// print title and file name
+		if(title)	dout << title << SPACE;
+		dout << fName;	fflush(stdout);	_EOLneeded = true;
 	}
 	try {
 #ifdef _BAM
-		if( spotter.FileType() == FT::BAM) {
+		if( spotter.FileType() == FT::eType::BAM) {
 			BamInFile file(fName, !isInfo);
 			spotter.SetFile(file);
 			Chrom::SetRelativeID();		// irrespective of initial setting
@@ -260,23 +265,14 @@ void Obj::Init	(const char* title, const string& fName, Spotter& spotter,
 			Chrom::Validate(file.GetHeaderText());	// validate all chroms ID
 #else
 			if(!cSizes.IsFilled())	
-				cSizes.Init(file.GetHeaderText(), file.ChromCount());
-
+				cSizes.Init(file.GetHeaderText());
 #endif
 			items = InitDerived(spotter, cSizes);
 		}
 		else 
-#endif
-#ifdef _BIOCC
-		if( spotter.FileType() == FT::WIG) {
-			TabFile file(fName, spotter.FileType(), abortInval, !isInfo);
-			spotter.SetFile((DataFile&)file);
-			items = InitDerived(spotter, cSizes);
-		}
-		else 
-#endif
+#endif	//_BAM
 		{
-			BedInFile file(fName, spotter.FileType(), scoreInd, abortInval, !isInfo);
+			BedInFile file(fName, spotter.FileType(), scoreNumb, abortInval, !isInfo);
 			spotter.SetFile(file);
 			items = InitDerived(spotter, cSizes);
 		}
@@ -296,16 +292,17 @@ void Obj::Init	(const char* title, const string& fName, Spotter& spotter,
 		}
 		spotter.Print(Chrom::CustomID(), NULL, items);
 	}
-	if(timer.IsEnabled())	dout << BLANK;
+	if(timer.IsEnabled())	dout << SPACE;
 	timer.Stop(true, false);
-	PrintEOL(spotter.wasPrinted);	// || spotter.IsAlarmPrinted());
-}
+	PrintEOL(false);
+	}
 
-// Prints EOL if needs.
-//	@printEOL: true if EOL should be printed
+// Prints LF if needs and flash stdout
+//	@printEOL: true if LF should be printed explicitly
 void Obj::PrintEOL(bool printEOL)
 {
-	if(printEOL || _EOLneeded)	dout << EOL;
+	if(printEOL || _EOLneeded)	dout << LF;
+	fflush(stdout);
 	_EOLneeded = false;
 }
 
@@ -313,154 +310,125 @@ void Obj::PrintEOL(bool printEOL)
 
 /************************ class BaseItems ************************/
 
-// Checks if chromosome is uniq and adds it to the container
+// Checks if items are initialized, chromosome is uniq, and adds it to the instance
 //	@cID: chroms id
 //	@firstInd: first item index
-//	@lastInd: last item index
+//	@spotter: spotter to close items
 //	@fname: file name for exception message
-void BaseItems::AddChrom(chrid cID, chrlen firstInd, chrlen lastInd, const string& fname)
+void BaseItems::AddChrom(chrid cID, chrlen firstInd, const Spotter& spotter)
 {
-	if(FindChrom(cID))
-		Err(ItemTitle(true) + " are not consolidated on chromosomes", fname).Throw(true);
-	AddVal(cID, ItemIndexes(firstInd, lastInd));
+	FillChromItems(spotter);
+	chrlen lastInd = ItemsCount();
+	if (firstInd == lastInd)	return;	// uninitialized items
+	if (FindChrom(cID))					// this chrom is already saved in Chroms
+		Err(ItemTitle(true) + " are not consolidated on chromosomes", spotter.File().CondFileName()).Throw(true);
+	AddVal(cID, ItemIndexes(firstInd, lastInd + FinishItems(spotter)));
 }
 
-// Initializes instance from tab file
+// Initializes generalized BED instance from tab file
 //	@spotter: spotter to control ambiguities
 //	@cSizes: chrom sizes to control chrom length exceedeing
 //	return: numbers of all and number of initialized items
-p_ulong BaseItems::InitDerived (Spotter& spotter, const ChromSizes& cSizes)
+// It's separated because it's invoked not only in BaseItems::InitDerived, but also in Cover::InitDerived
+p_ulong BaseItems::InitBed(Spotter& spotter, const ChromSizes& cSizes)
 {
-	DataFile& file = spotter.File();
-	ULONG	itemCnt = file.ItemCount();
+	DataInFile& file = spotter.File();
+	ULONG	estItemCnt = file.EstItemCount();
 
-	if( !itemCnt )		return make_pair(0, 0);
+	if( !estItemCnt )		return make_pair(0, 0);
 		
-	chrlen	cntLines  = 0,	// count of lines beginning with 'chr'
-			prevStart = 0,	// start previous feature positions
-			firstInd  = 0,	// first index in feature's container for current chromosome
-			currInd	  = 0;	// current index in Feature's/Read's container.
-							// Needed to avoid excess virtual method given current container size
-	Region	rgn;			// current feature positions
-	chrid	currCID = Chrom::UnID,	// current chromosome's ID
-			nextCID;				// next chromosome's ID
-	bool	unsorted = false;		// true if chroms are unsorted
+	chrlen	cntLines = 0;		// count of lines beginning with 'chr'
+	chrlen	cntAccLines = 0;	// count of accepted lines beginning with 'chr'
+	chrlen	firstInd = 0;		// first index in feature's container for current chromosome
+	Region	rgn;				// current item positions
+	chrid	cID = Chrom::UnID;	// current chromosome's ID
+	//bool	unsorted = false;	// true if chroms are unsorted
 	bool	skipChrom = false;
 
-	Reserve(Chrom::NoCustom() ? Chrom::Count : 1);
-	ReserveItemContainer(itemCnt);
-	
-	while(file.GetNextItem()) {
-		if( file.IsNextChrom() ) {
-			if((nextCID = file.SetNextChrom()) == Chrom::UnID)	continue;	// negligible next chrom
-			if(Chrom::NoCustom()) {			// are all chroms specified?
-				if(currInd != firstInd)		// have been features for this chrom saved?
-					AddChrom(currCID, firstInd, currInd, file.CondFileName());
-				if(nextCID < currCID)	unsorted = true;		// unsorted chrom
+	ReserveItems(estItemCnt);
+
+	for (; file.GetNextItem(); ++cntLines) {
+		if( file.GetNextChrom() ) {
+			chrid nextCID = file.GetChrom();
+			if (nextCID == Chrom::UnID)		continue;
+			if(Chrom::NoCustom()) {					// are all chroms specified?
+				// Last item index is equal of total number of recorded items.
+				// In the first pass cID==UnID, but it doesn't added because firstInd==ItemsCount()==0
+				AddChrom(cID, firstInd, spotter);
+				//if(cID != Chrom::UnID && nextCID < cID)	unsorted = true;		// unsorted chrom
 			}
-			else {		// single chrom is specified; items have already been saved,
-						// the chrom itself will be saved after loop
-				if(rgn.End)			break;
-				if(unsorted)
-					Err("is unsorted. Single " + Chrom::ShortName(Chrom::CustomID()) + 
-						" extraction is allowed only for sorted file", file.CondFileName()).Throw(true);
-				if(skipChrom = nextCID != Chrom::CustomID())	continue;
+			else {				// single chrom is specified
+				if (rgn.End)	// rigion is initialized: items for the specified chrom are already saved
+					break;		// the chrom itself will be saved after loop
+				//if(unsorted)
+				//	Err("is unsorted. Single " + Chrom::ShortName(Chrom::CustomID()) + 
+				//		" extraction is allowed only for sorted file", file.CondFileName()).Throw(true);
+				if(skipChrom = nextCID != Chrom::CustomID())	
+					continue;
 			}
-			currCID = nextCID;
-			firstInd = currInd;
-#ifdef _BIOCC
-			spotter.SetTreatedChrom(currCID);
+			cID = nextCID;
+			firstInd = ItemsCount();
+			rgn.Start = 0;			// clear for the new chromosome to avoid false sorting
+#ifdef _WIG
+			spotter.lastEnd = 0;	// clear for the new chromosome (BEDGRAPH)
 #endif
-			if(cSizes.IsFilled())	spotter.chrLen = cSizes[currCID];
-			cntLines++;
-			if(!spotter.InitRegn(rgn, 0))			continue;
+#ifdef _BIOCC
+			spotter.SetTreatedChrom(cID);
+#endif
+			if(cSizes.IsFilled())	spotter.chrLen = cSizes[cID];
+			if(!spotter.InitRegn(rgn))			continue;
 		}
 		else {		// the same chrom
-			if(skipChrom)							continue;
-			cntLines++;
-			if(!spotter.InitRegn(rgn, prevStart))	continue;
-			if( !CheckLastPos(rgn, spotter))			continue;	// check positions for the same chrom only
+			if(skipChrom)						continue;
+			if(!spotter.InitRegn(rgn))			continue;
+			if( !CheckLastPos(rgn, spotter))	continue;	// check positions for the same chrom only
 		}
 #ifdef _VALIGN
-		if(AddItem(rgn, file))	currInd++;		// check score
-		else	spotter.TreatCase(spotter.SCORE);
+		if (!AddItem(rgn, spotter))
+			spotter.TreatCase(spotter.SCORE);	// check score
+		else	cntAccLines++;
 #else
-		AddItem(rgn, file);		currInd++;		// don't check score
+		cntAccLines += AddItem(rgn, spotter);				// don't check score
 #endif
-		prevStart = rgn.Start;
-	};
-
-	if( rgn.End && currInd ) {			// some features for at least one valid chrom were saved
-		if( currCID != Chrom::UnID )	// is last chrom valid?
-			AddChrom(currCID, firstInd, currInd, file.CondFileName());
-		if( itemCnt/currInd > 2 )	ShrinkItemContainer();
-		if( unsorted )		Sort();		// sort chroms
-		if( spotter.unsortedItems ) {
-			const bool prInfo = spotter.Info() > Obj::iNONE;
-			if(prInfo) {
-				Err(ItemTitle(false) + " sorting...", file.CondFileName()).Throw(false, false);
-				spotter.wasPrinted = true;
-			}
-			SortItems(spotter);
-			if(prInfo)	dout << Done;// << EOL;
-		}
 	}
-	SetAllItemsCount();
-	
-	return make_pair(cntLines, AllItemsCount());
+	// save last chrom
+	if( rgn.End && cntAccLines) {	// some features for at least one valid chrom were saved
+		if (cID != Chrom::UnID)		// is last chrom valid?
+			AddChrom(cID, firstInd, spotter);
+		SortIfNecessary(spotter, estItemCnt);
+	}
+	//cout << " est/fact: " << float(estItemCnt) / ItemsCount() << SPACE;
+	return make_pair(cntLines, cntAccLines);
 }
 
 // Prints items name and count, adding chrom name if the instance holds only one chrom
-void BaseItems::PrintItemCount() const
+//	@prLF: if true then print line feed
+void BaseItems::PrintItemCount(bool prLF) const
 {
-	size_t iCnt = AllItemsCount();
-	dout << iCnt << BLANK << ItemTitle(iCnt>1);
+	size_t iCnt = ItemsCount();
+	dout << iCnt << SPACE << ItemTitle(iCnt>1);
 	if(ChromCount()==1)		dout << Per << Chrom::TitleName(CID(cBegin()));
-	dout << EOL;
+	if(prLF)	dout << LF;
 }
 
-//#ifdef _READDENS
-//// Shifts item's positions to collaps the 'holes' between regions.
-////	@cID: chromosome's ID
-////	@regns: valid (defined) regions
-//void BaseItems::ShrinkByID(chrid cID, const DefRegions &regns)
-//{
-//	chrlen	rgCnt = regns.Count(),
-//			iCnt = At(cID).ItemsCount(),	// count of reads/features
-//			shift = 0,	// shift start position to left (accumulative regions start positions)
-//			rgEnd,		// current region's stop position
-//			k=0;		// index of reads/features
-//
-//	for(chrlen i=0; i<rgCnt; i++) {
-//		shift += regns[i].Start;
-//		rgEnd = regns[i].End;
-//		for(; k<iCnt; k++)
-//			if( !DecreasePos(cID, k, shift, rgEnd) )
-//				break;
-//	}
-//	if(k > iCnt)
-//		Err("item outside last region", "BaseItems::Shrink()").Throw();
-//}
-//#endif	// _READDENS
-
-#ifdef DEBUG
+#ifdef _DEBUG
 void BaseItems::PrintChrom() const
 {
 	for(cIter it=cBegin(); it!=cEnd(); it++)
 		cout << Chrom::AbbrName(CID(it)) << TAB
 		<< Data(it).FirstInd << TAB << Data(it).LastInd << SepClTab
-		<< Data(it).ItemsCount() << TAB << ItemTitle() << 's' << EOL;
+		<< Data(it).ItemsCount() << TAB << ItemTitle() << 's' << LF;
 }
 
-void BaseItems::Print(chrlen itemCnt) const
+void BaseItems::Print(const char* title, chrlen estItemCnt) const
 {
 	chrlen i, iCnt;
 	cout << "BaseItems's ";
-	if( itemCnt )	cout << "first " << itemCnt << BLANK;
+	if( estItemCnt )	cout << title << SPACE << estItemCnt << SPACE;
 	cout << ItemTitle() << "s:\n";
 	for(cIter it=cBegin(); it!=cEnd(); it++) {
-		iCnt = itemCnt ?
-			(itemCnt > ItemsCount(CID(it)) ? ItemsCount(CID(it)) : Data(it).FirstInd + itemCnt) - 1:
+		iCnt = estItemCnt ?
+			(estItemCnt > ItemsCount(CID(it)) ? ItemsCount(CID(it)) : Data(it).FirstInd + estItemCnt) - 1:
 			Data(it).LastInd;
 		for(i=Data(it).FirstInd; i<=iCnt; i++) {
 			cout << Chrom::AbbrName(CID(it)) << TAB;
@@ -485,11 +453,6 @@ void BaseItems::Print(chrlen itemCnt) const
 //  return: true if item should be accepted; otherwise false
 bool Reads::CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter)
 {
-	if(_readLen != rgn.Length())					// different Read length?
-		if(!_readLen)	_readLen = rgn.Length();	// initialize Read length once
-		//else if(spotter.TreatCase(spotter.DIFFSZ) < 0)	return false;
-		else spotter.TreatCase(spotter.DIFFSZ);
-
 	if(!spotter.noCheck && !spotter.unsortedItems
 	//if( rgn.Start == it->Pos
 	&& rgn.Start == it->Pos
@@ -504,41 +467,52 @@ const string NotStated = " is not stated";
 
 // Adds Read to the container.
 //	@rgn: Region with mandatory fields
-//	@file: file to access to additionally fields
+//	@spotter: temporary values & ambiguities
 //	return: true if Read was added successfully
-bool Reads::AddItem(const Region& rgn, DataFile& file)
+bool Reads::AddItem(const Region& rgn, Spotter& spotter)
 {
+	CheckStrand(spotter);
+	if (_readLen != rgn.Length())					// different Read length?
+		if (!_readLen)	_readLen = rgn.Length();	// initialize Read length once
+		//else if(spotter.TreatCase(spotter.DIFFSZ) < 0)	return false;
+		else spotter.TreatCase(spotter.DIFFSZ);
+
+	_strand = spotter.File().ItemStrand();
 #if defined _VALIGN || defined _FRAGDIST
+	DataInFile& file = spotter.File();
 #ifdef _FRAGDIST
-	if(_isPEonly && !file.ItemIsPaired())
+	if (_isPEonly && !file.ItemIsPaired())
 		Err("only paired-end reads are acceptable", file.CondFileName()).Throw();
 #endif
-	bool strand = file.ItemStrand();
 	const char* name = file.ItemName();
-	const char* pos = strrchr(name, DOT);	// last DOT
-	if(!pos || !isdigit(*(++pos)))
-		Err("Cannot find number in the read's name. It should be '*.<number>'",
+	const char* numb = strrchr(name, DOT);	// "number" position, beginning with last DOT
+	if(!numb || !isdigit(*(++numb)))
+		Err("Cannot find number in the read's name. It should be '<name>.<number>'",
 			file.LineNumbToStr().c_str()).Throw();
 #ifdef _FRAGDIST
-	_items.push_back( Read(rgn.Start, atol(pos), file.ItemStrand()) );
-#else
-	const char* cid = strstr(name, Chrom::Abbr);
+	_items.push_back( Read(rgn, atol(numb), _strand) );
+#else	// _VALIGN
+	//const char* cid = strstr(name, Chrom::Abbr);
+	const char* cid = strchr(name, Read::NmDelimiter);
+	if(cid)		cid = strstr(cid + 1, Chrom::Abbr);		// to be sure that cid pointed to 'chr'
 	if(!cid)
 		Err("Cannot find chrom in the read's name. It should be '<chr>*.<number>'",
 			file.LineNumbToStr().c_str()).Throw();
-	float score = file.ItemScore();
+	const char* pos = strchr(cid, Read::NmPos1Delimiter);	// "position" position, begining with last ':'
+	if (!pos || !isdigit(*(++pos)))
+		Err("Cannot find position in the read's name. It should be '<name>:<pos>.<number>'",
+			file.LineNumbToStr().c_str()).Throw();
+	float score = file.ItemValue();
 	if(score <= _minScore)	return false;				// pass Read with under-threshhold score
 	if(score > _maxScore)	_maxScore = score;
 
-	_items.push_back( Read(rgn.Start, Chrom::IDbyAbbrName(cid), atol(pos), file.ItemStrand(), score) );
+	_items.push_back( Read(rgn, atol(numb), _strand, atol(pos), score, Chrom::IDbyAbbrName(cid)) );
 #endif	// _FRAGDIST #else
 #else	
-	_items.push_back( Read(rgn.Start) );
+	_items.push_back( Read(rgn) );
 #endif	//  _VALIGN || _FRAGDIST
-	_strand = file.ItemStrand();
 	return true;
 }
-
 
 // Decreases Read's start position without checkup indexes.
 //	@cID: chromosome's ID
@@ -558,6 +532,42 @@ bool Reads::AddItem(const Region& rgn, DataFile& file)
 //	_items[At(cID).FirstInd + rInd] -= shift;
 //	return true;
 //}
+
+	// Creates new instance from bed-file with output info.
+	// Invalid instance will be completed by throwing exception.
+	//	@title: title printed before file name or NULL
+	//	@fName: name of bed-file
+	//	@cSizes: chrom sizes to control the chrom length exceedeng; if NULL, no control
+	//	@info: type of feature ambiguties that should be printed
+	//	@printfName: true if file name should be printed unconditionally, otherwise deneds on info
+	//	@abortInval: true if invalid instance should abort excecution
+	//	@alarm: true if warning messages should be printed 
+	//	@PEonly: true if only paired-end reads are acceptable
+	//	@acceptDupl: true if duplicates are acceptable 
+	//	@minScore: score threshold (Reads with score <= minScore are skipping)
+Reads::Reads(const char* title, const string& fName, ChromSizes& cSizes, eInfo info,
+	bool printfName, bool abortInval, bool alarm, bool PEonly, bool acceptDupl, int minScore)
+	: _readLen(0), _strand(true)
+#if defined _VALIGN || defined _FRAGDIST
+	, _isPEonly(PEonly), _paired(false)
+#endif
+#ifdef _VALIGN
+	, _minScore(float(minScore)), _maxScore(0)
+#endif
+{
+	FT::eType type = FT::GetType(fName.c_str());
+	if (type == FT::eType::BED)	type = FT::eType::ABED;
+	else if (type != FT::eType::BAM)
+		Err("wrong extension", printfName ? fName.c_str() : NULL).Throw(abortInval);
+	Spotter spotter(type, info, alarm,
+		acceptDupl ? Spotter::eAction::ACCEPT : Spotter::eAction::OMIT_SILENT,	// duplicated reads
+		Spotter::eAction::ACCEPT,		// crossed & adjacent reads: typical
+		//ignoreDiffSize ? Spotter::OMIT : Spotter::ABORTING	// different Read size
+		//Spotter::OMIT			// omit different Read size
+		Spotter::eAction::ACCEPT			// accept different Read size
+	);
+	Init(title, fName, spotter, cSizes, info > eInfo::LAC || printfName, abortInval);
+}
 
 /************************ end of class Reads ************************/
 
@@ -583,17 +593,13 @@ bool Features::CorrectItemsEnd(Region& rgn, chrlen end, int treatCaseRes) {
 // * short feature
 // * adjacent features
 // * crossed features
+// Items<> abstract method implementation.
 //	@rgn: checked start/stop positions
 //	@it: iterator reffering to the compared element
 //	@spotter: possible ambiguities
 //  return: true if item should be accepted; otherwise false
 bool Features::CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter)
 {
-#ifdef _BIOCC
-	if( _unifLen )	// check if features have equel length
-		if(_fLen)	_unifLen = abs(_fLen-long(rgn.Length())) <= 10;	// consider the difference 10 as a threshold
-		else		_fLen = rgn.Length();	// initialize feature's length once
-#endif
 	Region& currRgn = *it;
 	if(rgn == currRgn)					// duplicated feature?
 		return spotter.TreatCase(spotter.DUPL) >= 0;
@@ -603,7 +609,7 @@ bool Features::CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter)
 #endif
 	if(currRgn.Adjoin(rgn))				// adjacent feature?
 		return CorrectItemsEnd(currRgn, rgn.End, spotter.TreatCase(spotter.ADJAC));
-	if(currRgn.Cover(rgn))				// covering feature?
+	if(currRgn.BaseCover(rgn))				// covering feature?
 		return spotter.TreatCase(spotter.COVER) >= 0;
 	if(currRgn.Cross(rgn))				// crossed feature?
 		return CorrectItemsEnd(currRgn, rgn.End, spotter.TreatCase(spotter.CROSS));
@@ -612,19 +618,22 @@ bool Features::CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter)
 
 // Adds feature to the container
 //	@rgn: Region with mandatory fields
-//	@file: file to access to additionally fields
+//	@spotter: temporary values & ambiguities
 //	return: true if Read was added successfully
-bool Features::AddItem(const Region& rgn, DataFile& file)
+bool Features::AddItem(const Region& rgn, Spotter& spotter)
 {
+#ifdef _BIOCC
+	if (_isStrandPres < 0)
+		_isStrandPres = spotter.File().IsItemHoldStrand();	// initialize once
+#endif
 #ifdef _ISCHIP
-	float score = file.ItemScore();
+	float score = spotter.File().ItemValue();
 	_items.push_back(Featr(rgn, score));
 	if(score > _maxScore)	_maxScore = score;
 #else
 	_items.push_back(rgn);
 #endif
 	return true;
-	//if(end - start > _maxFtrLen) {	_maxFtrLen = end - start; _maxFtrStart = start; }
 }
 
 // Decreases Feature's positions without checkup indexes.
@@ -679,7 +688,7 @@ void Features::ScaleScores ()
 	ItemsIter fit;
 	for(cIter cit=Begin(); cit!=End(); cit++)
 		for(fit=ItemsBegin(cit); fit!=ItemsEnd(cit); fit++)
-			fit->Score /= _maxScore;	// if score is undef then it become 1
+			fit->Value /= _maxScore;	// if score is undef then it become 1
 }
 
 #else	// NO _ISCHIP
@@ -689,7 +698,7 @@ void Features::ScaleScores ()
 void Features::FillRegions(chrid cID, Regions& regn) const
 {
 	const ItemIndexes& cii = At(cID).Data;
-	regn.Reserve(cii.LastInd - cii.FirstInd + 1);
+	regn.Reserve(cii.ItemsCount());
 	//vector<Featr>::const_iterator itEnd = _items.end() + cii.LastInd + 1;
 	//for(vector<Featr>::const_iterator it=_items.begin() + cii.FirstInd; it!=itEnd; it++)
 	//	regn.AddRegion(it->Start, it->End);
@@ -704,8 +713,8 @@ chrlen Features::GetMinFeatureLength() const
 	chrlen len, minLen = CHRLEN_MAX;
 
 	for(cIter cit=cBegin(); cit!=cEnd(); cit++) {	// loop through chroms
-		const cItemsIter fitLast = cItemsEnd(cit);
-		for(fit=cItemsBegin(cit); fit!=fitLast; fit++)
+		const cItemsIter fitLast = ItemsEnd(cit);
+		for(fit=ItemsBegin(cit); fit!=fitLast; fit++)
 			if((len = fit->Length()) < minLen)	minLen = len;
 	}
 	return minLen;
@@ -721,8 +730,8 @@ chrlen Features::GetMinDistance() const
 	chrlen minDist = CHRLEN_MAX, dist, end;			// current feature's end position
 
 	for(cIter cit=cBegin(); cit!=cEnd(); cit++) {	// loop through chroms
-		const cItemsIter fitLast = cItemsEnd(cit);
-		fit	= cItemsBegin(cit);
+		const cItemsIter fitLast = ItemsEnd(cit);
+		fit	= ItemsBegin(cit);
 		end = fit->End;
 		for(fit++; fit!=fitLast; fit++) {
 			dist = fit->Start - end;
@@ -743,12 +752,11 @@ chrlen Features::GetMinDistance() const
 bool Features::Extend(chrlen extLen, const ChromSizes& cSizes, eInfo info)
 {
 	if( !extLen )	return false;
-	chrlen	rmvCnt;		// counter of removed items in current chrom
-	chrlen	allrmvCnt = 0;
+	chrlen	rmvCnt = 0, allrmvCnt = 0;	// counters of removed items in current chrom and all removed items
+	chrlen	cLen = 0;					// chrom length
 	Iter cit;
 	ItemsIter fit;
-	chrlen	cLen = 0;			// chrom length
-	Spotter spotter(info, false, FT::BED);
+	Spotter spotter(FT::eType::BED, info, false);
 
 	for(cit=Begin(); cit!=End(); cit++) {	// loop through chroms
 		if(cSizes.IsFilled())	cLen = cSizes[CID(cit)];
@@ -768,10 +776,10 @@ bool Features::Extend(chrlen extLen, const ChromSizes& cSizes, eInfo info)
 			else {	allrmvCnt += rmvCnt; rmvCnt=0;	}
 		}
 	}
+	size_t itemsCnt = _items.size();
 	if(rmvCnt) {		// get rid of items merked as removed 
 		vector<Featr> newItems;
-
-		newItems.reserve(_itemsCnt - allrmvCnt);
+		newItems.reserve(itemsCnt - allrmvCnt);
 		allrmvCnt = 0;
 		// filling newItems by valid values and correct their indexes in the chrom
 		for(cit=Begin(); cit!=End(); cit++) {	// loop through chroms
@@ -788,9 +796,8 @@ bool Features::Extend(chrlen extLen, const ChromSizes& cSizes, eInfo info)
 		_items = newItems;
 	}
 	spotter.Print(ChromCount()==1 ? CID(Begin()) : Chrom::UnID,
-		"after extension", make_pair(_itemsCnt, _itemsCnt - allrmvCnt));
-	PrintEOL(spotter.wasPrinted);
-	_itemsCnt -= allrmvCnt;
+		"after extension", make_pair(itemsCnt, itemsCnt - allrmvCnt));
+	PrintEOL(spotter.hasPrinted);
 	return true;
 }
 
@@ -813,23 +820,10 @@ void Features::CheckFeaturesLength(chrlen len, const string& lenDefinition, cons
 	}
 }
 
-#ifdef _BIOCC
-// Gets count of features for chromosome or all by default.
-//	@cID: chromosome's ID
-//	return: count of features for existed chrom or 0, otherwise count of all features
-chrlen Features::Count(chrid cID) const
-{
-	if(cID==Chrom::UnID)	return AllItemsCount();
-	cIter it = GetIter(cID);
-	return it != cEnd() ? Count(it) : 0;
-}
-#endif	// _BIOCC
 /************************ end of class Features ************************/
 #endif	// _FEATURES
 
 /************************  class ChromSizes ************************/
-
-//string ChromSizes::ext;		// FA files real extention
 
 // Returns length of common prefix before abbr chrom name of all file names
 //	@fName: full file name
@@ -844,17 +838,12 @@ inline int	ChromSizes::CommonPrefixLength(const string & fName, BYTE extLen)
 // Initializes chrom sizes from file
 void ChromSizes::Read(const string& fName)
 {
-	TabFile file(fName, TxtFile::READ, 2, 2, cNULL, Chrom::Abbr);
+	TabFile file(fName, FT::eType::CSIZE);
 	chrid cID;
-	ULONG lineCnt;
 	// check already done
-	if(file.GetFirstLine(&lineCnt)) {
-		Reserve(chrid(lineCnt));
-		do	// fill by skipping 'random' chromosomes
-			if( (cID=Chrom::ValidateIDbyAbbrName(file.StrField(0))) != Chrom::UnID )
-				AddValue(cID, ChromSize(file.LongField(1)));
-		while(file.GetLine());
-	}
+	while (file.GetNextLine())
+		if ((cID = Chrom::ValidateIDbyAbbrName(file.StrField(0))) != Chrom::UnID)
+			AddValue(cID, ChromSize(file.LongField(1)));
 }
 
 // Saves chrom sizes to file
@@ -865,7 +854,7 @@ void ChromSizes::Write(const string& fName) const
 
 	file.open (fName.c_str(), ios_base::out);
 	for(cIter it=cBegin(); it!=cEnd(); it++)
-		file << Chrom::AbbrName(CID(it)) << TAB << Length(it) << EOL;
+		file << Chrom::AbbrName(CID(it)) << TAB << Length(it) << LF;
 	file.close();
 }
 
@@ -873,14 +862,14 @@ void ChromSizes::Write(const string& fName) const
 //	@cIDs: filling vector of chrom's IDs
 //	@gName: path to reference genome
 //	return: count of filled chrom's IDs
-BYTE ChromSizes::GetChromIDs(vector<chrid>& cIDs, const string& gName)
+chrid ChromSizes::GetChromIDs(vector<chrid>& cIDs, const string& gName)
 {
 	vector<string> files;
 	if( !FS::GetFiles(files, gName, _ext) )		return 0;
 
 	chrid	cid;				// chrom ID relevant to current file in files
 	int		prefixLen;			// length of prefix of chrom file name
-	BYTE	extLen = _ext.length();
+	chrid	extLen = BYTE(_ext.length());
 	chrid	cnt = chrid(files.size());
 	
 	cIDs.reserve(cnt);
@@ -895,7 +884,7 @@ BYTE ChromSizes::GetChromIDs(vector<chrid>& cIDs, const string& gName)
 			cIDs.push_back(cid);
 	}
 	sort(cIDs.begin(), cIDs.end());
-	return cIDs.size();
+	return chrid(cIDs.size());
 }
 
 // Initializes the paths
@@ -908,7 +897,8 @@ void ChromSizes::SetPath(const string& gPath, const char* sPath, bool prMsg)
 	if(sPath && !FS::CheckDirExist(sPath, false))
 		_sPath = FS::MakePath(sPath);
 	else
-		if(FS::IsDirWritable(_gPath.c_str()))	_sPath = _gPath;
+		if(FS::IsDirWritable(_gPath.c_str()))	
+			_sPath = _gPath;
 		else {
 			_sPath = strEmpty;
 			if(prMsg)
@@ -921,39 +911,42 @@ void ChromSizes::SetPath(const string& gPath, const char* sPath, bool prMsg)
 //	@gName: reference genome directory or chrom.sizes file
 //	@sPath: service directory
 //	@prMsg: true if print message about service fodler and chrom.sizes generation
-ChromSizes::ChromSizes(const char* gName, const char* sPath, bool prMsg)
+//	checkGRef: if true then check if @gName is a ref genome dir; used in isChIP
+ChromSizes::ChromSizes(const char* gName, const char* sPath, bool prMsg, bool checkGRef)
 {
 	_ext = _gPath = _sPath = strEmpty;
 	
-	if(gName)
-		if( FS::IsDirExist(FS::CheckedFileDirName(gName)) ) {	// gName is a directory
-			_ext = FT::Ext(FT::FA);
+	if (gName)
+		if (FS::IsDirExist(FS::CheckedFileDirName(gName))) {	// gName is a directory
+			_ext = FT::Ext(FT::eType::FA);
 			SetPath(gName, sPath, prMsg);
-			const string cName = _sPath + FS::LastDirName(gName) + ".chrom.sizes";
+			const string cName = _sPath + FS::LastDirName(gName) + FT::Ext(FT::eType::CSIZE);
 			const bool csExist = FS::IsFileExist(cName.c_str());
-			chrid cnt;				// number of chroms readed from pointed location 
 			vector<chrid> cIDs;		// chrom's ID fill list
 
 			// fill list with inizialised chrom ID and set _ext
-			if( !(cnt = GetChromIDs(cIDs, gName)) ) {				// fill list from *.fa
+			if (!GetChromIDs(cIDs, gName)) {				// fill list from *.fa
 				_ext += ZipFileExt;			// if chrom.sizes exists, get out - we don't need a list
-				if( !csExist && !(cnt = GetChromIDs(cIDs, gName)) )	// fill list from *.fa.gz
-					Err( Err::MsgNoFiles("*", FT::Ext(FT::FA)), gName ).Throw();
+				if (!csExist && !GetChromIDs(cIDs, gName))	// fill list from *.fa.gz
+					Err(Err::MsgNoFiles("*", FT::Ext(FT::eType::FA)), gName).Throw();
 			}
 
-			if(csExist)		Read(cName);
+			if (csExist)	Read(cName);
 			else {							// generate chrom.sizes
-				Reserve(cnt);
-				for(vector<chrid>::const_iterator it = cIDs.begin(); it != cIDs.end(); it++)
+				for (vector<chrid>::const_iterator it = cIDs.begin(); it != cIDs.end(); it++)
 					AddValue(*it, ChromSize(FaFile(RefName(*it) + _ext).ChromLength()));
-				if(IsServAvail())	Write(cName);
-				if(prMsg)
-					dout << FS::ShortFileName(cName) << BLANK 
-					<< (IsServAvail() ? "created" : "generated") << EOL,
+				if (IsServAvail())	Write(cName);
+				if (prMsg)
+					dout << FS::ShortFileName(cName) << SPACE
+					<< (IsServAvail() ? "created" : "generated") << LF,
 					fflush(stdout);			// std::endl is unacceptable
 			}
 		}
-		else	Read(gName);		// gName is a chrom.sizes file
+		else {
+			if (checkGRef)	Err("is not a directory", gName).Throw();
+			Read(gName);		// gName is a chrom.sizes file
+			_sPath = FS::DirName(gName, true);
+		}
 	else if(sPath)
 		_gPath = _sPath = FS::MakePath(sPath);	// initialized be service dir; _ext is empty!
 	// else instance remains empty
@@ -963,15 +956,13 @@ ChromSizes::ChromSizes(const char* gName, const char* sPath, bool prMsg)
 
 #if defined _READDENS || defined _BIOCC || defined _VALIGN
 // Initializes empty instance by SAM header data
-//	@cCnt: chroms count
-void ChromSizes::Init(const string& samHeader, chrid cCnt)
+void ChromSizes::Init(const string& samHeader)
 {
 	chrid cID;
 
-	Reserve(cCnt);
 	for(const char* header = samHeader.c_str();
 		header = strstr(header, Chrom::Abbr);
-		header = strchr(header, EOL) + 7)
+		header = strchr(header, LF) + 7)
 	{
 		cID = Chrom::ValidateIDbyAbbrName(header);
 		header = strchr(header, TAB) + 4;
@@ -1007,7 +998,7 @@ void ChromSizes::Print() const
 //#ifdef _ISCHIP
 //		cout << int(IsAutosome(CID(it))) << TAB;
 //#endif
-		cout << Length(it) << EOL;
+		cout << Length(it) << LF;
 	}
 }
 #endif	// DEBUG
@@ -1025,7 +1016,7 @@ chrlen ChromSizesExt::DefEffLength(cIter it) const
 	// initialize def.eff. length by chrN.region file
 	ChromDefRegions rgns(RefName(CID(it)));
 	if(rgns.Empty())		return SetEffLength(it);
-	return Data(it).Defined = rgns.DefLength() << IsAutosome(CID(it));
+	return Data(it).Defined = rgns.DefLength() << int(IsAutosome(CID(it)));
 }
 
 // Sets actually treated chromosomes according template and custom chrom
@@ -1038,19 +1029,62 @@ chrid ChromSizesExt::SetTreated(bool statedAll, const BaseItems* const templ)
 	for(Iter it = Begin(); it!=End(); it++)
 		_treatedCnt += 
 			(it->second.Treated = Chrom::IsCustom(CID(it)) 
-			&& (statedAll || (!templ || templ->FindChrom(CID(it)))));
+			&& (statedAll || !templ || templ->FindChrom(CID(it))));
 	return _treatedCnt;
 }
 
-// Prints threated chroms short names
+inline void PrintChromID(char sep, chrid cID) { dout << sep << Chrom::Mark(cID); }
+
+// Prints threated chroms short names, starting with SPACE
 void ChromSizesExt::PrintTreatedChroms() const
 {
-	bool next = false;
+	if (TreatedCount() == ChromCount()) {
+		cout << " all";
+		return;
+	}
+	/*
+	* sequential IDs printed as range: <first-inrange>'-'<last in range>
+	* detached IDs or ranges are separated by comma
+	*/
+	chrid cID = 0, cIDlast = 0;		// current cid, last printed cid
+	chrid unprintedCnt = 0;
+	bool prFirst = true;	// true if first chrom in range is printed
+	cIter itLast;
+
+	//== define last treated it
+	for (cIter it = cBegin(); it != cEnd(); it++)
+		if (IsTreated(it))	itLast = it;
+
+	//== print treated chrom
 	for(cIter it=cBegin(); it!=cEnd(); it++)
 		if(IsTreated(it)) {
-			if(next)	dout << SepCm;
-			dout << Chrom::Mark(CID(it));
-			next = true;
+			if (it == itLast) {
+				char sep;
+				if (CID(it) - cID > 1) {
+					if (cID != cIDlast)
+						PrintChromID(unprintedCnt > 1 ? '-' : COMMA, cID);		// last chrom in the last range
+					sep = COMMA;
+				}
+				else 
+					sep = prFirst ? 
+						SPACE :								// single
+						(unprintedCnt >= 1 ? '-' : COMMA);	// last
+				PrintChromID(sep, CID(it));
+				break;
+			}
+			if (prFirst)
+				PrintChromID(SPACE, cIDlast = CID(it));
+			else 
+				if (CID(it) - cID > 1) {
+					if (cID != cIDlast)
+						PrintChromID(unprintedCnt > 1 ? '-' : COMMA, cID);
+					PrintChromID(COMMA, cIDlast = CID(it));
+					unprintedCnt = 0;
+				}
+				else
+					unprintedCnt++;
+			cID = CID(it);
+			prFirst = false;
 		}
 }
 
@@ -1080,14 +1114,14 @@ bool RefSeq::Init(const string& fName, ChromDefRegions& rgns, bool fill)
 		const char* line = file.Line();		// First line is readed by FaFile()
 		chrlen linelen;
 		_len = 0;
-
+		
 		do	memcpy(_seq + _len, line, linelen = file.LineLength()),
 			_len += linelen;
-		while(line = file.GetLine());
+		while(line = file.NextGetLine());
 	}
-	else if (getN)	while(file.GetLine());	// just to fill chrom def regions
+	else if (getN)	while(file.NextGetLine());	// just to fill chrom def regions
 	file.CLoseReading();	// only makes sense if chrom def regions were filled
-	_len -= Read::Len;
+	_len -= Read::FixedLen;
 	return getN;
 }
 
@@ -1096,6 +1130,7 @@ bool RefSeq::Init(const string& fName, ChromDefRegions& rgns, bool fill)
 // Creates and fills new instance
 RefSeq::RefSeq(chrid cID, const ChromSizes& cSizes)
 {
+	_ID = cID;
 	ChromDefRegions rgns(cSizes.ServName(cID));	// read from file or new (empty)
 
 	if( Init(cSizes.RefName(cID) + cSizes.RefExt(), rgns, true)	&& !rgns.Empty() )
@@ -1138,22 +1173,18 @@ RefSeq::RefSeq(const string& fName, ChromDefRegions& rgns, short minGapLen)
 
 /************************ DefRegions ************************/
 
-DefRegions::DefRegions(ChromSizes& cSizes, chrlen minGapLen)
-	: _cSizes(cSizes), _minGapLen(minGapLen)
-#ifdef _BIOCC
-	, _singleRgn(true)
-#endif
+void DefRegions::Init()
 {
-	if(cSizes.IsExplicit()) {
-		// initialize instance from chrom sizes
-		if( Chrom::NoCustom() ) {
-			Reserve(cSizes.ChromCount());
-			for(ChromSizes::cIter it=cSizes.cBegin(); it != cSizes.cEnd(); it++)
-				AddElem(CID(it), Regions(0, cSizes[CID(it)]));
+	if(IsEmpty())
+		if (_cSizes.IsFilled()) {
+			// initialize instance from chrom sizes
+			if (Chrom::NoCustom())
+				for (ChromSizes::cIter it = _cSizes.cBegin(); it != _cSizes.cEnd(); it++)
+					AddElem(CID(it), Regions(0, _cSizes[CID(it)]));
+			else
+				AddElem(Chrom::CustomID(), Regions(0, _cSizes[Chrom::CustomID()]));
+			//_isEmpty = false;
 		}
-		else
-			AddElem(Chrom::CustomID(), Regions(0, cSizes[Chrom::CustomID()]));
-	}
 }
 
 // Gets chrom regions by chrom ID; lazy for real chrom regions
@@ -1163,7 +1194,7 @@ const Regions& DefRegions::operator[] (chrid cID)
 	ChromDefRegions rgns(_cSizes.ServName(cID), _minGapLen);
 	if(rgns.Empty())		// file with def regions doesn't exist?
 	{
-		_cSizes.IsFilled();
+		//_cSizes.IsFilled();
 		const string ext = _cSizes.RefExt();
 		if(!ext.length())	// no .fa[.gz] file, empty service dir: _cSizes should be initialized by BAM
 			return AddElem(cID, Regions(0, _cSizes[cID])).Data;
@@ -1195,167 +1226,427 @@ chrlen DefRegions::MinSize() const
 }
 #endif	// _BIOCC
 
-#ifdef DEBUG
+#ifdef _DEBUG
 void DefRegions::Print() const
 {
+	cout << "DefRegions:\n";
 	for(cIter it=cBegin(); it!=cEnd(); it++)
 		cout<< Chrom::TitleName(CID(it))
 			<< TAB << Data(it).FirstStart() 
-			<< TAB << Size(it) << EOL;
+			<< TAB << Size(it) << LF;
 }
-#endif	// DEBUG
+#endif	// _DEBUG
 /************************ DefRegions: end ************************/
 #endif	// _READDENS || _BIOCC
 
-#if defined _ISCHIP || defined _FRAGDIST
-/************************ FragFreq ************************/
 
-// Set smm SMMbase (subset length) and clear it
-void FragFreq::SMA::SetSize(BYTE halfBase)
-{ 
-	_size = 2 * halfBase + 1; 
-	_sum = _count = 0;
-	while(_q.size()) _q.pop();		// clear queque
-}
+#if defined _ISCHIP || defined _FRAGDIST
+/************************ LenFreq ************************/
+
+static const string sDDistrib = "Distribution";
+const char* LenFreq::sTitle[] = { "Normal ", "Lognormal " };
+const string LenFreq::sSpec[] = {
+	strEmpty,
+	sDDistrib + " is smooth",
+	sDDistrib + " is modulated",
+	sDDistrib + " is even",
+	sDDistrib + " is cropped to the left",
+	sDDistrib + " is heavily cropped to the left",
+	sDDistrib + " looks slightly defective on the left",
+	sDDistrib + " looks defective on the left"
+};
+const string LenFreq::sParams = "parameters";
+const string LenFreq::sInaccurateParams = sParams + " may be inaccurate";
 
 //	Add element and return average
-float FragFreq::SMA::Push(ULONG x)
+float LenFreq::SMA::Push(ULONG x)
 {
-	_count++;
 	_sum += x;
 	_q.push(x);
-	if(_q.size() > _size) {	_sum -= _q.front();	_q.pop(); }
-	return _count < _size ? 0 : (float)_sum / _size;
-}
-
-// Set smm SMMbase (subset length) and clear it
-//	@end: 'end' iterator of external collection
-void FragFreq::SMM::SetSize(BYTE halfBase, citer end)
-{
-	_end = end;
-	_v.clear();
-	_v.reserve(_size = 2 * (_middle = halfBase) + 1);
+	const fraglen size = fraglen(_q.size());
+	if (size < _size)	return 0;
+	if (size > _size)	_sum -= _q.front(),	_q.pop();
+	return (float)_sum / _size;
 }
 
 //	Add element and return median
-ULONG FragFreq::SMM::Push(citer it)
+ULONG LenFreq::SMM::Push(citer it)
 {
 	_v.clear();
-	for(size_t i=0; i< _size; i++) {
-		_v.push_back(it->second);
-		if(++it == _end)
-			Err("SMM splicer has reached the end of the collection").Throw();
-	}
+	for (fraglen i = 0; i < _size; i++)	_v.push_back(it++->second);
 	sort(_v.begin(), _v.end());
 	return _v[_middle];
 }
 
-// Calculate and print called lognormal distribution parameters
-void FragFreq::CalcDistrParams(dostream& s) const
-{
-	const float K = 2;	//1.5;		// ratio of the summit height to height of the measuring point
-	BYTE	base, SMAbase, SMMbase;	// spliners bases
-	int		i = 0;					// multi-purpose counter
-	chrlen	x, maxX = 0;			// current point, point with max height (Mode)
-	ULONG	y, y0 = 0,				// current height, previous height
-			maxY = 0, scatt = 0;	// max height, spread of y values (irregularity)
-	float	fy, fy0, halfX,		 	// final point with half height
-			fmaxY = 0;				// max height
-	citer	it=begin();				// current iterator
-	bool	cond = true;			// loop condition
-	SMA		sma;
-	SMM		smm;
+//#define _DEBUG
 
-	// STEP 1. Set bases and identify scanning limit (quarter)
-	for(ULONG diff, quarter=0; cond; y0=y, it++)
-		if((y = it->second) > maxY) {	// increasing part
-			if(y < y0 && (diff = y0 - y) > scatt)	scatt = diff;
-			quarter = (maxY = y) / 4;
-			i++;						// count increasing steps
+const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
+
+// array of lambdas treated like a regular function and assigned to a function pointer
+double (*Distrs[])(float, float, fraglen, float) = {
+	[](float mean, float sigma, fraglen x, float dsigma2) ->
+		double { return exp(-pow(((x - mean) / sigma), 2) / 2) / (sigma * SDPI); },		// normal
+	[](float mean, float sigma, fraglen x, float dsigma2) ->
+		double { return exp(-pow((log(x) - mean), 2) / dsigma2) / (sigma * SDPI * x); }	// lognormal
+};
+
+// Returns estimated slicing base
+//	@pointCnt: returned count of actually scanning points
+//	return: estimated half base, or 0 in case of degenerate distribution
+fraglen LenFreq::GetBase(chrlen& pointCnt)
+{
+	const int CutoffFrac = 100;	// fraction of the maximum height below which scanning stops on the first pass
+	pointCnt = 0;				// count of scanning points
+	ULONG	cutoffY = 0;			// Y-value below which scanning stops on the first pass
+	fraglen base = 1, halfX = 0;
+	USHORT peakCnt = 0;
+	bool up = false;
+	auto it = begin();
+	spoint p0(*it), p;			// previous, current point
+	spoint pMin(0, 0), pMax(pMin), pMMax(pMin);	// current, previous, maximum point
+	SMA	sma(base);
+	vector<spoint> extr;		// local extremums
+
+	//== define pMMax and halfX
+	extr.reserve(20);
+	for (it++; it != end(); p0 = p, pointCnt++, it++) {
+		p.first = it->first;
+		p.second = ULONG(sma.Push(it->second));
+		//cout << p.first << TAB << p.second << LF;
+		if (p.second > p0.second) {		// increasing part
+			if (!up) {					// treat pit
+				extr.push_back(pMax); pMin = p0; up = true;
+			}
 		}
 		else {							// decreasing part
-			if(y > y0 && (diff = y - y0) > scatt)	scatt = diff;
-			cond = y > quarter;			// loop until 1/4 of summit height
-		}
-	// set bases
-	SMAbase = 100 * float(scatt)/maxY + 2;
-	if(i < SMAbase) {
-		Err("distribution is cropped to the left; parameters may be inaccurate").Warning();
-		SMAbase = i;
-	}
-	SMMbase = (bool(scatt) + 1) * SMAbase;	// SMAbase for smooth distribution, otherwise 2*SMAbase
-
-	//s << "STEP1: " << maxY << TAB << scatt << TAB << Percent(scatt, maxY) << '%'
-	//  << "\tSMAbase = " << int(SMAbase) << "  SMMbase = " << int(SMMbase) << EOL;
-
-	// STEP 2. Splice summit and find Mode
-	sma.SetSize(SMAbase);
-	if(scatt)	smm.SetSize(base = SMMbase, end());
-	else		base = 0;
-	for(it=begin(), cond=true; cond; it++) {
-		x = it->first - SMAbase + base;
-		fy = sma.Push(scatt ? smm.Push(it) : it->second);	// spline by SMA after SMM or just SMA
-		if(fy >= fmaxY)		maxX = x, fmaxY = fy;
-		else				cond = fy > fmaxY * 4 / 5;
-		//s << x << TAB << fy << EOL;
-	}
-	//s << "\nSUMMIT: " << maxX << TAB << fmaxY << EOL;
-	
-	// STEP 3. Splice right part and find Mean
-	fmaxY /= 2;								// now fmaxY is equal to middle!
-	sma.SetSize(SMMbase);
-	for(i=0; i<SMMbase; i++)	it--;		// decrease iterator to start with valuable point
-	for(; it!=end(); it++)
-		if(fy = sma.Push(it->second)) {		// spline
-			x = it->first - SMMbase;
-			//s << x << TAB << fy << EOL;
-			if(fy > fmaxY)	fy0 = fy, halfX = float(x);
-			else {
-				halfX = fy < fmaxY ? x - (fmaxY - fy)/(fy0 - fy) : x;	// proportional x or x
+			if (up) {					// treat peak
+				extr.push_back(pMin); pMax = p0; up = false;
+				
+				if (p0.second > pMMax.second) {
+					pMMax = p0;
+					cutoffY = pMMax.second / CutoffFrac;
+				}
+				peakCnt++;
+			}
+			if (peakCnt && p.second >= pMMax.second / 2)
+				halfX = p.first;
+			if (p.second < cutoffY) {
+				extr.push_back(pMax);
 				break;
 			}
 		}
-	//s << "\nMIDDLE: " << halfX << TAB << fmaxY << EOL;
-	
-	// STEP 4. Calculate mean and sigma
-	fmaxY = log(K*maxX/halfX);		// reuse fmaxY: logarifm of 2*mean / point with half height
-	fy = log((float)maxX);			// reuse fy: logarifm of Mode
-	fy0 = log(halfX);				// reuse fy0: logarifm of point with half height
-	float mean = (fy * fmaxY + (fy0*fy0 - fy*fy)/2) / (fmaxY + fy0 - fy);
-	float sigma = sqrt(mean - fy);
+	}
+	if (!halfX || pMMax.second - pMin.second <= 4 ) {	// why 4? 5 maybe enough to identify a peak?
+		_spec = eSpec::EVEN;
+		return 0;
+	}
+#ifdef _DEBUG
+	cout << "pMMax: " << pMMax.first << TAB << pMMax.second <<LF;
+#endif
+	//== define splined max point
+	pMMax = make_pair(0, 0);
+	for (spoint p : extr) {
+		if (p.second > pMMax.second)	pMMax = p;
+		//cout << p.first << TAB << p.second << LF;
+	}
 
-	s << "\ncalled lognormal parameters:"
-	  << "\nmean: " << mean << "\tsigma: " << sigma
-	  << "\nMode: " << maxX << "\t Mean: " << (exp(mean + sigma*sigma/2)) << EOL;
-	//s << "half: " << halfX << TAB << halfY << EOL;
+	//== define if sequence is modulated
+	auto itv = extr.begin();	// always 0,0
+	itv++;						// always 0,0 as well
+	p0 = *(++itv);				// first point in sequence
+	pMin = pMMax;
+	pMax = make_pair(0, 0);
+	int i = 1;
+	bool isDip = false, isPeakAfterDip = false;
+
+	// from now odd is always dip, even - peak, last - peak
+	// looking critical dip in extr
+	//s << p0.first << TAB << p0.second << LF;
+	for (itv++; itv != extr.end(); i++, itv++) {
+		p = *itv;	// we don't need point, using the Y-coordinate is enough. Çoint is used for debugging
+		//cout << p.first << TAB << p.second << TAB;
+		//if(i % 2)		cout << float(p0.second - p.second) / pMMax.second << "\tdip\n";
+		//else			cout << float(p.second - p0.second) / pMMax.second << "\tpeak\n";
+		if (i % 2)		// dip
+			isDip = float(p0.second - p.second) / pMMax.second > 0.3;
+		else 			// peak
+			if (isPeakAfterDip = isDip && float(p.second - p0.second) / pMMax.second > 0.1)
+				break;
+		p0 = p;
+	}
+	// set  
+	if(isPeakAfterDip)	_spec = eSpec::MODUL;
+
+	if (!halfX)		return smoothBase;
+	fraglen diffX = halfX - pMMax.first;
+#ifdef _DEBUG
+	base = float(diffX) * (isPeakAfterDip ? 0.9F : (diffX > 20 ? 0.1F : 0.35F));
+	cout << "isPeakAfterDip: " << isPeakAfterDip << "\thalfX: " << halfX << "\tdiffX: " << diffX << "\tbase: " << base << LF;
+	return base;
+#else
+	return float(diffX) * (isPeakAfterDip ? 0.9F : (diffX > 20 ? 0.1F : 0.35F));
+#endif
 }
 
-FragFreq::FragFreq(const char* fName)
+// Defines key pointers
+//	@base: splining base
+//	@summit: returned X,Y coordinates of spliced (smoothed) summit
+//	@fillSpline: true if fill splining curve (container) to fill
+//	@spline: splining curve (container) to fill
+//	return: key pointers: X-coord of highest point, X-coord of right middle hight point
+LenFreq::fpair LenFreq::GetKeyPoints(fraglen base, point& summit, bool fillSpline, vector<point>& spline) const
 {
-	TabFile file(fName, TxtFile::READ, 2, 2);
-	for(int x; file.GetLine();)
-		if(x = file.IntField(0))	// 0 if not integer
+	const bool isSmooth = base == smoothBase;	// true if input curve is smooth
+	fraglen baseSMM = base;
+	fraglen shift = isSmooth ? 0 : baseSMM;		// to correct SMM forward shift
+	auto it = begin();
+	auto End = end();
+	point p0(*it), p(0, 0);						// current, previous, maximum point
+	SMA	sma(base);
+	SMM smm(baseSMM);							// have tried 2*baseSMM, no real difference
+
+	summit.first = 0, summit.second = 0;
+	for (short i = smm.Base(); i; i--)	End--;	// reduce End because of SMM forward reading
+	//advance(it, size() - smm.Base());			// slower
+	for (; it != End; it++) {
+		p.first = it->first - base + shift;		// minus SMA base back shift plus SMM base forward shift
+		p.second = sma.Push(isSmooth ? it->second : smm.Push(it));	// spline smooth input by SMA only
+		//p.first = it->first - base;			// SMA base back shift
+		//p.second = sma.Push(it->second);		// spline by SMA
+		//p.first = it->first + shift;			// SMM base forward shift
+		//p.second = smm.Push(it);				// spline by SMM
+		if (fillSpline)		spline.push_back(p);
+		if (p.second >= summit.second)	summit = p;
+		else if (p.second < summit.second / hRatio)	// to debug print change hRatio to 10
+			break;
+		p0 = p;
+	}
+	return make_pair(
+		float(summit.first),							// summit X
+		p0.first + p0.second / (p.second + p0.second)	// final point with half height; proportional X
+	);
+}
+
+// Calls distribution parameters
+//	@type: NORM or LNORM
+//	@keypts: key pointers: X-coord of highest point, X-coord of right middle hight point
+//	return: mean & sigma
+LenFreq::fpair LenFreq::GetParams(eType type, const fpair& keypts) const
+{
+	if (keypts.first) {
+		if (type == eType::NORM)
+			return make_pair(
+				keypts.first,													// mean
+				sqrt(pow(keypts.second - keypts.first, 2) / (2 * log(hRatio)))	// sigma
+			);
+		// lognorm
+		const float A = log(keypts.first * hRatio / keypts.second);	// logarifm of 2*mean / middle height
+		const float lgM = log(keypts.first);						// logarifm of Mode
+		const float lgH = log(keypts.second);						// logarifm middle height
+		const float mean = (lgM * A + (lgH * lgH - lgM * lgM) / 2) / (A + lgH - lgM);
+
+		return make_pair(mean, sqrt(mean - lgM));
+	}
+	return make_pair(0, 0);
+}
+
+// Compares this sequence with calculated one by given mean & sigma, and returns PCC
+//	@type: NORM or LNORM
+//	@params: mean & sigma
+//	@peakX: X-coordinate of summit
+//	@full: if true then correlate from the beginning, otherwiase from summit
+//	return: Pearson correlation coefficient,
+//	calculated on the basis of the "start of the sequence" – "the first value less than 0.1% of the maximum".
+float LenFreq::CalcPCC(eType type, const fpair& params, fraglen peakX, bool full) const
+{
+	const float mean = params.first;
+	const float sigma = params.second;
+	const float dsigma2 = 2 * sigma * sigma;
+	const float cutoffY = float(Distrs[int(type)](mean, sigma, peakX, dsigma2) / 1000);	// break when Y became less then 0.1% of max value
+	unsigned int cnt = 0;			// count of points
+	double	a, b;					// y coordinate (value) of the original and calculated sequence
+	double	sumA = 0, sumA2 = 0;	// original and calculated sum of values
+	double	sumB = 0, sumB2 = 0;	// original and calculated sum of squares of values
+	double	sumAB = 0;				// sum of products of original and calculated values
+
+	// one pass PCC calculation
+	for (auto it = begin(); it != end(); it++) {
+		if (!full && it->first < peakX)	continue;
+		b = Distrs[int(type)](mean, sigma, it->first, dsigma2);
+		if (it->first > peakX && b < cutoffY) break;
+		sumA += a = it->second;
+		sumB += b;
+		sumA2 += a * a;
+		sumB2 += b * b;
+		sumAB += a * b;
+		cnt++;
+	}
+	return float((sumAB * cnt - sumA * sumB) / 
+		sqrt((sumA2 * cnt - sumA * sumA) * (sumB2 * cnt - sumB * sumB)));
+}
+
+// Returns X-coordinate of the middle height of the left branch
+float LenFreq::GetLeftMiddleHalf(vector<point>& spline, const point& summit) const
+{
+	float maxY = summit.second / 2;
+
+	point p(0, 0);
+	float y0 = 0;
+	for (auto it = spline.cbegin(); it != spline.cend(); it++)
+		if ((p=*it).second > maxY)	break;
+		else						y0 = p.second;
+	return p.first + y0 / (p.second + y0);		// final point with half height; proportional x
+}
+
+// Prints PCC, mean and sigma
+//	@s: print stream
+//	@type: NORM or LNORM
+//	@pcc: printed PCC
+void LenFreq::PrintBaseParams(dostream& s, eType type, float pcc) const
+{
+	s << LF << sTitle[int(type)] << sDistrib << SepCl;
+	s << "PCC = " << setprecision(4) << pcc << LF;
+	s << sMean << SepCl << _params.first << TAB << sSigma << SepCl << _params.second << LF;
+}
+
+// Calculates and print called lognormal distribution parameters
+//	@s: print stream
+//	@eType: type of distribution
+//	@callNorm: call normal parameters anyway
+void LenFreq::CallParams(dostream& s, eType type, bool callNorm)
+{
+	chrlen pointCnt = 0;
+	fraglen base = GetBase(pointCnt);
+	if (_spec == eSpec::EVEN) {
+		Err(Spec(_spec) + SepSCl + sParams + " are not called").Throw(false);
+		return;
+	}
+	if (base == smoothBase)
+		s << Spec(eSpec::SMOOTH) << LF;
+	fpair keyPts;			// X-coord of highest point, X-coord of right middle hight point
+	float Pcc = 0;
+	fpair params;			// current mean, sigma
+	float leftMH = 0;		// X-coordinate of the middle height of the left branch
+	eType dt = type;
+	point summit;
+	vector<point> spline;	// saved spline to test for normal distribution
+	bool fillSpline = false;
+
+	if (type == eType::UNDEF || callNorm) {
+		spline.reserve(pointCnt);
+		dt = eType::LNORM;
+		fillSpline = true;
+	}
+#ifdef _DEBUG
+	fillSpline = true;
+	BYTE i = 0;
+#endif
+	BYTE failCnt = 0;	// count of failure iterations (steps), when PCC is less then previous
+	fraglen base0 = 0;
+	const bool full = true;
+	BYTE failCntLim = 2;
+
+	for (; base; base--) {
+		fpair keypts = GetKeyPoints(base, summit, fillSpline, spline);
+		params = GetParams(dt, keypts);
+		float pcc = CalcPCC(dt, params, summit.first, full);
+#ifdef _DEBUG
+		s << "base: " << setw(2) << base << "  summitX: " << keypts.first << "\tpcc: " << pcc;
+		if (pcc > Pcc)	s << "\t>";
+		s << LF;
+		i++;
+#endif
+		if (pcc > Pcc) {
+			Pcc = pcc;
+			keyPts = keypts;
+			_params = params;
+			failCnt = 0;
+			base0 = base;
+		}
+		else {
+			if (pcc > 0)	failCnt++;		// negative PCC is possible in rare cases
+			if (failCnt > 2)	break;
+		}
+	}
+#ifdef _DEBUG
+	//s << "spline:\nlength\tfrequency\tbase = " << base << LF;
+	//for(spoint p: spline)
+	//	if(p.second)	// zero at the begining
+	//		s << p.first << TAB << p.second << LF;
+	s << "\nbase: " << base0 << "\tsteps: " << int(i) << LF;
+#endif
+	if (type == eType::UNDEF)
+		if (summit.first - begin()->first < SMA::Base(base0)
+		|| begin()->second / summit.second > 0.95)
+			Err(Spec(eSpec::HCROP) + SepSCl + sInaccurateParams).Warning();
+		else if (_spec == eSpec::MODUL)
+			s << Spec(_spec) << LF;
+		else if(begin()->second / summit.second > 0.5)
+			Err(Spec(eSpec::CROP)).Warning();
+		else {
+			float pcc = CalcPCC(dt, params, summit.first, !full);
+#ifdef _DEBUG
+			s << "summit: " << keyPts.first << "\tPCCsummit: " << pcc << "\tdiff PCC: " << pcc - Pcc << LF;
+#endif
+			float diffPCC = pcc - Pcc;
+			if (diffPCC > 0.01)
+				Err(Spec(eSpec::DEFECT) + SepSCl + sInaccurateParams).Warning();
+			else if (diffPCC > 0.002)
+				Err(Spec(eSpec::SDEFECT)).Warning();
+			leftMH = GetLeftMiddleHalf(spline, summit);
+		}
+
+	if (type != eType::NORM) {
+		PrintBaseParams(s, eType::LNORM, Pcc);
+		// Mode: keypts.first is exactly equal to exp(mean - sigma * sigma)
+		s << "Mode: " << keyPts.first << "\t Mean: " << (exp(_params.first + _params.second * _params.second / 2)) << LF;
+	}
+#ifdef _DEBUG
+	if(leftMH)	s << ">> leftMH: " << leftMH << TAB << keyPts.first - leftMH << " / " << keyPts.second - keyPts.first << " = " << (keyPts.first - leftMH) / (keyPts.second - keyPts.first) << LF;
+#endif
+	if (type == eType::NORM
+	|| callNorm
+	|| type == eType::UNDEF && leftMH && (keyPts.first - leftMH) / (keyPts.second - keyPts.first) > 0.72) {
+		_params = GetParams(eType::NORM, keyPts);
+		Pcc = CalcPCC(eType::NORM, _params, summit.first, true);
+		PrintBaseParams(s, eType::NORM, Pcc);
+	}
+}
+
+// Constructor by file name; for test porpose
+//	@fname: name of file, paired-end alignment
+LenFreq::LenFreq(const char* fName)
+{
+	TabFile file(fName, FT::eType::DIST);
+	for(int x; file.GetNextLine();)
+		if(x = file.IntField(0))	// IntField(0) returns 0 if zero field is not an integer
 			(*this)[x] = file.IntField(1);
 }
 
 // Calculate and print dist params
 //	@s: print stream
-void FragFreq::Print(dostream& s, bool prDistr) const
+//	@type: type of distribution
+//	@callNorm: call normal parameters anyway
+//	@prDistr: if true then print distribution additionally
+void LenFreq::Print(dostream& s, eType type, bool callNorm, bool prDistr)
 {
-	if(empty())		s << "empty distribution\n";
-	else {
-		CalcDistrParams(s);
-		if(!prDistr)	return;
+	if(empty())		s << "empty " << sDistrib << LF;
+	else
+		if (IsDegenerate())
+			s << "Degenerate " << sDistrib << " (only " << size() << " points)\n";
+		else
+			CallParams(s, type, callNorm);
+		if (prDistr) {
+			const chrlen maxLen = INT_MAX / 10;
 
-		const chrlen maxLen = INT_MAX/10;
-
-		s << "\nFragLen\tfrequency\n";
-		for(citer it=begin(); it!=end(); it++) {
-			if(it->first > maxLen)	break;
-			s << it->first << TAB << it->second << EOL;
+			s << "\nOriginal " << sDistrib << COLON << "\nlength\tfrequency\n";
+			for (auto it = begin(); it != end(); it++) {
+				if (it->first > maxLen)	break;
+				s << it->first << TAB << it->second << LF;
+			}
 		}
-	}
+		fflush(stdout);		// when called from a package
 }
 
-/************************ FragFreq: end ************************/
+/************************ LenFreq: end ************************/
 #endif	// _ISCHIP

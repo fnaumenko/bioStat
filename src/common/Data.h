@@ -2,7 +2,7 @@
 Data.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 16.06.2019
+Last modified: 1.12.2020
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -10,10 +10,7 @@ Provides common data functionality
 
 #include "TxtFile.h"
 #include <algorithm>    // std::sort
-
-#ifndef _NO_MAP
-	#include <map>
-#endif	// _NO_MAP
+#include <map>
 
 #define	CID(it)	(it)->first
 
@@ -25,15 +22,15 @@ class ChromSizes;
 class Obj
 {
 public:
-	enum eInfo {	// defines types of outputted info
-		iNONE,	// nothing printed: it is never pointed in command line
-		iLAC,	// laconic:		print file name if needs
-		iNM,	// name:		print file name
-		iEXT,	// standard:	print file name and items number
-		iSTAT,	// statistics:	print file name, items number and statistics
+	enum class eInfo {	// defines types of outputted info
+		NONE,	// nothing printed: it is never pointed in command line
+		LAC,	// laconic:		print file name if needs
+		NM,		// name:		print file name
+		STD,	// standard:	print file name and items number
+		STAT,	// statistics:	print file name, items number and statistics
 	};
 
-protected:
+//protected:
 		// 'Spotter' handles items ambiguities and represents ambiguities statistics
 	class Spotter
 	{
@@ -54,7 +51,7 @@ protected:
 		};
 
 		// Enum 'eAction' defines all possible reactions for ambiguous.
-		enum eAction /*:BYTE*/ {	// commented type doesn't compiled under Linux GNU
+		enum class eAction /*:BYTE*/ {	// commented type doesn't compiled under Linux GNU
 			ACCEPT,			// accept ambiguous feature/read "as is", without treatment
 			HANDLE,			// handle ambiguous feature/read
 			OMIT,			// omit ambiguous feature/read with alarm warning
@@ -83,16 +80,16 @@ protected:
 			inline eAction TickAction() { Count++; return Action; }
 		};
 		Case	_cases[_CasesCnt];
-		DataFile*	 _file;			// current reading file
-		const	FT::fType _fType;	// type of data
-		const	eInfo _info;		// input type of info
-		mutable chrlen _count;		// count of discovered ambiguous
-		const	bool _alarm;		// true if message should be printed
-		mutable bool _alarmPrinted;	// true if warning was printed
+		DataInFile*	 _file;				// current reading file
+		const	FT::eType _fType;		// type of data; can't use _file!
+		const	eInfo	_info;			// input type of info
+		mutable chrlen	_count;			// count of discovered ambiguous
+		const	bool	_alarm;			// true if message should be printed
+		mutable bool	_alarmPrinted;	// true if warning was printed
 #ifdef _BIOCC
 		short	_treatcID;			// treated chrom ID: -1 initial, cID if only one chrom was treated.
-									// UnID if more then one chrom was treated
-#endif
+#endif								// UnID if more then one chrom was treated
+
 		// ***** actions
 		inline int Accept(eCase ambg)	{ return 1; }
 		inline int Handle(eCase ambg)	{ PrintLineAlarm(ambg); return 0; }
@@ -101,7 +98,7 @@ protected:
 		inline int Abort (eCase ambg)	{ ThrowExcept(_Msgs[ambg].LineAlarm); return -1; }
 
 		// Get action message 
-		const inline char* Message(eCase spotter) const { return _ActionMsgs[_cases[spotter].Action]; }
+		const inline char* Message(eCase spotter) const { return _ActionMsgs[int(_cases[spotter].Action)]; }
 		
 		inline const string& ItemTitle(chrlen cnt = 1) const { return FT::ItemTitle(_fType, cnt!=1); }
 
@@ -119,14 +116,14 @@ protected:
 		chrlen Count() const;
 
 		// Print given spotter as alarm
-		//	@spotter: given spotter
-		void PrintLineAlarm(eCase spotter) const;
+		//	@ecase: spotter's case
+		void PrintLineAlarm(eCase ecase) const;
 
 		// Prints case statistics
-		//	@spotter: spotter's case
+		//	@a: spotter's case
 		//	@allCnt: total count of ambiguities
 		//	@total: if true then prints total warning case
-		void PrintCaseStat(eCase spotter, chrlen allCnt, bool total=false) const;
+		void PrintCaseStat(eCase ecase, chrlen allCnt, bool total=false) const;
 
 		// Prints items with specifying chrom
 		//	@cID: readed chromosome's ID or Chrom::UnID if all
@@ -137,49 +134,49 @@ protected:
 	public:
 		bool unsortedItems;		// true if items are unsorted
 		bool noCheck;			// true if neither collect statistics nor apply any ambig filter 
-		bool wasPrinted;		// true if something (except warnings) was printed
+		bool hasPrinted;		// true if something (except warnings) has being printed
 		chrlen chrLen;			// length of readed chromosome
+#ifdef _WIG
+		chrlen lastEnd;			// last end position: used for BEDGRAPH initialization only
+#endif
 
 		// Creates an instance with omitted COVER, SHORT, SCORE and NEGL cases;
 		// Features cases by default:
 		// omitted DUPL cases and handled CROSS and ADJAC 
-		Spotter (eInfo info, bool alarm, FT::fType format,
-			eAction dupl = OMIT,
-			eAction crossANDadjac = HANDLE,
-			eAction diffsz = ACCEPT	// in fact for Features it even doesn't check
+		Spotter (FT::eType format, eInfo info, bool alarm = false, 
+			eAction dupl = eAction::OMIT,
+			eAction crossANDadjac = eAction::HANDLE,
+			eAction diffsz = eAction::ACCEPT	// in fact for Features it even doesn't check
 		);
 
 		// Sets current Tab File
-		//inline void SetFile (TabFile& file) { _file = &file; }
-		inline void SetFile (DataFile& file) { _file = &file; }
+		inline void SetFile (DataInFile& file) { _file = &file; }
 		
 		// Gets current Tab File
-		//inline TabFile& File () const	{ return *_file; }
-		inline DataFile& File () const	{ return *_file; }
+		inline DataInFile& File () const	{ return *_file; }
 
 		inline Obj::eInfo Info() const	{ return _info; }
 
-		inline FT::fType FileType() const	{ return _fType; }
+		inline FT::eType FileType() const	{ return _fType; }
 
 		//inline bool IsAlarmPrinted() const	{ return _alarmPrinted;	}
 #ifdef _BIOCC
 		// Remember treated chrom.
 		void	SetTreatedChrom(chrid cid);
 
-		// Gets treated chrom: set only one treated chrom, otherwise UnID.
+		// Gets single treated chrom if it's defined, otherwise UnID.
 		void KeepTreatedChrom() const { if(_treatcID != vUNDEF)	Chrom::SetCustomID(chrid(_treatcID)); }
 #endif
 		// Initializes given Region by second and third current reading line positions, with validating
 		//	@rgn: Region that should be initialized
-		//	@prevStart: previous start position
 		//	return: true if Region was initialized successfully
-		bool InitRegn(Region& rgn, chrlen prevStart);
+		bool InitRegn(Region& rgn);
 
 		// Adds statistics and print given spotter as alarm (if permitted)
 		//	@spotter: given spotter
 		//	return: treatment code: 1 - accept, 0 - handle, -1 - omit
-		inline int TreatCase(eCase spotter) {
-			return (this->*_Actions[_cases[spotter].TickAction()])(spotter);
+		inline int TreatCase(eCase spotter)  {
+			return (this->*_Actions[int(_cases[spotter].TickAction())])(spotter);
 		}
 
 		// Prints statistics.
@@ -196,22 +193,22 @@ protected:
 			_Msgs[spotter].TotalAlarm = msg;
 		}
 	};	//***** end of Spotter
-
+protected:
 	bool _isBad;		// sign of invalidity
-	bool _EOLneeded;	// true if EOL 
+	bool _EOLneeded;	// true if LF 
 
 	inline Obj() : _isBad(false), _EOLneeded(false) {}
 
 	// Initializes new instance by tab file name.
 	//	@title: title printed before file name
 	//	@fName: name of file
-	//	@spotter: ambiguities
+	//	@spotter: temporary values & ambiguities
 	//	@cSizes: chrom sizes to control chrom length exceedeing
-	//	@isInfo: true if file info hpuld be printed
+	//	@isInfo: true if file info should be printed
 	//	@abortInvalid: true if invalid instance shold be completed by throwing exception
-	//	@scoreInd: index of 'score' filed; is set for FBED only
+	//	@scoreNumb: number of 'score' filed (for FBED and BedGraph)
 	void Init	(const char* title, const string& fName, Spotter& spotter, 
-		ChromSizes& cSizes, bool isInfo, bool abortInvalid, BYTE scoreInd = 5);
+		ChromSizes& cSizes, bool isInfo, bool abortInvalid, BYTE scoreNumb = 5);
 
 	// Initializes child instance from tab file
 	//	return: numbers of all and initialied items for given chrom
@@ -219,17 +216,17 @@ protected:
 
 	// Gets item's title.
 	//	@pl: true if plural form
-	virtual const string & ItemTitle(bool pl=false) const = 0;
+	virtual const string & ItemTitle(bool pl = false) const = 0;
 
-	// Prints EOL if needs.
-	//	@printEOL: true if EOL should be printed
+	// Prints LF if needs and flash stdout
+	//	@printEOL: true if LF should be printed explicitly
 	void PrintEOL(bool printEOL);
 
 public:
 	// Returns true if instance is invalid.
 	inline bool IsBad()	const { return _isBad; }
 
-	// Returns true if something was printed during initialization without EOL
+	// Returns true if something was printed during initialization without LF
 	inline bool EOLNeeded() const { return _EOLneeded; }
 };
 
@@ -239,16 +236,7 @@ static const string range_out_msg = "myMap[]: invalid key ";
 template <typename K, typename T> class myMap
 {
 protected:
-#ifdef _NO_MAP
-	typedef pair<K,T> Item;
-	typedef vector<Item> Items;
-
-	static inline bool Compare (const Item& i1, const Item& i2) {
-		return i1.first < i2.first;
-	}
-#else
 	typedef map<K,T> Items;
-#endif	// _NO_MAP
 
 private:
 	Items _items;	// storage of key-value pairs
@@ -274,14 +262,7 @@ protected:
 	// Adds class type to the collection without checking key.
 	// Avoids unnecessery copy constructor call
 	//	return: class type collection reference
-	T& AddElem(K key, const T& val) {
-	#ifdef _NO_MAP
-		_items.push_back(Item(key, val));
-		return (_items.end()-1)->second;
-	#else
-		return _items[key] = val;
-	#endif	// _NO_MAP
-	}
+	inline T& AddElem(K key, const T& val) { return _items[key] = val;	}
 
 	// Adds empty class type to the collection without checking key
 	//	return: class type collection reference
@@ -289,131 +270,40 @@ protected:
 
 public:
 	// Copies entry. There is no option for _NO_MAP !!!
-	void Assign(const myMap& map) {	
-		_items = map._items;
-	}
+	inline void Assign(const myMap& map) {	_items = map._items; }
 	
-	// Reserves container's capacity
-	inline void Reserve (K cnt) {
-	#ifdef _NO_MAP
-		if(cnt > 1)		_items.reserve(cnt);
-	#endif
-	}
-
-	// Sorts container if possible
-	inline void Sort() {
-	#ifdef _NO_MAP
-		sort(Begin(), End(), Compare);
-	#endif
-	}
-
 	// Returns constant reference to the item at its key
-	const T& At(const K& key) const {
-	#ifdef _NO_MAP
-		cIter it = GetIter(key);
-		if( it == cEnd() )
-			throw std::out_of_range (range_out_msg + BSTR(key));
-		return it->second;
-	#else
-		return _items.at(key);
-		//return _items[key];			// inserts a new element if no any element matched key
-	#endif	// _NO_MAP
-	}
+	inline const T& At(const K& key) const { return _items.at(key); }
 
 	// Returns reference to the item at its key
-	T& At(const K key) {
-	#ifdef _NO_MAP
-		Iter it = GetIter(key);
-		if( it == End() )
-			throw std::out_of_range (range_out_msg + BSTR(key));
-		return it->second;
-	#else
-		return _items.at(key);
-		//return _items[key];			// inserts a new element if no any element matched key
-	#endif	// _NO_MAP
-	}
+	inline T& At(const K key) { return _items.at(key); }
 
-	T& operator[] (K key) {
-	#ifdef _NO_MAP
-		Iter it = GetIter(key);
-		return it == cEnd() ? AddEmptyElem(key) : it->second;
-	#else
-		return _items[key];
-	#endif	// _NO_MAP
-	}
+	inline T& operator[] (K key) { return _items[key]; }
 
 	inline const T& operator[] (K key) const { return At(key); }
 
 	// Searches the container for a key and returns an iterator to the element if found,
 	// otherwise it returns an iterator to end (the element past the end of the container)
-	Iter GetIter(K key) {
-	#ifdef _NO_MAP
-		for(Iter it = Begin(); it != End(); it++)
-			if( it->first == key )	return it;
-		return End();
-	#else
-		return _items.find(key);
-	#endif	// _NO_MAP
-	}
+	inline Iter GetIter(K key) { return _items.find(key); }
 
 	// Searches the container for a key and returns a constant iterator to the element if found,
 	// otherwise it returns an iterator to cEnd (the element past the end of the container)
-	const cIter GetIter(K key) const {
-	#ifdef _NO_MAP
-		for(cIter it = cBegin(); it != cEnd(); it++)
-			if( it->first == key )	return it;
-		return cEnd();
-	#else
-		return _items.find(key);
-	#endif	// _NO_MAP
-	}
+	inline const cIter GetIter(K key) const { return _items.find(key);	}
 
 	// Adds value type to the collection without checking cID
-	inline void AddVal(K key, const T & val) {
-	#ifdef _NO_MAP
-		_items.push_back(Item(key, val));
-	#else
-		_items[key] = val;
-	#endif	// _NO_MAP
-	}
+	inline void AddVal(K key, const T & val) { _items[key] = val; }
 
 	// Removes from the container an element key
-	inline void Erase(K key) { 
-	#ifdef _NO_MAP
-		_items.erase(GetIter(key));
-	#else
-		_items.erase(key);
-	#endif	// _NO_MAP
-	}
+	inline void Erase(K key) { _items.erase(key); }
 
 	// Clear content
 	inline void Clear() { _items.clear(); }
 
 	// Insert value type to the collection: adds new value or replaces existed
-	//void InsertVal(K key, const T & val) {
-	//#ifdef _NO_MAP
-	//	for(Iter it = Begin(); it != End(); it++)
-	//		if( it->first == key ) {
-	//			it->second = val;
-	//			return;
-	//		}
-	//	_items.push_back( Item(key, val) );
-	//#else
-	//	_items[key] = val;
-	//#endif	// _NO_MAP
-	//}
+	//void InsertVal(K key, const T & val) { _items[key] = val; }
 
 	// Returns true if element with key exists in the container, and false otherwise.
-	bool FindItem (K key) const {
-	#ifdef _NO_MAP
-		for(cIter it = cBegin(); it != cEnd(); it++)
-			if( it->first == key )	
-				return true;
-		return false;
-	#else
-		return _items.count(key) > 0;
-	#endif	// _NO_MAP
-	}
+	inline bool FindItem (K key) const { return _items.count(key) > 0;	}
 };
 
 // 'ChromData' implements sign whether chrom is involved in processing, and chrom's data itself
@@ -432,11 +322,14 @@ template <typename T> struct ChromData
 template <typename T> class Chroms : public myMap<chrid, ChromData<T> >
 {
 public:
-	// Returns true if chromosome should be treated
+	// Returns true if chromosome by iterator should be treated
 	inline bool IsTreated(typename myMap<chrid,ChromData<T> >::cIter it) const { 
 		return it->second.Treated;
 	}
 	
+	// Returns true if chromosome by ID should be treated
+	inline bool IsTreated(chrid cID) const { return IsTreated(this->GetIter(cID));	}
+
 	inline const T& Data(typename myMap<chrid,ChromData<T> >::cIter it) const { return it->second.Data; }
 	
 	inline T& Data(typename myMap<chrid,ChromData<T> >::Iter it) { return it->second.Data; }
@@ -447,10 +340,9 @@ public:
 	// Gets count of treated chroms
 	//chrid TreatedCount() const 
 	//{
-	//	typename myMap<chrid,ChromData<T> >::cIter it;
 	//	chrid res = 0;
 	//
-	//	for(cIter it=this->cBegin(); it!=this->cEnd(); res += IsTreated(it++));
+	//	for(auto it=this->cBegin(); it!=this->cEnd(); res += IsTreated(it++));
 	//	return res;
 	//}
 
@@ -460,6 +352,7 @@ public:
 	// Adds value type to the collection without checking cID
 	inline void AddValue(chrid cid, const T& val) { this->AddVal(cid, ChromData<T>(val)); }
 
+#ifdef	_READDENS
 	// Sets common chromosomes as 'Treated' in both of this instance and given Chroms.
 	// Objects in both collections have to have second field as Treated.
 	//	@obj: compared Chroms object
@@ -472,21 +365,22 @@ public:
 		chrid commCnt = 0;
 
 		// set treated chroms in this instance
-		for(it = this->Begin(); it != this->End(); it++)	// 'this' required in gcc
-			if( it->second.Treated = obj.FindChrom(CID(it)) )
+		for (it = this->Begin(); it != this->End(); it++)	// 'this' required in gcc
+			if (it->second.Treated = obj.FindChrom(CID(it)))
 				commCnt++;
-			else if( printWarn )
+			else if (printWarn)
 				Err(Chrom::Absent(CID(it), "second file")).Warning();
 		// set false treated chroms in a compared object
-		for(it = obj.Begin(); it != obj.End(); it++)
-			if( !FindChrom(CID(it)) ) {
+		for (it = obj.Begin(); it != obj.End(); it++)
+			if (!FindChrom(CID(it))) {
 				it->second.Treated = false;
-				if( printWarn )
+				if (printWarn)
 					Err(Chrom::Absent(CID(it), "first file")).Warning();
 			}
-		if( !commCnt )	Err("no common chromosomes").Throw(throwExcept);
+		if( !commCnt )	Err("no common " + Chrom::Title(true)).Throw(throwExcept);
 		return commCnt;
 	}
+#endif	// _READDENS
 };
 
 // 'ItemIndexes' representes a range of chromosome's features/reads indexes,
@@ -510,28 +404,32 @@ class BaseItems : public Obj, public Chroms<ItemIndexes>
  * strongly needs keyword 'abstract' but it doesn't compiled by GNU g++
  */
 {
-private:
-	// Checks if chromosome is uniq and adds it to the container
+//private:
+protected:
+	// Checks if items are initialized, chromosome is uniq, and adds it to the instance
 	//	@cID: chroms id
 	//	@firstInd: first item index
-	//	@lastInd: last item index
-	//	@fname: file name for exception message
-	void AddChrom(chrid cID, chrlen firstInd, chrlen lastInd, const string& fname);
+	//	@spotter: spotter to close items
+	void AddChrom(chrid cID, chrlen firstInd, const Spotter& spotter);
 
 protected:
 	static const BYTE _FieldsCnt = 6;	// count of fields readed from file
 
-	// Initializes instance from tab file
+	// Initializes generalized BED instance from tab file.
 	//	@spotter: spotter to control ambiguities
 	//	@cSizes: chrom sizes to control chrom length exceedeing
 	//	return: numbers of all and initialied items for given chrom
-	p_ulong InitDerived	(Spotter& spotter, const ChromSizes& cSizes);
-	 
-	// Initializes size of positions container.
-	virtual void ReserveItemContainer(ULONG initSize) = 0;
+	// It's separated because it's invoked not only in BaseItems::InitDerived, but also in Cover::InitDerived
+	p_ulong InitBed(Spotter& spotter, const ChromSizes& cSizes);
 
-	 // Shrink size of positions container.
-	virtual void ShrinkItemContainer() = 0;
+	// Initializes instance from tab file: proxy
+	//	@spotter: spotter to control ambiguities
+	//	@cSizes: chrom sizes to control chrom length exceedeing
+	//	return: numbers of all and initialied items for given chrom
+	inline p_ulong InitDerived(Spotter& spotter, const ChromSizes& cSizes) { return InitBed(spotter, cSizes); }
+
+	// Initializes size of positions container.
+	virtual void ReserveItems(ULONG initSize) = 0;
 
 	// Checks the last element for the new potential start/end positions for all possible ambiguous.
 	//	@rgn: checked start/stop positions
@@ -541,57 +439,40 @@ protected:
 
 	// Adds item to the container.
 	//	@rgn: Region with mandatory fields
-	//	@file: file to access to additionally fields
-	//	return: true if Read was added successfully
-	//virtual bool AddItem(const Region& rgn, TabFile& file) = 0;
-	virtual bool AddItem(const Region& rgn, DataFile& file) = 0;
+	//	@spotter: temporary values & ambiguities
+	//	return: true if item was added successfully
+	virtual bool AddItem(const Region& rgn, Spotter& spotter) = 0;
 
-	// Sorts and rechecks items for the ambiguities.
-	//	@spotter:  ambiguous filters
-	virtual void SortItems(Spotter& spotter) = 0;
+	// Adds last items for current chrom to the container. For WIG only.
+	//	@spotter: used do get last item end
+	//	return: count of added items
+	virtual UINT FinishItems(const Spotter& spotter) = 0;
 
-	// Sets and returns count of all Features/Reads.
-	virtual void SetAllItemsCount() = 0;
+	// Fills items from intermediate container
+	virtual void FillChromItems(const Spotter& spotter) = 0;
 
-	// Gets count of Features/Reads for chromosome
+	// Gets total count of items
+	virtual size_t ItemsCount() const = 0;
+
+	// Gets count of items for chrom
 	virtual size_t ItemsCount(chrid cID) const = 0;
 
-	// Gets count of all Features/Reads.
-	virtual size_t AllItemsCount() const = 0;
-
-	// Decreases Feature/Read position without checkup indexes.
-	// Used in Shrink() method only.
-	//	@cID: chromosome's ID
-	//	@eInd: index of read
-	//	@shift: decrease entry's start position on this value
-	//	@regnEnd: region's end position to control Read location
-	//	@return: true if Feature/Read is insinde this region
-	//virtual bool DecreasePos(chrid cID, chrlen eInd, chrlen shift, chrlen regnEnd) = 0;
+	// Shrinks items, sorts chroms and items if there are not sorted and prints message
+	virtual void SortIfNecessary(Spotter& spotter, ULONG estItemCnt) = 0;
 
 public:
 	// Prints items name and count, adding chrom name if the instance holds only one chrom
-	void PrintItemCount() const;
+	//	@prLF: if true then print line feed
+	void PrintItemCount(bool prLF = true) const;
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	virtual void PrintItem(chrlen itemInd) const = 0;
-#endif
 
-public:
-	//inline const ItemIndexes & operator[] (chrid cID) const { return At(cID); }
-
-//#ifdef _READDENS
-//	// Shifts elements's positions to collaps the 'holes' between external regions.
-//	//	@cID: chromosome's ID
-//	//	@regns: external (defined) regions
-//	void ShrinkByID(chrid cID, const DefRegions &regns);
-//#endif	// _READDENS
-
-#ifdef DEBUG
 	void PrintChrom() const;
 
 	// Prints BaseItems with limited or all items
 	//	@itemCnt: first number of items for each chromosome; all by default
-	void Print(chrlen itemCnt=0) const;
+	void Print(const char* title, chrlen itemCnt=0) const;
 #endif
 };
 
@@ -605,40 +486,50 @@ public:
 	typedef typename vector<I>::const_iterator cItemsIter;
 
 private:
-	// Initializes size of positions container.
-	inline void ReserveItemContainer(ULONG size) { _items.reserve(size); }
 
 	// Checks the element for the new potential start/end positions for all possible ambiguous.
 	//	@rgn: checked start/stop positions
 	//	@it: iterator reffering to the compared element
-	//	@spotter: possible ambiguities
+	//	@spotter: temporary values & ambiguities
 	//  return: true if item should be accepted; otherwise false
 	virtual bool CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter) = 0;
 
 	// Checks the last element for the new potential start/end positions for all possible ambiguous.
 	//	@rgn: checked start/stop positions
-	//	@spotter: possible ambiguities
+	//	@spotter: temporary values & ambiguities
 	//  return: true if item should be accepted; otherwise false
 	inline bool CheckLastPos(const Region& rgn, Spotter& spotter) {
 		return CheckPrevPos(rgn, _items.end() - 1, spotter);
 	}
 
-	// Shrink size of positions container.
-	inline void ShrinkItemContainer() {
-	// actually shrink_to_fit() defined in C++11, 
-	// but for any case replace shrink_to_fit() by swap()
-#ifdef OS_Windows	
-		_items.shrink_to_fit();
-#else
-		vector<I>(_items).swap(_items);
-#endif
-	}
-
-	// Gets region by container iterator.
+	// Gets a copy region by container iterator.
 	virtual const Region Regn(cItemsIter it) const = 0;
 
+	// Shrinks items, sorts chroms and items if there are not sorted and prints message
+	void SortIfNecessary(Spotter& spotter, ULONG estItemCnt)
+	{
+		if (estItemCnt / ItemsCount() > 2)
+			// shrink items.
+			// actually shrink_to_fit() is defined in C++11, 
+			// but for any case replace shrink_to_fit() by swap()
+#ifdef OS_Windows	
+			_items.shrink_to_fit();
+#else
+			vector<I>(_items).swap(_items);
+#endif
+		if (spotter.unsortedItems) {
+			const bool prInfo = spotter.Info() > Obj::eInfo::NM;
+			if (prInfo) {
+				Err(ItemTitle(false) + " sorting...", spotter.File().CondFileName()).Throw(false, false);
+				spotter.hasPrinted = true;
+			}
+			SortItems(spotter);
+			if (prInfo)	dout << " done";
+		}
+	}
+
 	// Sorts and rechecks items for the ambiguities.
-	//	@spotter:  ambiguous filters
+	//	@spotter: temporary values & ambiguities
 	void SortItems(Spotter& spotter)
 	{
 		ULONG	rmvCnt = 0;		// counter of removed items in current chrom
@@ -648,36 +539,73 @@ private:
 			// reduce indexes after previous chrom recheck
 			it		= _items.begin() + (Data(cit).FirstInd -= rmvCnt);
 			itLast	= _items.begin() + (Data(cit).LastInd  -= rmvCnt);
-			_itemsCnt -= rmvCnt;
 			// sort items for current chrom
-			sort(it, itLast+1, I::CompareByStartPos);
+			sort(it++, itLast+1, I::CompareByStartPos);
 			// recheck current chrom
-			for(rmvCnt=0, it++; it<=itLast; it++)
-				if( !CheckPrevPos(Regn(it), it-1, spotter) ) {
-					// ambiguous situation: remove current item
-					_items.erase(it--);
-					Data(cit).LastInd--;
-					itLast--;
+			while(it <= itLast)
+				if( CheckPrevPos(Regn(it), it-1, spotter) )	// is ambiguous?
+					it++;
+				else {		// ambiguous processed, then remove current item
+					it = _items.erase(it);
 					rmvCnt++;
+					itLast = _items.begin() + --Data(cit).LastInd;
 				}
 		}
 	}
 
+	// Empty implementation of BaseItems<> method
+	void FillChromItems(const Spotter& spotter) {}
+
 protected:
-	vector<I> _items;	// vector of features/reads included in bed-file
-	ULONG	_itemsCnt;	// count of all items. Initially it is equal to featrs.size(),
-						// but may be reduced during extention
+	vector<I> _items;	// vector of bed-file items
 
 	//inline vector<I>* ItemsPoint() const { return &_items; };
 	//inline BYTE	SizeOfItem() const { return sizeof(I); }
 
+	// Initializes size of positions container.
+	inline void ReserveItems(ULONG size) { _items.reserve(size); }
+
+	// Gets item.
+	//	@it: chromosome's iterator
+	//	@iInd: index of item
+	inline const I& Item(cIter it, chrlen iInd) const {	return _items[Data(it).FirstInd + iInd]; }
+
+	// Returns item.
+	//	@cInd: index of chromosome
+	//	@iInd: index of item
+	inline const I& Item(chrid cID, chrlen iInd) const { return Item(GetIter(cID), iInd); }
+
+#ifdef _DEBUG
+	inline void PrintItem(chrlen itemInd) const { _items[itemInd].Print(); }
+#endif
+
+public:
+	// Gets total count of items
+	inline size_t ItemsCount() const { return _items.size(); }
+
+	// Gets count of items for chrom
+	//	@cit: chrom's iterator
+	inline size_t ItemsCount(cIter cit) const { return cit->second.Data.ItemsCount(); }
+
+	// Gets count of items for chrom
+	//	@cit: chrom's ID
+	inline size_t ItemsCount(chrid cID) const { return At(cID).Data.ItemsCount(); }
+
 	// Returns a constan iterator referring to the first item of specified chrom
 	//	@cit: chromosome's constant iterator
-	inline const cItemsIter cItemsBegin(cIter cit) const { return _items.begin() + Data(cit).FirstInd; }
+	inline const cItemsIter ItemsBegin(cIter cit) const { return _items.begin() + Data(cit).FirstInd; }
+
+	// Returns a constan iterator referring to the first item of specified chrom
+	//	@cID: chromosome's ID
+	inline const cItemsIter ItemsBegin(chrid cID) const { return ItemsBegin(GetIter(cID)); }
 
 	// Returns a constant iterator referring to the past-the-end item of specified chrom
 	//	@cit: chromosome'sconstant  iterator
-	inline const cItemsIter cItemsEnd(cIter cit) const { return _items.begin() + Data(cit).LastInd + 1;	}
+	inline const cItemsIter ItemsEnd(cIter cit) const { return _items.begin() + Data(cit).LastInd + 1; }
+
+	// Returns a constant iterator referring to the past-the-end item of specified chrom
+	//	@cID: chromosome's ID
+	inline const cItemsIter ItemsEnd(chrid cID) const { return ItemsEnd(GetIter(cID)); }
 
 	// Returns an iterator referring to the first item of specified chrom
 	//	@cit: chromosome's constant iterator
@@ -685,45 +613,36 @@ protected:
 
 	// Returns an iterator referring to the past-the-end item of specified chrom
 	//	@cit: chromosome's constant iterator
-	inline const ItemsIter ItemsEnd(cIter cit) { return _items.begin() + Data(cit).LastInd + 1;	}
-
-	// Sets count of all features/reads.
-	virtual void SetAllItemsCount()	{ _itemsCnt = _items.size(); }
-
-	// Gets count of all features/reads.
-	inline size_t AllItemsCount() const { return _itemsCnt; }
-
-	// Gets count of items for chromosome or all by default.
-	inline size_t ItemsCount(chrid cID) const {
-		return cID==Chrom::UnID ? AllItemsCount() : At(cID).Data.ItemsCount();
-	}
-
-	// Gets item.
-	//	@it: chromosome's iterator
-	//	@iInd: index of item
-	inline const I& Item(cIter it, chrlen iInd) const {
-		return _items[Data(it).FirstInd + iInd];
-	}
-
-	// Returns item.
-	//	@cInd: index of chromosome
-	//	@iInd: index of item
-	inline const I& Item(chrid cID, chrlen iInd) const { return Item(GetIter(cID), iInd); }
-
-#ifdef DEBUG
-	inline void PrintItem(chrlen itemInd) const { _items[itemInd].Print(); }
-#endif
-
+	inline const ItemsIter ItemsEnd(cIter cit) { return _items.begin() + Data(cit).LastInd + 1; }
 };
 
 #if !defined _ISCHIP && !defined _WIGREG
 
-// 'Reads' represents a collection of reads.
-class Reads : public Items<Read>
+class BasicReads
 {
 private:
-	readlen	_readLen;	// length of Read + 1
+	//readlen	_readLen;	// constant length of Read + 1
+	//bool	_strand;	// last readed Read strand
+	char	_isStrandPres = -1;	// 1 if strand mark is present on the right position in the input data
+
+protected:
+	void CheckStrand(const Obj::Spotter& spotter)
+	{
+		if (_isStrandPres < 0) {
+			_isStrandPres = spotter.File().IsItemHoldStrand();	// initialize once
+			if (!_isStrandPres)
+				Err("missing strand character", spotter.File().CondFileName()).Throw();
+		}
+	}
+};
+
+// 'Reads' represents a collection of reads.
+class Reads : BasicReads, public Items<Read>
+{
+private:
+	readlen	_readLen;	// constant length of Read + 1
 	bool	_strand;	// last readed Read strand
+	//char	_isStrandPres = -1;	// 1 if strand mark is present on the right position in the input data
 #if defined _VALIGN || defined _FRAGDIST
 	bool	_isPEonly;	// true if only paired-end reads are acceptable
 	bool	_paired;	// true if Reads are paired-end
@@ -734,20 +653,26 @@ private:
 #endif
 
 	// Gets a copy of region by container iterator.
+	// Items<> abstract method implementation.
 	inline Region const Regn(cItemsIter it) const { return Region(it->Pos, it->Pos + ReadLen()); }
 
 	// Checks the element for the new potential start/end positions for all possible ambiguous.
+	// Items<> abstract method implementation.
 	//	@rgn: checked start/stop positions
 	//	@it: iterator reffering to the compared element
-	//	@spotter: possible ambiguities
+	//	@spotter: temporary values & ambiguities
 	//  return: true if item should be accepted; otherwise false
 	bool CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter);
 
 	// Adds Read to the container.
+	// Abstract BaseItems<> method implementation.
 	//	@rgn: Region with mandatory fields
-	//	@file: file to access to additionally fields
+	//	@spotter: temporary values & ambiguities
 	//	return: true if Read was added successfully
-	bool AddItem(const Region& rgn, DataFile& file);
+	bool AddItem(const Region& rgn, Spotter& spotter);
+
+	// Abstract BaseItems<> method empty implementation
+	inline UINT FinishItems(const Spotter&) { return 0;  }
 
 	// Decreases Read's start position without checkup indexes.
 	//	@cID: chromosome's ID
@@ -771,28 +696,8 @@ public:
 	//	@acceptDupl: true if duplicates are acceptable 
 	//	@minScore: score threshold (Reads with score <= minScore are skipping)
 	Reads(const char* title, const string& fName, ChromSizes& cSizes, eInfo info,
-		bool printfName, bool abortInval, bool alarm, bool PEonly, bool acceptDupl=true, int minScore=vUNDEF )
-		: _readLen(0)
-#if defined _VALIGN || defined _FRAGDIST
-		, _isPEonly(PEonly), _paired(false)
-#endif
-#ifdef _VALIGN
-		, _minScore(minScore), _maxScore(0)
-#endif
-	{ 
-		FT::fType type = FT::GetType(fName.c_str());
-		if(type == FT::BED)	type = FT::ABED;
-		else if(type != FT::BAM)
-			Err("wrong extension", printfName ? fName : NULL).Throw(abortInval);
-		Spotter spotter(info, alarm, type,
-			acceptDupl ? Spotter::ACCEPT : Spotter::OMIT_SILENT,	// duplicated reads
-			Spotter::ACCEPT,		// crossed & adjacent reads: typical
-			//ignoreDiffSize ? Spotter::OMIT : Spotter::ABORTING	// different Read size
-			//Spotter::OMIT			// omit different Read size
-			Spotter::ACCEPT			// accept different Read size
-		);
-		Init(title, fName, spotter, cSizes, info > iLAC || printfName, abortInval);
-	}
+		bool printfName, bool abortInval, bool alarm, bool PEonly, bool acceptDupl = true, 
+		int minScore = vUNDEF);
 
 #if defined _VALIGN || defined _FRAGDIST
 	// Return true if Reads are paired-end
@@ -805,57 +710,37 @@ public:
 	inline bool IsPosInName() const { return true; }
 
 	// Gets maximum score
-	inline float MaxScore()		const { return _maxScore; }
+	inline float MaxScore()	const { return _maxScore; }
 #endif
 	// Gets an item's title
+	// Obj abstract method implementation.
 	//	@pl: true if plural form
-	inline const string& ItemTitle(bool pl = false) const { return FT::ItemTitle(FT::ABED, pl); };
+	inline const string& ItemTitle(bool pl = false) const { return FT::ItemTitle(FT::eType::ABED, pl); };
 
 	// Gets length of Read.
-	inline readlen ReadLen()		const { return _readLen; }
+	inline readlen ReadLen() const { return _readLen; }
 
 	// Returns Read's start position.
 	//	@cID: chromosome's ID
 	//	@rInd: index of read
 	inline chrlen ReadPos(chrid cID, chrlen rInd=0) const { return Item(cID, rInd).Pos;	}
-
-	// Returns iterator to first Read.
-	//	@cit: chrom's const iterator
-	inline cItemsIter ReadsBegin(cIter cit) const { return cItemsBegin(cit); }
-
-	// Returns iterator to first Read.
-	//	@cID: chrom's ID
-	inline cItemsIter ReadsBegin(chrid cID) const { return ReadsBegin(GetIter(cID)); }
-
-	// Returns iterator to last Read.
-	//	@cit: chrom's const iterator
-	inline cItemsIter ReadsEnd(cIter cit)	const { return cItemsEnd(cit); }
-
-	inline cItemsIter ReadsEnd(chrid cID)	const { return ReadsEnd(GetIter(cID)); }
-
-	// Gets count of Reads for chromosome or all by default.
-	inline size_t Count(chrid cID=Chrom::UnID) const	{ return ItemsCount(cID); }
 };
 
 #endif	// !_ISCHIP && !_WIGREG
 
 #ifdef _FEATURES
-#ifdef _ISCHIP
-struct Featr : public Region
+struct ValRegion : public Region
 {
-	//const string	Name;	// features's name
-	float	Score;			// features's score
+	float	Value;			// features's score
 
-	inline Featr(const Region& rgn, float score=1) : Score(score), Region(rgn) {}
+	inline ValRegion(const Region& rgn, float val = 1) : Value(val), Region(rgn) {}
 
-#ifdef DEBUG
-	void Print() const {
-		cout << Start << TAB << End << TAB;
-		//if( Name )	cout << Name << TAB;
-		cout << Score << EOL;
-	}
-#endif	// DEBUG
+#ifdef _DEBUG
+	inline void Print() const { cout << Start << TAB << End << TAB << Value << LF;	}
+#endif	// _DEBUG
 };
+#ifdef _ISCHIP
+typedef ValRegion	Featr;
 #else	// NO _ISCHIP
 typedef Region	Featr;
 #endif	// _ISCHIP
@@ -863,16 +748,13 @@ typedef Region	Featr;
 // 'Features' represents a collection of crhoms features
 class Features : public Items<Featr>
 {
-private:
-	static const BYTE _MinFieldsCnt = 3;	// minimum count of fields readed from file
-
 #ifdef _ISCHIP
 	readlen	_minFtrLen;		// minimal length of feature
 	float	_maxScore;		// maximal feature score after reading
 #elif defined _BIOCC
 	// these vars needed to get warning if user call Reads instead of Features (without -a option)
-	long	_fLen;		// feature's length. 'long' since we compare the difference with Read length
-	bool	_unifLen;	// true if all features have the same length
+	long	_fLen = 0;			// feature's length. 'long' since we compare the difference with Read length
+	char	_isStrandPres = -1;	// 1 if strand mark is present on the right position in the input data
 #endif	// _ISCHIP
 
 	// Sets new end position on the feature if necessary.
@@ -883,13 +765,16 @@ private:
 	bool CorrectItemsEnd(Region& rgn, chrlen end, int treatCaseRes);
 
 	// Gets item's title
+	// Obj abstract method implementation.
 	//	@pl: true if plural form
-	inline const string& ItemTitle(bool pl=false) const	{ return FT::ItemTitle(FT::BED, pl); }
+	inline const string& ItemTitle(bool pl=false) const	{ return FT::ItemTitle(FT::eType::BED, pl); }
 	
-	// Gets a copy of Region by container iterator.
+	// Gets a copy of Region by item's iterator.
+	// Abstract BaseItems<> method implementation.
 	inline Region const Regn(cItemsIter it) const { return *it; }
 
 	// Checks the element for the new potential start/end positions for all possible ambiguous.
+	// Items<> abstract method implementation
 	//	@rgn: checked start/stop positions
 	//	@it: iterator reffering to the compared element
 	//	@spotter: possible ambiguities
@@ -897,18 +782,14 @@ private:
 	bool CheckPrevPos(const Region& rgn, ItemsIter it, Spotter& spotter);
 
 	// Adds feature to the container
+	// Abstract BaseItems<> method implementation.
 	//	@rgn: Region with mandatory fields
-	//	@file: file file to access to additionally fields
+	//	@spotter: temporary values & ambiguities
 	//	return: true if Read was added successfully
-	bool AddItem(const Region& rgn, DataFile& file);
+	bool AddItem(const Region& rgn, Spotter& spotter);
 
-	// Decreases Feature's positions without checkup indexes.
-	//	@cID: chromosome's ID
-	//	@fInd: index of Feature
-	//	@shift: decrease Feature's positions on this value
-	//	@rgEnd: region's end position to control feature location
-	//	@return: true if Feature is insinde this region
-	//bool DecreasePos(chrid cID, chrlen fInd, chrlen shift, chrlen rgEnd);
+	// Abstract BaseItems<> method empty implementation
+	inline UINT FinishItems(const Spotter&) { return 0; }
 
 #ifdef _ISCHIP
 	// Scales defined score through all features to the part of 1.
@@ -931,8 +812,8 @@ public:
 		bool printfName, BYTE scoreInd, readlen bsLen, bool alarm)
 		: _minFtrLen(bsLen), _maxScore(vUNDEF)
 	{
-		Spotter spotter(info, alarm, FT::BED);
-		Init(title, fName, spotter, cSizes, info > iLAC || printfName, true, scoreInd);
+		Spotter spotter(FT::eType::BED, info, alarm);
+		Init(title, fName, spotter, cSizes, info > eInfo::LAC || printfName, true, scoreInd);
 		ScaleScores();
 	}
 #else
@@ -947,12 +828,9 @@ public:
 	//	@alarm: true if warning messages should be printed 
 	Features(const char* title, const string& fName, ChromSizes& cSizes, eInfo info,
 		bool printfName, bool abortInvalid, bool alarm)
-#ifdef _BIOCC
-		: _fLen(0), _unifLen(true)
-#endif
 	{
-		Spotter spotter(info, alarm, FT::BED);
-		Init(title, fName, spotter, cSizes, info > iLAC || printfName, abortInvalid);
+		Spotter spotter(FT::eType::BED, info, alarm);
+		Init(title, fName, spotter, cSizes, info > eInfo::LAC || printfName, abortInvalid);
 	}
 #endif	//  _ISCHIP
 	
@@ -965,10 +843,6 @@ public:
 	//	@it: chromosome's iterator
 	//	@fInd: feature's index, or first feature by default
 	inline const Featr& Feature(cIter it, chrlen fInd=0) const { return Item(it, fInd); }
-
-	// Returns count of chrom's features by its iter
-	//	@it: chromosome's iterator
-	inline chrlen Count(cIter it) const { return Data(it).ItemsCount(); }
 
 	// Gets chromosome's total enriched regions length:
 	// a double length for numeric chromosomes or a single for named.
@@ -1010,25 +884,13 @@ public:
 
 #ifndef _ISCHIP
 
-	// Returns iterator to first feature.
-	//	@cit: chrom's const iterator
-	inline cItemsIter FeaturesBegin(cIter cit) const { return cItemsBegin(cit); }
-
-	// Returns iterator to last feature.
-	//	@cit: chrom's const iterator
-	inline cItemsIter FeaturesEnd(cIter cit) const	{ return cItemsEnd(cit); }
-
 	// Gets the ordinary total length of all chromosome's features
 	//	@it: chromosome's iterator
-	inline chrlen FeaturesLength(cIter it) const {
-		return chrlen(EnrRegLength(it, 0, 0));
-	}
+	inline chrlen FeaturesLength(cIter it) const { return chrlen(EnrRegLength(it, 0, 0)); }
 
 	// Gets the ordinary total length of all chromosome's features
 	//	@cID: chromosome's ID
-	//inline chrlen FeaturesLength(chrid cID) const {
-	//	return chrlen(EnrRegLength(cID, 0, 0));
-	//}
+	//inline chrlen FeaturesLength(chrid cID) const { return chrlen(EnrRegLength(cID, 0, 0)); }
 
 	// Copies features coordinates to external DefRegions.
 	void FillRegions(chrid cID, Regions& regn) const;
@@ -1036,13 +898,8 @@ public:
 #endif	// _ISCHIP
 
 #ifdef _BIOCC
-	// Gets count of features for chromosome or all by default.
-	//	@cID: chromosome's ID
-	//	return: count of features for existed chrom or 0, otherwise count of all features
-	chrlen Count(chrid cID = Chrom::UnID) const;
-	
-	// Returns true if all features have the same length
-	inline bool	SameFeaturesLength() const { return _unifLen; }
+	// Returns true if strand mark is present in the file data
+	inline bool	IsStrandPres() const { return _isStrandPres; }
 
 	friend class JointedBeds;	// to access GetIter(chrid)
 #endif
@@ -1058,7 +915,7 @@ struct ChromSize
 							// 'effective' means double length for autosomes, single one for somatic
 	
 	// Sets chrom's effective (treated) real length as defined
-	inline chrlen SetEffDefined(bool autosome) const { return Defined = (Real << autosome); }
+	inline chrlen SetEffDefined(bool autosome) const { return bool(Defined = (Real << int(autosome))); }
 #endif
 
 	inline ChromSize(chrlen size = 0) : Real(size)
@@ -1096,7 +953,7 @@ class ChromSizes : public Chroms<ChromSize>
 	//	@cIDs: filling vector of chrom's IDs
 	//	@gName: path to reference genome
 	//	return: count of filled chrom's IDs
-	BYTE GetChromIDs(vector<chrid>& cIDs, const string& gName);
+	chrid GetChromIDs(vector<chrid>& cIDs, const string& gName);
 
 	// Initializes the paths
 	//	@gPath: reference genome directory
@@ -1117,19 +974,19 @@ public:
 	//	@gName: reference genome directory or chrom.sizes file
 	//	@sPath: service directory
 	//	@prMsg: true if print message about service fodler and chrom.sizes generation
-	ChromSizes(const char* gName, const char* sPath, bool prMsg);
+	//	checkGRef: if true then check if @gName is a ref genome dir; used in isChIP
+	ChromSizes(const char* gName, const char* sPath, bool prMsg, bool checkGRef = false);
 
 	inline ChromSizes() { _ext = _gPath = _sPath = strEmpty; }
 
 #if defined _READDENS || defined _BIOCC || defined _VALIGN
 	// Initializes empty instance by SAM header data
-	//	@cCnt: chroms count
-	void Init(const string& samHeader, chrid cCnt);
+	void Init(const string& samHeade);
 #endif
 	inline bool IsFilled() const { return Count(); }
 
 	// Return true if chrom.sizes are defined explicitly, by user
-	inline bool IsExplicit() const { return !_gPath.length(); }		// false if path == strEmpty
+	//inline bool IsExplicit() const { return !_gPath.length(); }		// false if path == strEmpty
 	
 	// Returns reference directory
 	inline const string& RefPath() const { return _gPath; }
@@ -1175,7 +1032,7 @@ public:
 	//	@sPath: service directory
 	//	@printMsg: true if print message about chrom.sizes generation (in case of reference genome)
 	inline ChromSizesExt(const char* gName, const char* sPath, bool printMsg)
-		: ChromSizes(gName, sPath, printMsg) {}
+		: _treatedCnt(0), ChromSizes(gName, sPath, printMsg, true) {}
 	
 	// Returns true if chrom is autosome, false for heterosome
 	inline static bool IsAutosome(chrid cID) { return Chrom::IsAutosome(cID); }
@@ -1202,8 +1059,9 @@ public:
 class RefSeq
 {
 private:
+	chrid	_ID;		// chrom ID
 	char*	_seq;		// the nucleotides buffer
-	chrlen	_len,		// length of chromosome shortened by Read::Len
+	chrlen	_len,		// length of chromosome shortened by Read::FixedLen
 			_gapLen;	// total length of gaps
 	Region	_effDefRgn;	// effective defined region (except 'N' at the begining and at the end)
 
@@ -1221,22 +1079,27 @@ public:
 	inline ~RefSeq()	{ if(_seq) delete [] _seq; }
 
 	// Gets chrom legth
-	inline chrlen Length()	const { return _len + Read::Len; }
+	inline chrlen Length()	const { return _len + Read::FixedLen; }
 
 	// Gets Read on position or NULL if exceeding the chrom length
 	const char* Read(chrlen pos) const { return pos > _len ? NULL : _seq + pos;	}
+
+	const char* Read(chrlen pos, readlen len) const { return pos + len > Length() ? NULL : _seq + pos; }
 
 #if defined _ISCHIP || defined _VALIGN
 
 	// Creates a stub instance (for sampling cutting)
 	//	@len: chrom length
-	inline RefSeq(chrlen len) : _seq(NULL) { _effDefRgn.Set(0, _len = len - Read::Len); }
+	inline RefSeq(chrlen len) : _ID(Chrom::UnID), _seq(NULL), _gapLen(0)
+	{ _effDefRgn.Set(0, _len = len - Read::FixedLen); }
 
 	// Creates and fills new instance
 	RefSeq(chrid cID, const ChromSizes& cSizes);
 
 #endif
 #ifdef _ISCHIP
+	inline chrid ID() const { return _ID; }
+
 	// Gets count of nucleotides outside of defined region
 	inline chrlen UndefLength() const { return Length() - _effDefRgn.Length(); }
 
@@ -1277,18 +1140,26 @@ public:
 // or from .fa files (dynamically, by request).
 class DefRegions : public Chroms<Regions>
 {
-private:
-	ChromSizes&	_cSizes;
-	const chrlen		_minGapLen;	// minimal allowed length of gap
+	ChromSizes&		_cSizes;
+	const chrlen	_minGapLen;	// minimal allowed length of gap
+	//bool			_isEmpty = true;	// true if regions are not initialized by real values
 #ifdef _BIOCC
-	const bool	_singleRgn;	// true if this instance has single Region for each chromosome
+	const bool		_singleRgn = true;	// true if this instance has single Region for each chromosome
 #endif
+
 
 public:
 	// Creates an instance by genome name, from chrom sizes file or genome.
 	//	@cSizes: chrom sizes
 	//	@minGapLen: minimal length which defines gap as a real gap
-	DefRegions(ChromSizes& cSizes, chrlen minGapLen);
+	inline DefRegions(ChromSizes& cSizes, chrlen minGapLen)
+		: _cSizes(cSizes), _minGapLen(minGapLen)
+	{ Init(); }
+
+	void Init();
+
+	// Returns true if regions are not initialized
+	inline bool IsEmpty() const {	return !Count(); }
 
 	inline ChromSizes& ChrSizes() { return _cSizes; }
 
@@ -1312,10 +1183,6 @@ public:
 	// Gets total genome's size: for represented chromosomes only
 	genlen GenSize() const;
 
-	// Gets true if this instance has single Region for each chromosome
-	// (i.e. initialized from chrom.sizes file)
-	inline bool	SingleRegions() const { return _cSizes.IsExplicit(); }
-
 	// Adds chromosomes and regions without check up
 	inline void AddChrom (chrid cID, const Regions& rgns) {	AddVal(cID, rgns); }
 #endif	// _BIOCC
@@ -1329,62 +1196,156 @@ public:
 #if defined _ISCHIP || defined _FRAGDIST
 #include <queue>
 
-
-// 'Freq' represents a fragment's length frequency statistics
-class FragFreq : map<chrlen,ULONG>
+// 'LenFreq' represents a fragment's/read's length frequency statistics
+class LenFreq : private map<chrlen,ULONG>
 {
-	typedef map<chrlen,ULONG>::const_iterator citer;
+public:
+	enum class eType {	// type of distribution
+		NORM,	// used as index in PrintBaseParams()
+		LNORM,	// used as index in PrintBaseParams()
+		UNDEF
+	};
+private:
+	enum class eSpec {	// distribution specification
+		CLEAR,		// normal quality;	exclusive
+		SMOOTH,		// complementary
+		MODUL,		// modulated;	complementary
+		EVEN,		// exclusive
+		CROP,		// cropped;	exclusive
+		HCROP,		// heavily cropped;		exclusive
+		SDEFECT,	// slightly defective;	exclusive
+		DEFECT		// defective; exclusive
+	};
+	typedef map<chrlen, ULONG>::const_iterator citer;
+	typedef pair<chrlen, ULONG> spoint;	// initial sequence point
+	typedef pair<fraglen, float> point;	// distribution point 
+	typedef pair<float, float> fpair;
 
-	// Simple Moving Average splicer
-	class SMA
+	static const char* sTitle[];
+	static const string sSpec[];
+	static const string sParams;
+	static const string sInaccurateParams;
+	const int hRatio = 2;			// ratio of the summit height to height of the measuring point
+	const fraglen smoothBase = 1;	// splining base for the smooth distribution
+
+	fpair _params;					// mean, sigma
+	eSpec _spec = eSpec::CLEAR;	// distrib specification
+
+	// Sliding subset Length
+	class SL
 	{
-		short	_size;		// sliding subset
-		size_t	_count;		// total count of adding elements
-		ULONG	_sum;		// sum of adding elements
-		queue<ULONG> _q;
+	protected:
+		const fraglen	_size;		// sliding subset length
 
 	public:
-		// Set splicer base (subset length) and clear it
-		void SetSize(BYTE halfBase);
+		// Constructor
+		//	@halfBase: half of base (subset length)
+		SL(fraglen halfBase) : _size(2 * halfBase + 1) {}
+
+		// Returns length of sliding subset
+		inline fraglen Base() const { return _size; }
+
+		// Returns length of sliding subset
+		inline static fraglen Base(fraglen halfBase) { return 2 * halfBase + 1; }
+	};
+
+	// Simple Moving Average splicer
+	class SMA : public SL
+	{
+		ULONG	_sum;		// sum of adding elements
+		queue<ULONG> _q;	// sliding subset
+
+	public:
+		// Constructor
+		//	@halfBase: half of base (subset length)
+		SMA(fraglen halfBase) : _sum(0), SL(halfBase) {}
 
 		// Add element and return average
 		float Push(ULONG x);
 	};
 
 	// Simple Moving Median splicer
-	class SMM
+	class SMM : public SL
 	{
-		short	_size, _middle;	// sliding subset, the middle of subset
-		citer	_end;			// end of external collection
-		vector<ULONG> _v;
+		const fraglen _middle;	// the middle of the sliding subset
+		//citer	_end;			// end of external collection
+		vector<ULONG> _v;		// sliding subset
 
 	public:
-		// Set splicer base (subset length)
-		//	@end: 'end' iterator of external collection
-		void SetSize(BYTE halfBase, citer end);
+		// Constructor
+		SMM(fraglen halfBase) : _middle(halfBase + 1), SL(halfBase) { _v.reserve(_size);  }
 
 		// Add element and return median
 		ULONG Push(citer it);
 	};
 
-	// Calculate and print called lognormal distribution parameters
-	void CalcDistrParams(dostream& s) const;
+	// Returns specification string by specification type
+	inline static const string& Spec(eSpec s) { return sSpec[int(s)]; }
+
+	// Returns estimated slicing base
+	//	@pointCnt: returned count of actually scanning points
+	//	return: estimated half base, or 0 in case of degenerate distribution
+	fraglen GetBase(chrlen& pointCnt);
+
+	// Defines key pointers
+	//	@base: splining base
+	//	@summit: returned X,Y coordinates of spliced (smoothed) summit
+	//	@fillSpline: true if fill splining curve (container) to fill
+	//	@spline: splining curve (container) to fill
+	//	return: key pointers: X-coord of highest point, X-coord of right middle hight point
+	fpair GetKeyPoints(fraglen base, point& summit, bool fillSpline, vector<point>& spline) const;
+
+	// Calls distr parameters
+	//	@type: NORM or LNORM
+	//	@keypts: key pointers: X-coord of highest point, X-coord of right middle hight point
+	//	return: mean & sigma
+	fpair GetParams(eType type, const fpair& keypts) const;
+
+	// Compares this sequence with calculated one by given mean & sigma, and returns PCC
+	//	@dtype: NORM or LNORM
+	//	@params: mean & sigma
+	//	@peakX: X-coordinate of summit
+	//	@full: if true then correlate from the beginning, otherwiase from summit
+	//	return: Pearson correlation coefficient,
+	//	calculated on the basis of the "start of the sequence" – "the first value less than 0.1% of the maximum".
+	float CalcPCC(eType type, const fpair& params, fraglen peakX, bool full) const;
+
+	// Returns X-coordinate of the middle height of the left branch
+	float GetLeftMiddleHalf(vector<pair<chrlen, float>>& spline, const point& summit) const;
+
+	// Prints PCC, mean and sigma
+	//	@s: print stream
+	//	@dtype: NORM or LNORM
+	//	@pcc: printed PCC
+	void PrintBaseParams(dostream& s, eType type, float pcc) const;
+
+	// Calculates and print called lognormal distribution parameters
+	//	@s: print stream
+	//	@dType: type of distribution
+	//	@callNorm: call normal parameters anyway
+	void CallParams(dostream& s, eType type, bool callNorm);
 
 public:
-	inline FragFreq() {}
+	// Default constructor
+	inline LenFreq() {}
 
-	FragFreq(const char* fname);
+	// Constructor by file name; for test purpose
+	//	@fname: name of file, paired-end alignment
+	LenFreq(const char* fname);
 
-	// Adds fragment to statistics
+	// Returns true if distribution has not enough size
+	inline bool IsDegenerate() const { return size() < 5; }
+
+	// Adds fragment/read to statistics
 	//	@len: frag's length
-	inline void AddFrag(fraglen len) { (*this)[len]++; }
+	inline void AddLen(fraglen len) { (*this)[len]++; }
 
-	//inline citer Begin() const	{ return begin(); }
-	//inline citer End()	 const	{ return end(); }
-
-	// Calculate and print dist params
+	// Calculate and print dist fpair
 	//	@s: print stream
-	void Print(dostream& s, bool prDistr = true) const;
+	//	@Type: type of distribution
+	//	@callNorm: call normal parameters anyway
+	//	@prDistr: if true then print distribution additionally
+	void Print(dostream& s, eType type, bool callNorm = false, bool prDistr = true);
 };
 
 #endif	// _ISCHIP
