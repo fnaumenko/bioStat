@@ -13,7 +13,7 @@ See the	GNU General Public License for more details.
 ************************************************************************************/
 
 #include <iostream>	
-#include <iomanip>      // std::setw
+#include <iomanip>      // setw
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -31,23 +31,23 @@ typedef unsigned char BYTE;
 #endif
 
 #define HPH		'-'
-#define BLANK	' '
+#define SPACE	' '
 #define EOL		'\n'	// LF, 10
 
-//using namespace std;
+using namespace std;
 
 struct pairCommand { const char* first; const char* second; };
 
 const pairCommand commands[] = {
 	{ "cc",			"bioCC" },
 	{ "fragdist",	"fragDist" },
-	{ "readdens",	"readDens" },
+	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
 const BYTE	commCnt = sizeof(commands) / sizeof(pairCommand);
 
-const std::string appName = "biostat";
+const string appName = "biostat";
 const char* optSumm = "--summ";
 
 int PrintUsage(bool prTitle);
@@ -78,7 +78,7 @@ public:
 		commLen += strlen(pathHead) + strlen(pathTail) + appLen;
 #endif // _DEBUG
 		_comm = new char[commLen + 1];	// +1 for 0
-		memset(_comm, BLANK, commLen);
+		memset(_comm, SPACE, commLen);
 #ifdef _DEBUG
 		memcpy(_comm, pathHead, shift = strlen(pathHead));
 		memcpy(_comm + shift, app, appLen);
@@ -107,9 +107,9 @@ bool IsFileExist(const char* fname)
 	// find real folder from which the main app was called
 	char result[PATH_MAX];
 	ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-	std::string path = std::string(result, (count > 0) ? count : 0);
+	string path = string(result, (count > 0) ? count : 0);
 	// replace main app name by util name
-	path = path.substr(0, path.rfind(appName)) + std::string(fname);
+	path = path.substr(0, path.rfind(appName)) + string(fname);
 	// check if util is exists in this folder
 	struct stat st;
 	return (!stat(path.c_str(), &st) && st.st_mode & S_IFREG);
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 		char secLit = *(argv[1] + 1);
 		if (secLit == 'h' || (secLit == HPH && !strcmp((const char*)(argv[1] + 2), "help")))
 			return PrintUsage(true);
-		std::cout << "wrong option; use -h|--help for help\n";
+		cout << "wrong option; use -h|--help for help\n";
 		return 1;
 	}
 	// define command
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 	for (char i = 0; i < commCnt; i++)
 		if (!strcmp(argv[1], commands[i].first)) { ind = i; break; }
 	if (ind == -1) {
-		std::cout << "unrecognized command: " << argv[1] << EOL;
+		cout << "unrecognized command: " << argv[1] << EOL;
 		return PrintUsage(false);
 	}
 	return CallApp(ind, (const char**)argv, argc);
@@ -141,15 +141,15 @@ int PrintUsage(bool prTitle)
 {
 	const char* ver = "1.0";
 	if (prTitle)
-		std::cout << appName.c_str() << ": statistical tools for NGS data\nVersion: "
+		cout << appName.c_str() << ": statistical tools for NGS data\nVersion: "
 		<< ver << "\n\nUsage:\t"
 		<< appName.c_str() << " <command> [options]\n";
-	std::cout << "\nCommands:\n";
+	cout << "\nCommands:\n";
 	for (BYTE i = 0; i < commCnt; i++) {
-		std::cout << std::setw(10) << commands[i].first << std::setw(2) << BLANK;
+		cout << setw(10) << commands[i].first << setw(2) << SPACE;
 		CallApp(i);
 	}
-	std::cout << EOL;
+	cout << EOL;
 	return !prTitle;
 }
 
@@ -166,7 +166,7 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	int ret = 0;
 
 	CommLine cm(app, argv ? argv : helpParams, argc);
-	//std::cout << cm.Get() << EOL;	return 0;	// control output
+	//cout << cm.Get() << EOL;	return 0;	// control output
 #ifdef _WIN32
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -183,20 +183,20 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	}
 	else {
 		ret = GetLastError();
-		if (ret == 2)	std::cerr << app << missUtil;
-		else			std::cerr << "error " << ret << EOL;
+		if (ret == 2)	cerr << app << missUtil;
+		else			cerr << "error " << ret << EOL;
 	}
 #else
 	if (IsFileExist(app)) {
 		FILE* fp = popen(cm.Get(), "r");
 		if (fp) {
 			char buff[256];
-			while (fgets(buff, sizeof(buff), fp)) std::cout << buff;
+			while (fgets(buff, sizeof(buff), fp)) cout << buff;
 			pclose(fp);
 		}
-		else { std::cerr << app << " open error\n";	ret = 1; }
+		else { cerr << app << " open error\n";	ret = 1; }
 	}
-	else { std::cerr << app << missUtil; ret = 2; }
+	else { cerr << app << missUtil; ret = 2; }
 #endif
 	return ret;
 }
