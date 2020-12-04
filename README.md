@@ -2,10 +2,9 @@
 Statistical package for NGS data.<br>
 It includes next utilities:<br>
  * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; advanced correlation calculator for basic bioinformatics file formats<br>
- * [**fragdist**](#fragdist)&nbsp;&nbsp;&nbsp; calls fragment size distribution<br>
- * [**readdens**](#readdens)&nbsp; read density profile calculator<br>
- * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; alignment verifier<br>
- * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fastq 'N' statistics calculator
+ * [**fragdist**](#fragdist)&nbsp;&nbsp;&nbsp; calls fragment/read length distribution<br>
+ * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; aligned reads verifier<br>
+ * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FastQ 'N' statistics calculator
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
@@ -47,12 +46,13 @@ make
 
 ---
 ## bioCC
-fast advanced **C**orrelation **C**alculator for basic **bio**informatics file formats.<br>
-It computes Pearson’s and signal’s correlation coefficients for densities, coverage and features.<br>
-Program allows to obtain correlation coefficients for the whole genome, for each chromosome separately 
+fast advanced **C**orrelation **C**alculator for basic **bio**informatics data types.<br>
+It computes Pearson’s and signal’s correlation coefficients for coverage, features and read densities.<br>
+Program allows to obtain correlation coefficients for the whole genome, for each chromosome separately, 
 and for predefined regions within the chromosomes. 
-It can print coefficients for each predefined region and coefficients frequency histogram.<br>
-**bioCC** is designed to treat a bunch of files at once.
+In the last case it optionally prints region coefficients frequency histogram. 
+This, for example, makes it possible to correlate the densities precisely in the peaks.<br>
+**bioCC** uses a fast single-pass range-based correlation algorithm. It also is designed to treat a bunch of files at once.
 
 ### Usage
 ```
@@ -68,32 +68,34 @@ or
 ### Help
 ```
 Input:
-  -a|--align            input bed files are alignments
+  -a|--align            input bed files are alignments. Ignored for bam and wig
   -g|--gen <name>       chromosome sizes file
   -l|--list <name>      list of multiple input files.
                         First (primary) file in list is comparing with others (secondary)
 Processing:
   -c|--chr <name>       treat specified chromosome only
-  -r|--cc <P,S>         correlation coefficient, in any combination: P - Pearson, S - signal [P]
-  -s|--space <int>      resolution: span in bp by which reads will be counted to define a density.
-                        For the alignments only [100]
+  -r|--cc <P,S>         correlation coefficient, in any order: P - Pearson, S - signal [P]
 Region processing:
   -f|--fbed <name>      'template' ordinary bed file which features define compared regions.
                         Ignored for the ordinary beds
-  -e|--ext-len <int>    length by which the features in primary file (for ordinary beds) or in 'template'
-                        (for alignments and wigs) will be extended in both directions before treatment [0]
-  --ext-step <int>      step of extending features in primary bed file; if 0 then no step calculation.
-                        For the ordinary beds only [0]
-  --norm <OFF|ON>       normalize regions before calculation. Ignored for the ordinary beds [ON]
+  -e|--ext-len <int>    length by which the features in primary file (for ordinary beds) or in
+                        'template' (for alignments and wigs) will be extended in both directions
+                        before treatment [0]
+  -s|--ext-step <int>   step of extending features in primary bed file;
+                        if 0 then no step calculation. For the ordinary beds only [0]
 Output:
-  -С|--pr-cc <IND,TOT>  print coefficient, in any combination:
-                        IND - for each chromosome individually, TOT - total [IND]
+  -R|--pr-cc <LOC,TOT>  print coefficient, in any order:
+                        LOC - for each chromosome, TOT - total [LOC]
   -B|--bin-width <float>
                         print frequency histogram with given bin width [0]
-  -S|--sort <RGN|CC>    print region coefficients, sorted by: RGN - regions, CC - coefficients
-  -i|--info <LAC|NM|CNT|STAT>
-                        print information about file:
-                        LAC - laconic, NM - name only, CNT - number of items, STAT - statistics [NM]
+  -F|--fcc-sort [<RGN|CC>]
+                        print region coefficients, sorted by: RGN - regions, CC - coefficients [CC]
+  -V|--verbose  <LAC|NM|CNT|STAT>
+                        set verbose level:
+                        LAC  - laconic
+                        NM   - file names
+                        CNT  - file names and number of items
+                        STAT - file names and statistics [NM]
   -o|--out              duplicate standard output to bioCC_out.txt file
 Other:
   -t|--time             print run time
@@ -103,68 +105,101 @@ Other:
 
 ### Details
 
-#### Input data types
-Alignment read densities should be presented by [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) 
-or [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
-Sequencing coverage should be presented by [WIG](https://genome.ucsc.edu/goldenpath/help/wiggle.html) format.<br>
-Features are also presented by [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.
+#### Input data
+Dense continuous data (coverage) are чcompared using wiggle data in [WIG](https://genome.ucsc.edu/goldenpath/help/wiggle.html) format.
+Features are compared using ordinary [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.
+Read densities are compared using aligned DNA sequences (alignments) in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) or BED format.
+The program recognizes the file format automatically by their extension (case-insensitive).
 
-**BED**<br>
-Formally bed file as a result of peak calling process, and bed file represents alignment have the common required fields, but they differ in the interpretation. 
-For greater certainty, the file of the first type will be called *ordinary* bed, the file of the second type will be called *alignment* bed.<br>
-For more information about read’s density see option `-s|--space`.
+**Coverage**<br>
+All type of coverage representation – ([BedGraph](https://genome.ucsc.edu/goldenPath/help/bedgraph.html), 
+[wiggle](https://genome.ucsc.edu/goldenpath/help/wiggle.html) variable step, fixed step – can be used in any combination.
 
-**WIG**<br>
-*bedGraph* type is not supported in this version, and the only *wiggle* in *variableStep* format is acceptable.<br>
-Note, that one of the fastest *wiggle* generator [PeakRanger](http://ranger.sourceforge.net/manual1.18.html) 
-(it also supports the separate strand generation) produces data with some peculiarity, 
-namely each its interval has initial span = 1. 
-This does not allow to compare coverage.<br>
-To level this feature, use the [wigReg](https://github.com/fnaumenko/wigReg) software.<br>
-**wigReg** also allows to shorten *wig* files generated by [MACS](http://liulab.dfci.harvard.edu/MACS/00README.html) 2-10 times.
+**Features**<br>
+Formally *alignment* (collection of reads) and *ordinary* bed (collection of features) have the same extention bed, 
+but they are interpreted and handled differently. 
+Since their automatic recognition is generally impossible, a special option is provided to indicate an *alignment*. 
+See `-a|--align` option for more details.
 
-All input files should have chromosome's items (features/reads/intervals) been clustering together.<br>
-For faster processing, items belonging to the same chromosome also should be sorted in position ascending order.<br>
-*Wig* files usually meet these requirements. 
-Opposite, *bed* files often have messy initialization. 
-The simplest way to prepare *bed* files is to sort them, for example by using **sortBed** utility from [bedtools](http://bedtools.readthedocs.io/en/latest/) package.<br>
-It concerns 'template' *bed* file as well (see `-f|--fbed` option).
+**Read density**<br>
+Each read is counted not by its length (this will be the read coverage, the corresponding WIG file can be obtained 
+with standard tool, such as [bedtools genomecov](https://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html), 
+[deepTools bamCoverage](https://deeptools.readthedocs.io/en/develop/content/tools/bamCoverage.html), 
+[peakranger wigpe](http://ranger.sourceforge.net/manual1.18.html), but by its 5’ position. 
+Thus, two internal views of the coverage with span=1 are formed, which are then compared with each other.
 
-**bioCC** recognizes the file formats automatically by their extension, so the extensions should be BAM, BED or WIG (case-insensitive). 
-To distinguish between *ordinary beds* and *alignments*, a special option `-a|--align` is provided. 
+BAM/BED do not have to be sorted by chromosomes, 
+but all items (reads and features) belonging to a chromosome should be clustered together.  
+The simplest way to meet this requirement is to use pre-sorted data. WIG items are sorted by definition.
 
 #### Input data order
 Comparable files can be represented both through program parameters, and by means of a file containing their names. 
-In both cases the first file in a list – *primary* – is compared to the others – *secondary* – by turns.
-The *primary* file specifies a set of compared chromosomes (unless it is limited by the option `-c|--chr`). 
-If one or more chromosomes are represented in the *primary* file, only they will be compared.<br>
-Also, in the case of *wiggle*, the *primary* defines a resolution (see option ```-s|--space``` for more information).
+In both cases the first file in a list – *primary* – is compared to the others – *secondary* – by turns. 
+Only common chromosomes for the compared pair are considered (unless it is limited by the option `-c|--chr`). 
 
 Be careful by using standard naming conventions like *abc?.bed*, *a\*.bed*. 
 You must be sure that first of the lexically recognized files is really primary, and that all other files really need to be compared.<br>
-For more details about list of file names as a file see option ```-l|--list```.
+For more details about file name list see ```-l|--list``` option.
+
+#### Output
+The program displays (and optionally duplicates to the file) the coefficients for each chromosome and the total, if it is specified.<br>
+An example of the extended output for one chromosome, showing regional coefficients and their histograms histograms 
+(here`$SM` stores the full chromosome sizes filename): 
+```
+$ bioCC -tF -c 1 -f 2455_th09.bed -e 300 -B 0.1 -g $SM m36.wig 2455_M1.wig
+template 2455_th09.bed: 65 features per chrom 1 (00:00)
+Pearson CC between
+m36.wig: 5909230 intervals per chrom 1 (00:04)
+ and
+2455_M1.wig: 2331020 intervals per chrom 1 (00:03)
+
+#RGN    CC
+43      -0.126805
+63      0.52336
+28      0.668467
+...
+54      0.990053
+4       0.993
+45      0.994721
+BIN UP  COUNT
+1       51
+0.9     9
+0.8     2
+0.7     1
+0.6     1
+0.5     0
+0.4     0
+0.3     0
+0.2     1
+chr1    0.551579
+00:07
+```
+This example compares the real (2455_M1.wig) and model (m36.wig) coverage at the regions specified in the optional template file 2455_th09.bed. 
+In this case, the features of the template represent transcription factor Oct4 motifs, identified with a probability of 0.9. 
+Before correlation, motives expand by 300 bp in both directions, thus the features indicate coverage peaks. 
+The coefficients for each of 65 features (i.e. peaks) are sorted by their value. 
+A histogram of their frequency distribution with a step of 0.1 is also displayed. 
+In this case, we see that 81% of features have a correlation coefficient greater than 0.9, which indicates good model data.<br>
+Data from different experiments can also be compared in this way.
 
 ### Options description
-Note:<br>
-Enumerable option values are case-insensitive.<br>
-Compressed input files in gzip format are acceptable.
+Note: enumerable option values are case-insensitive.<br>
 
 `-a|--align`<br>
-indicates that input bed files are *alignments*, so density correlation would be performed.<br>
-Since *alignment* may be considered as an 'instance' of *ordinary bed*, in theory both cases should give the same result. 
-It is true while the *alignments* as well as the *ordinary beds* have no *ambiguous* reads/features (see ```–i|--info``` option for definition). 
-But in practice this condition is almost never achieved, and these ambiguities are resolved by different way. 
-Consequently the results can be dramatically different.<br>
-In addition, *ordinary beds* are compared using a separate, ultra-fast algorithm.<br>
-If alignments are treated without this option, bioCC will print a warning message.<br>
-If *ordinary bed* files have features of different sizes and are treated with this option, 
-**bioCC** will print a cancel message and complete.
+indicates that input bed files are *alignments*, so read density correlation would be performed.<br>
+Each *alignment* line includes a strand character at the 6th tab position (separated by tabs), however, 
+it is not forbidden to also include this symbol at the same position in a *regular bed*. 
+Thus, automatic recognition of *alignment* and *ordinary* bed is generally not possible. 
+To avoid possible ambiguity, the *alignment* is designated explicitly.<br>
+If *alignments* are treated without this option, in most cases **bioCC** will print a cancel message and complete. 
+But if input files have strand character at the 6th line positions and are not *alignments*, they will be compared wrongly.<br>
+If bed files have strand character at the 6th line  and are treated without this option, a warning message will be printed.
 
 `-g|--gen <name>`<br>
-specifies chromosome sizes file. Required for BED and WIG files.<br>
+specifies chromosome sizes file. Required for BED and WIG files.
 
 `-l|--list <file>`<br>
-specifies an external list of compared files. 
+specifies a list of compared files. 
 The list is a plain text file, in which each file name is located on a separate line.<br>
 Lines beginning with ‘#’ are considered as comments and will be skipped.<br>
 Empty lines are allowed.<br>
@@ -173,67 +208,43 @@ This option abolishes input files as parameters.
 `-c|--chr <name>`<br>
 treats specified chromosome only. 
 The value `name` is the chromosome identifier; it is a number or character, for example, `10`, `X`.<br>
-The indication of one chromosome reduces run time on 1.5-20 times depending on how far this chromosome is placed in an input *alignment* or *wig*.<br>
-For *ordinary beds* it has no time-improvement effect: any result appears quickly.<br>
+The indication of one chromosome reduces run time on 1.5-20 times depending on how far this chromosome is placed in an input data.<br>
+For *ordinary* beds it has no time-improvement effect: any result appears quickly.<br>
 
 `-r|--cc <P,S>`<br>
-specifies correlation coefficient, in any combination: `P` – Pearson, `S` – signal.<br>
-For more details see [Pearson and signal correlation](#pearson-and-signal-correlation).<br>
+specifies correlation coefficient, in any order: `P` – Pearson, `S` – signal.<br>
+See [Pearson and signal correlation](#pearson-and-signal-correlation).<br>
 Default: Pearson
-
-`-s|--space <int>`<br>
-specifies an alignment resolution: the length of windows (span) in bp by which reads will be counted to define a density.<br>
-Read is considered belonging to span if it`s centre is placed within the span. 
-Thus each read is counted once. 
-Then, when using the reference genome from the input sequences, the reference undefined regions (gaps) are preliminarily removed from the compared sequences: 
-the regions separated by a gap are merged.<br>
-As a result, the program compares the actual read density distributions.<br>
-This option is topical for the *alignments* only.<br>
-*Wiggles* are already presented according to their resolution.
-**bioCC** takes the resolution of *primary wiggle* as the basic for treatment. 
-If *secondary wiggle* resolution is differ, it will be reduced to the base. 
-For example, if the primary resolution is 10 and the secondary resolution is 1, then every 10 partitions in the secondary data will be merged so finally the secondary resolution will also be 10. 
-Contrariwise, if secondary resolution is 100, then each partition of the secondary data will be divided into 10 with the same density.<br>
-The best way is to use *wiggles* with the same resolutions.<br>
-Range: 2-1000<br>
-Default: 100
 
 `-f|--fbed <file>`<br>
 specifies 'template' *ordinary* bed file with features that defines compared regions.<br>
-In practice the most typical case is comparing detected peaks across the distributions.<br>
-If options `-B|--bin-width` and `--f|--fbed` are not defined, only total coefficients for the all regions are printed.<br>
-This option is ignored for the *ordinary bed* files.
+Correlation coefficients are calculated only within these areas (including their boundaries). 
+Thus, the total coefficient for the chromosome will differ from the coefficient calculated without this option.<br>
+An example of using this option is given in the [Output](#output) section.<br>
+While template is specified, the output is limited only by the chromosomes presented in it.<br>
+See also `-e|--ext-len` and `-b|--bin-width` options.<br>
+This option is ignored for the *ordinary* bed files.
 
 `-e|--ext-len <int>`<br>
-specifies the value by which all features in a 'template' *bed* file or in a *primary ordinary bed* file should be stretched in both directions before comparison.<br>
-If set, all the features from 'template' or *primary bed* file will be stretched before processing: 
-*start* positions are decreased for this value, *end* positions are increased.<br>
+specifies the value by which all features in a 'template' bed file or in a *primary ordinary* bed file should be stretched in both directions before comparison.<br>
 If stretched features become intersected, they are joined.<br>
-This option is mainly constructed for enriched region comparison 
-while initial binding sites are represented by ‘template’ or *primary* features. 
-It is only relevant in addition to the option `-f|--fbed`.<br>
+This option is mainly constructed for enriched region comparison while initial binding sites are represented by ‘template’. 
+In the case of *ordinary* bed, the *primary* file acts as a template. 
+An example of using this option is given in the [Output](#output) section.<br>
 Range: 0-1000<br>
 Default: 0
 
-`--ext-step <int>`<br>
+`-s|--ext-step <int>`<br>
 If set, activates the mode of consecutive calculation of the coefficients for stretching features in *primary ordinary* bed file with the stated step. 
 The maximum value of the extension is limited by `--e|--ext-len` option.<br>
-This option is topical for *ordinary bed* files only.<br>
+This option is topical for *ordinary* bed files only.<br>
 Range: 0-500<br>
 Default: 0 (no step calculation)
 
-`--norm <OFF|ON>`<br>
-turns off/on regions normalization before calculation. <br>
-Normalization means levelling distribution’s patterns by their maximal values across regions.<br>
-In spite the fact that of each pair of regions will be always compared correctly, the common result for all the regions may been unfairly falling down. It occurs when patterns levels are appreciably differ from region to region.<br>
-This option is assigned to eliminate such effect.<br>
-This option is topical only with option `-f|--fbed`.<br>
-Default: `ON`
-
-`-C|--pr-cc <IND,TOT>`<br>
-print coefficients, in any combination: `IND` - for each chromosome individually, `TOT` - total.<br>
-If only one chromosome is specified, the total coefficient is not output as an identical.<br>
-Default: `IND`.
+`-C|--pr-cc <LOC,TOT>`<br>
+print coefficients, in any order: `LOC` - for each chromosome individually, `TOT` - total.<br>
+If only one chromosome is specified, the total coefficient is not printed as an identical.<br>
+Default: `LOC`.
 
 `-B|--bin-width <float>`<br>
 If set, forces to consolidate coefficients into bins, and print histogram values.<br>
@@ -242,13 +253,13 @@ It is printed as a list of pairs *\<bin upper bound\>\<count in bin\>*.
 Negative coefficients have been turning to absolute during consolidation.<br>
 This option defines the width of bin as a part of 1.<br>
 Empty bins at the edges are not printed.<br>
-For example, if –b value is 0.1, and all coefficients are placing in the range 0.65 to 0.85, only three bins [0.6-] 0.7, [0.7-] 0.8, [0.8-] 0.9 would be printed.<br>
+An example of using this option is given in the [Output](#output) section.<br>
 This option is topical only with option `-f|--fbed`.<br>
 Range: 0-1<br>
 Default: 0 (no consolidation)
 
-```--sort <RGN|CC>```<br>
-If set, forces to output coefficients calculated for each region as a list of pairs *\<number-of-region\>\<coefficient\>*. 
+`-F|--fcc-sort [<RGN|CC>]`<br>
+If set, forces to print coefficients calculated for each region as a list of pairs *\<number-of-region\>\<coefficient\>*. 
 `RGN` value prescribes list to be sorted by region’s number, `CC` – by coefficient.<br>
 If both of the coefficients are declared, list is sorted by Pearson.<br>
 First region number is 1.<br>
@@ -256,28 +267,15 @@ This option is topical only with option `-f|--fbed`.<br>
 
 `-i|--info <LAC|NM|CNT|STAT>`<br>
 outputs information about items (features/reads/intervals).<br>
-`LAC`:  laconic output. This value minimizes the output as possible to remain clear. It is constructed mainly for using in batch file.<br>
-`NM`:   brief output. Prints file names without any additional information.<br>
-`CNT`:  prints file names and number of all and accepted items, if they are different.<br>
-`STAT`: prints item ambiguities statistics, if they exist.<br>
-When we are speaking about *bed* files, there are some issues which can be normal or may be not – that depends of file’s destination. 
-For instance, duplicated and crossed features are normal for the *alignments*, but rather unusual for the *ordinary beds*. 
-On the other hand, features with different length are typical for the *ordinary beds*, but they are a rare case for the *alignments*. 
-All these situations we call a conditional term *ambiguities*.<br>
-It concerns to 'template' *bed* as well.<br>
-**bioCC** treats ambiguities the most natural way. 
-For *ordinary bed* it merges crossed or adjacent features, and ignores submerging and duplicated features. 
-For *alignment* it accepts duplicated reads by default (in fact, all the ambiguities are permitted for the alignment, except different length of reads).<br>
-Thus, not all records present in the file can be accepted.<br>
-In some circumstances you need to be aware of these issues. 
-The `STAT` value provides the summary method. 
-It forces to display number of all recognized certain type ambiguities, and appropriate treatment.<br>
-Note, that in contrast to *bed* with their features/reads, the number of intervals does not match the number of lines in the *wiggle* file. 
-All contiguous bases with the same data value are considered to be a single interval, although it may correspond to several file lines.<br>
+`LAC`:  laconic output. This value minimizes the output as possible to remain clear, e.g. for use in batch file.<br>
+`NM`:   brief output. Prints results and input file names.<br>
+`CNT`:  prints file names and number of all accepted items.<br>
+`STAT`: prints item ambiguities statistics, if they exist. 
+In the current version, statistics are displayed only for *ordinary* bed files, including template.<br>
 Default: `NM`
 
 `-o|--out`<br>
-duplicates standard output to **bioCC_out.txt** file.<br>
+duplicates standard output to **bioCC_out.txt** file (except alarm messages).<br>
 It is analogue of **tee** Linux command and is rather useful by calling **bioCC** under Windows.
 
 
@@ -292,9 +290,9 @@ A. Coverage/density distributions.<br>
 To be more clear there are 3 illustrations of pair of signals:<br>
 ![signal-Pearson](https://github.com/fnaumenko/bioStat/blob/master/pict/Signal-Pearson_50.png)<br>
 Both of coefficients demonstrate value’s normalization independence (fig 1-3).<br>
-Signal method is a bit more sensible, but it is sensitive to the mean amplitude (*DC offset* in terms of signal function), as it it we can see on (fig 2).
+Signal method is a bit more sensible, but it is sensitive to the mean amplitude (*DC offset* in terms of signal function), as we can see on (fig 2).
 This means that the greater the background level of the compared distributions, the less relevant is the Signal method.<br>
-For this reason, Pearson’s method is recommended for the distributions comparison.<br>
+For this reason, Pearson’s method is recommended for the distribution comparison.<br>
 But if background’s level is considered part of the measure of similarity (for example, by comparing two replicas for noise level),
  in this case signal method would be preferable.
 
@@ -307,9 +305,12 @@ Thus, for the features only the Pearson method is correct.
 ---
 ## fragDist
 
-Calculates paired-end fragment size lognormal distribution parameters and frequency profile.<br>
+Calculates paired-end fragment size lognormal/normal distribution parameters or read length normal distribution parameters 
+(for reads of variable length).<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs_medium.png).
+in the ![FragDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/PEdistribs.png).<br>
+Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
+in the ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distribs.png).
 
 ### Usage
 
@@ -319,8 +320,9 @@ or<br>
 
 ### Options
 ```
-  -c|--chr <name>       treat specified chromosome only
-  -D|--dist             print fragment size frequency distribution
+  -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
+  -n|--norm             call normal distribution parameters anyway
+  -D|--dist             print frequency distribution
   -o|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.dist if file is not specified
   -t|--time             print run time
@@ -330,179 +332,84 @@ or<br>
 ### Details
 
 #### Input
-See Input section [here](#input_).<br>
-The program can also accept a file with a ready-made lognormal size frequency distribution, in order to determine its parameters. 
-Distribution format is described in the comments to the option `-D|--dist`. This file should have *.dist* extension.
+Fragment size distribution is called based on aligned DNA paired-end sequence in 
+[BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm)/
+[BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
+Read size distribution is called based on original DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format 
+or aligned DNA sequence in BAM/BED format.<br>
+Note that the number of mapped reads can be significantly less than the initial one, which can lead to distortion 
+of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
+in ![ReadDist figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distribs.png)).<br>
+The program can also accept a file containing the finished distribution, in order to call its parameters. 
+This is a plain text file with *.dist* extension, each line of which corresponds to one distribution point, 
+i.e. a <frequency>-<size> pair. 
+A similar file is produced when the `-D|--dist` option is activated, and it can also be used as an input.
+
+The program recognizes the file format automatically by their extension (case-insensitive).
 
 #### Output
-Called (calculated) lognormal mean, sigma, Mode and Mean (expected size).<br>
-Fragment size frequency distribution is printed optionally.
+Called distribution parameters and Pearson correlation coefficient for the original and called distributions, 
+calculated on the basis of the \<start of the sequence\> – \<the first frequency value less than 0.1% of the maximum\>.<br>
+If the original distribution is assumed to be lognormal, 
+the program also outputs the parameters and Pearson's coefficient for the normal distribution if it looks like lognormal.<br>
+An example of the extended output (optional original distribution output is truncated):
+```
+$ fragDist -D 965515.bam
+<in-file> 965515.bam: 1334196 reads
+WARNING: Distribution looks defective on the left; parameters may be inaccurate
 
+Lognormal distribution: PCC = 0.9857
+mean: 5.402	std.dev: 0.09319
+Mode: 220	 Mean: 222.9
+
+Normal distribution: PCC = 0.9787
+mean: 220	std.dev: 21.67
+
+Original distribution:
+length	frequency
+95	737
+96	790
+97	760
+...
+```
 #### Options description
 
-`-c|--chr <name>`<br>
-treats specified chromosome only. The value name is the chromosome identifier; 
-it is a number or character, for example, 10 or  X.<br>
-The indication of one chromosome reduces run time on 1.5-20 times depending on how far this chromosome is placed in an alignment. 
-However, this simultaneously reduces the result accuracy. 
-Practically the best choice is the first chromosome, which provides the minimum time and highest accuracy relative to other chromosomes.
+`-i|--inp <FRAG|READ>`<br>
+sets the subject of distribution parameter calling: `FRAG` - fragments, `READ` - reads<br>
+*WARNING*: in the Windows version, while trying to call fragment distribution with single-end BAM file, 
+the program will crash silently instead of printing the corresponding message. 
+This is due to an incorrectness in the external BamTools library being used. 
+With single-end BED alignment fragDist exits correctly, as well as with both formats under Linux.<br>
+Default: `FRAG`
+
+`-n|--norm`
+If the input data does not have a predetermined distribution pattern, the application calls the lognormal parameters 
+and determines whether it makes sense to fit the data with a normal distribution. 
+However, there are situations when the data does not fit the normal distribution, 
+and yet you still need to determine its parameters. This option forces to do it anyway.<br>
+It is applicable only to input data of type *.dist*.
 
 `-D|--dist`<br>
-prints fragment size frequency distribution as a set of \<frequency\>-\<size\> pairs.
+prints fragment size frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
+This allows to visualize the distribution using some suitable tool such as Excel.
 
 `-o|--out [<name>]`<br>
-duplicates standard output to specified file. If file is not specified, duplicates output to file with name, 
-constructed as input alignment short name (without path and extension) with addition of the extension .freq.<br>
-If the option is last and its value is not set, the next (and the last) token is treated as a program parameter. 
-It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
-
----
-## readDens
-
-Calculates alignment density profile and precise mean density into inside and outside given regions.<br>
-Density profile is NOT a coverage. 
-It means a set of frequencies of the observed equal parts of the sequence with the same density. 
-The program splits each given region into non-overlapping equal parts (windows), 
-and then counts the number of windows containing the same number of reads.<br>
-'Precise' means that all the undefined regions in the reference genome are excluded from consideration. 
-If the input regions are not defined, then only mean density is calculated for each chromosome.<br>
-Example of density profiles of 8 experimental datasets from NCBI database are shown in the ![figure](https://github.com/fnaumenko/bioStat/tree/master/pict/readDensProfile_Oct4-Sox2.png).
-
-### Usage
-`biostat readdens [options] <in-file>`<br>
-or<br>
-`readDens [options] <in-file>`
-
-### Options:
-```
-Treatment:
-  -g|--gen <name>       reference genome library or chromosome sizes file
-  -c|--chr <name>       treat specified chromosome only
-  -f|--fbed <name>      'template' bed file which features define treated regions
-  -e|--ext-len <int>    length by which the features in the 'template' bed file
-                        will be extended in both directions before treatment [200]
-  --gap-len <int>       minimal length of undefined nucleotides region in genome
-                        which is declared as a gap. Ignored for the genome size file [1000]
-  --min-scr <int>       score threshold for treated reads
-  -s|--space <int>      resolution: span in bp by which reads will be counted
-                        to define a density [200]
-  --serv <name>         folder to store service files
-Output:
-  -W|--win-freq         print windows frequency distribution
-  -o|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>_dens.txt if file is not specified
-Other:
-  -t|--time             print run time
-  -v|--version          print program's version and exit
-  -h|--help WARNING     print usage information and exit
-```
-
-### Details
-
-#### Input_
-Aligned DNA sequence in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) 
-or [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format. 
-Format is automatically recognized by file extension, so it should be BAM or BED (case-insensitive).<br>
-Reads does not have to be sorted, but must be grouped by chromosomes. 
-This means that reads belonging to the same chromosome must be arranged sequentially, in a single group. 
-The simplest way to ensure this is to pre-sort the alignment.<br>
-BAM files are read 2-4 times slower than even zipped BED files.
-
-#### Output
-Mean density is measured in read per kilobase.<br>
-Density profile is printed as a set of a pairs \<number of read in window\>\<count of window\>.<br>
-The results are calculated for each chromosome separately, though the total mean density is also printed.
-
-#### Options description
-`-g|--gen <file>`<br>
-Chromosome sizes file or reference genome library (directory containing nucleotide chromosome sequences in FASTA format).<br>
-If chromosome sizes file is specified, the density will be considered over the entire chromosome length.<br>
-If reference library is specified, all the undefined regions in the reference genome will be excluded from processing, 
-which means counting the actual density. 
-Undefined regions (gaps) are regions entirely composed of the ambiguous reference code N. 
-The minimal length of accounting gaps is managed by `--gap-len` option.<br>
-For example, chromosome 1 from mm9 library contains 14 regions, separated by gaps with length more than 400 bps, 
-and 10 regions, separated by gaps with length more than 1000.<br>
-Gaps are determined by scanning the reference genome once and are saved in service files with ‘region’ extension 
-in the same directory by default. To assign another service directory, use `--serv` option. 
-If this option is not set, and the reference directory is write-protected, scanning will occur every time.
-
-The reference library may contain .fa and/or .fa.gz files. First program searches for unzipped files in it. 
-If there are no such files, or the file corresponded to chromosome specified by option `–c|--chr` is absent, 
-the program searches for zipped files.
-One can obtain a genome library in UCSC: ftp://hgdownload.soe.ucsc.edu/goldenPath/ or in Ensemble: ftp://ftp.ensembl.org/pub/release-73/fasta storage. 
-In the second case please copy genomic sequences with the same masked type only, e.g. unmasked (‘dna'), since program does not recognise mask’s types.
-
-This option or the `--serv` option replacing it is mandatory for the BED file. 
-For an BAM file, it can be omitted, which is equivalent to specifying chromosome sizes file (since the BAM/SAM file contains the chromosome sizes itself).
-
-`-c|--chr <name>`<br>
-treats specified chromosome only. The value `name` is the chromosome identifier; 
-it is a number or character, for example, 10 or X.
-The indication of one chromosome reduces run time on 1.5-20 times depending on how far this chromosome is placed in an alignment. 
-However, this simultaneously reduces the result accuracy.
-
-`-f|--fbed <name>`<br>
-specifies 'template' ordinary BED file with features that defines treated regions. 
-The density profile will be constructed on the region resulting from the merger of all regions specified by the 'template' regions.<br>
-This option abolishes the merge of defined regions specified by `-g|--gen` option.
-
-`-e|--ext-len <int>`<br>
-specifies value by which all features in 'template' should be stretched in both directions before the density count.<br>
-If set, all the features from 'template' bed file will be stretched before processing: 
-*start* positions are decreased for this value, *end* positions are increased.<br>
-If stretched features become intersected, they are joined.<br>
-This option is mainly constructed for enriched region comparison while initial binding sites are represented by ‘template’ features. 
-It is only relevant in addition to the option `-f|--fbed`.<br>
-Range: 0-1000<br>
-Default: 0
-
-`--gap-len <int>`<br>
-Minimal length of undefined nucleotides region which is taken as a gap.<br>
-Ignored for chromosome sizes file, specified by `-g|--gen` option or embedded in BAM file.<br>
-Range: 10-1e5<br>
-Default: 1000
-
-`--min-scr <int>`<br>
-specifies score threshold for treated reads. Reads with the score equal or less then stated will be ignored.<br>
-Range: 0-1000<br>
-Default: all reads are accepted
-
-`-s|--space <int>`<br>
-Resolution: the length of windows (span) in bp by which reads will be counted to define a density.<br>
-Read is considered belonging to span if it`s centre is placed within the span. 
-Thus each read is counted once. Then, while using the reference genome from the input sequences, 
-and if 'template' is not specified, the reference undefined regions (gaps) are preliminarily removed from the compared sequences. 
-This means that the regions separated by a gap are merged.<br>
-As a result, the program compares the actual read density distributions.<br>
-Range: 2-1e4<br>
-Default: 200
-
-`--serv <name>`<br>
-specifies the service directory – a place for keeping service files *chr\<x\>.region* and chromosome sizes file. 
-These files are created once by scanning reference genome, and after that are using as the gap data source. 
-By default they are keeping in the reference genome folder, but if this folder is closed for writing, 
-or you want to store these files separately for your own reasons, that is the place.<br>
-Once the service files have been created, you can use this option instead of `-g|--gen`.<br>
-Note that in order to avoid ambiguity, each reference genome library should have its own service directory.<br>
-If this option is not set, and the reference genome folder is write-protected, scanning will occur every time.
-
-`-o|--out`<br>
-duplicates standard output to specified file. If file is not specified, duplicates output to file with name, 
-constructed as input alignment short name (without path and extension) with addition of the suffix “_dens.txt”.<br>
-If the option is last and its value is not set, the next (and the last) token is treated as a program parameter.<br>
+duplicates standard output to specified file (except alarm messages).<br>
+If file is not specified, duplicates output to file with name, 
+constructed as input file short name (without path and extension) with addition of the extension *.freq*.<br>
+If, in addition, the input file already has the *.freq* extension, then the "_out" suffix is added to the name.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
 ## vAlign
 **V**erify **Align**ment is a fast verifier of reads forming the aligned DNA sequence, 
 which is recalled from an artificial [FastQ](https://en.wikipedia.org/wiki/FASTQ_format) sequence. 
-It compares the original and actual coordinates of each read and prints statistics of right and wrong mappings.
+It compares the original and mapped coordinates of each read and prints statistics of right and wrong mappings.
 
 To do this each read in an initial artificial sequence should keep its location as a part of its name. 
+Read’s name format should be /<some_text/>:chr/<ID/>:/<original_start_pos/>./<uniq_number/> for sigle-end reads and 
+/<some_text/>:chr/<ID/>:/<original_frag_start_pos/>-/<original_frag_end_pos/>./<uniq_number/>//<mate/> for paired-end reads.<br>
 Such template sequence can be generated by [**isChIP**](https://github.com/fnaumenko/isChIP) software. 
-Both single end and paired end reads are possible. 
-If initial reads do not answer this requirement, the treatment will be rejected.
 
 ### Usage
 `biostat valign [options] -g|--gen <name> <in-file>`<br>
@@ -525,17 +432,49 @@ Other:
   -h|--help WARNING     print usage information and exit
 ```
 #### Input
-See Input section [here](#input_).
+Aligned DNA single- or paired end sequence (with fixed read length) 
+in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) 
+or [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
+The program recognizes the file format automatically by their extension (case-insensitive).<br>
+The sequence does not have to be sorted by chromosomes, but all reads belonging to a chromosome should be clustered together. 
+The simplest way to meet this requirement is to use pre-sorted data.
 
 #### Output
-**vAlign** outputs number of exactly matched reads, and number of wrong placed reads with 0, 1, 2, … N mismatches, where N is length of read.
+An example of the output(here $G stores the reference genome directory):
+```
+$ vAlign -to -g $G testVAlign.bam
+<in-file> testVAlign.bam: 24534298 reads, from which
+	37738 (0.1538%) duplicated reads; accepted
+	total accepted: 24534298 (100%) reads (00:18)
+chr1
+mism	readCnt	quality
+precise	872019	1
+0	9301	1
+1	3	1
+2	2	1
+...
+47	418	1
+48	147	1
+49	81	1
+50	102	1
+total reads per chrom 1:	1754353	92.8572%	1889303
+reads per different chroms:	134950	7.14285%
+chr2
+...
+```
+"mism" – mismatches – means the number of erroneous nucleotides in a read (limited by the length of the read);<br>
+"readCnt" – number of reads with given mismatches number;<br>
+"quality" – average quality value in relative units for given reads;<br>
+"precise" means the number of reads mapped to true coordinates without mismatches. 
+Zero mismatches denotes reads without mismatches but mapped to "false" position (different from the original).
 
 #### Options description
 `-g|--gen <name>`<br>
 specifies reference genome library or single nucleotide sequence.<br>
 Genome library is a directory containing nucleotide sequences for each chromosome in [FASTA](https://en.wikipedia.org/wiki/FASTA_format) format.<br>
 If `name` is a .fa[.gz] file, **vALign** accepts the corresponding chromosome as the only treated.<br>
-Otherwise first the program searches for .fa files in the directory `name`. If there are no such files in this directory, **vALign** searches for .fa.gz files.<br>
+Otherwise first the program searches for .fa files in the directory `name`. If there are no such files in this directory, 
+**vALign** searches for .fa.gz files.<br>
 If chromosome is specified by option `–c|--chr`, the program searches for the corresponding .fa[.gz] file.
 
 One can obtain a genome library in UCSC ftp://hgdownload.soe.ucsc.edu/goldenPath/ or in Ensemble ftp://ftp.ensembl.org/pub/release-73/fasta storage. 
@@ -557,9 +496,8 @@ turns off/on recognition of uppercase and lowercase characters in template and t
 Default: `OFF`.
 
 `-o|--out`<br>
-duplicates standard output to specified file. If file is not specified, duplicates output to file with name, 
+duplicates standard output to specified file (except alarm messages). If file is not specified, duplicates output to file with name, 
 constructed as input alignment short name (without path and extension) with addition of the suffix “_valign.txt”.<br>
-If the option is last and its value is not set, the next (and the last) token is treated as a program parameter.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
@@ -567,7 +505,8 @@ It is an analogue of the **tee** Linux command and is constructed rather for the
 
 Calculates the statistics of occurrence of ambiguous code N, and patterns of reads including N 
 in the [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) file.<br>
-These statistics helps to better evaluate the quality of the sequencer output.
+These statistics helps to better evaluate the quality of the sequencer output.<br>
+Only fixed-length reads are accepted.
 
 ### Usage
 `biostat fqstatn [options] <sequence>`<br>
@@ -599,7 +538,7 @@ pos     count   % of total 'N'
  3      4314    10.4%
 20      69      0.166%
 21      49      0.118%
-. . .
+...
 47      256     0.615%
 48      33      0.0793%
 49      1904    4.58%
@@ -612,7 +551,7 @@ N.................................................    29566     0.172%
 ...N..............................................     4313     0.0251%
 ..............................NN..................       83     <0.001%
 .............................NNNN.NNNN.........N.N       10     <0.001%
-. . .
+...
 ...............................N..NN..............        3     <0.001%
 ...............................N..N...............        2     <0.001%
 .........................N.....N..NN.N...........N        1     <0.001%
