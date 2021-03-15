@@ -28,16 +28,14 @@ const char* ProgParam = "<in-file>";	// program parameter tip
 const string OutFileSuff = "_valign.txt";
 const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sFileDuplEnd;
 
-//enum eOptGroup	{ oINPUT, oOUTPUT, oOTHER };	// oOTHER should be the last 
-enum eOptGroup { oTREAT, oOTHER };	// oOTHER should be the last 
-
-const char* Options::OptGroups[] = {			// names of option groups in help
-	"Treatment", "Other"
-};
-const BYTE Options::GroupCount = sizeof(Options::OptGroups) / sizeof(char*);
-
 // --info option: types of info notations
 const char* infos[] = { "NM", "CNT", "STAT" };	// corresponds to eInfo; iNONE and iLAC are hidden
+
+// *** Options definition
+
+enum eOptGroup { oTREAT, oOTHER };	// oOTHER should be the last 
+const char* Options::OptGroups[] = { "Treatment", "Other" };
+const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 //	{ char,	str,	Signs,	type,	group,	defVal,	minVal,	maxVal,	strVal,	descr, addDescr }
 // field 7: vUNDEF if value is prohibited
@@ -60,12 +58,12 @@ Options::Option Options::List[] = {
 	{ 'v', sVers,	fNone,	tVERS,	oOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
 	{ 'h', sHelp,	fNone,	tHELP,	oOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
 };
-const BYTE	Options::OptCount = sizeof(Options::List) / sizeof(Options::Option);
+const BYTE	Options::OptCount = ArrCnt(Options::List);
 
 const Options::Usage Options::Usages[] = {	// content of 'Usage' variants in help
 	{ vUNDEF, ProgParam, true, "alignment in bam/bed format" }
 };
-const BYTE Options::UsageCount = sizeof(Options::Usages) / sizeof(Options::Usage);
+const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 
 dostream dout;	// stream's duplicator
 
