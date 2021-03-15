@@ -1,8 +1,8 @@
 # bioStat
 Statistical package for NGS data.<br>
-It includes next utilities:<br>
+It includes:<br>
  * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; advanced correlation calculator for basic bioinformatics file formats<br>
- * [**fragdist**](#fragdist)&nbsp;&nbsp;&nbsp; calls fragment/read length distribution<br>
+ * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp; calls fragment/read length distribution<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; aligned reads verifier<br>
  * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FastQ 'N' statistics calculator
 
@@ -10,7 +10,6 @@ It includes next utilities:<br>
 `biostat <command> [options] [<file>…]`<br>
 or<br>
 `<Command> [options] [<file>…]`<br><br>
-In the second case, the output to the terminal is carried out immediately, which can be informative when processing large input files.
 
 ## Installation
 ### Executable file
@@ -51,8 +50,8 @@ It computes Pearson’s and signal’s correlation coefficients for coverage, fe
 Program allows to obtain correlation coefficients for the whole genome, for each chromosome separately, 
 and for predefined regions within the chromosomes. 
 In the last case it optionally prints region coefficients frequency histogram. 
-This, for example, makes it possible to correlate the densities precisely in the peaks.<br>
-**bioCC** uses a fast single-pass range-based correlation algorithm. It also is designed to treat a bunch of files at once.
+This, for example, makes it possible to correlate the densities precisely within peaks.<br>
+**bioCC** uses a single-pass range-based correlation algorithm. It also is designed to treat a bunch of files at once.
 
 ### Usage
 ```
@@ -304,24 +303,26 @@ Although the correct answer is -1.<br>
 Thus, for the features only the Pearson method is correct.
 
 ---
-## fragDist
+## calldist
 
-Calculates paired-end fragment size lognormal/normal distribution parameters or read length normal distribution parameters 
-(for reads of variable length).<br>
+*Originally called callDist.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
+Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
+in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
 in the ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png).
 
 ### Usage
 
-`biostat fragdist [options] <in-file>`<br>
+`biostat calldist [options] <in-file>`<br>
 or<br>
-`fragDist [options] <in-file>`
+`calldist [options] <in-file>`
 
 ### Options
 ```
   -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
-  -n|--norm             call normal distribution parameters anyway
-  -D|--dist             print frequency distribution
+  -D|--dist <N,LN,G>    called distribution, in any order:
+                        N – normal, LN – lognormal, G - Gamma [LN]
+  -p|--pr-dist          print frequency distribution
   -o|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.dist if file is not specified
   -t|--time             print run time
@@ -342,7 +343,7 @@ in ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master
 The program can also accept a file containing the finished distribution, in order to call its parameters. 
 This is a plain text file with *.dist* extension, each line of which corresponds to one distribution point, 
 i.e. a <frequency>-<size> pair. 
-A similar file is produced when the `-D|--dist` option is activated, and it can also be used as an input.
+A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.
 
 The program recognizes the file format automatically by their extension (case-insensitive).
 
@@ -353,22 +354,21 @@ If the original distribution is assumed to be lognormal,
 the program also outputs the parameters and Pearson's coefficient for the normal distribution if it looks similar.<br>
 An example of the extended output:
 ```
-$ fragDist -D 965515.bam
-<in-file> 965515.bam: 1334196 reads
-WARNING: Distribution looks defective on the left; parameters may be inaccurate
+$ callDist -D ln,g -p 5278099.bam
+5278099.bam: 4557867 fragments
 
-Lognormal distribution: PCC = 0.9857
-mean: 5.402	std.dev: 0.09319
-Mode: 220	 Mean: 222.9
+	 PCC	relPCC	p1\*	p2\*\*	mode	exp.val
+Lognorm	0.9811		5.775	0.4631	260	358.6
+Gamma	0.95554	-2.6%	4.856	67.43	260	327.4
 
-Normal distribution: PCC = 0.9787
-mean: 220	std.dev: 21.67
+  \*p1 - mean, or alpha for Gamma
+ \*\*p2 - sigma, or beta for Gamma
 
 Original distribution:
 length	frequency
-95	737
-96	790
-97	760
+60	1
+70	1
+72	1 
 ...
 ```
 #### Options description
@@ -378,18 +378,25 @@ sets the subject of distribution parameter calling: `FRAG` - fragments, `READ` -
 WARNING: in the Windows version, while trying to call fragment distribution with single-end BAM file, 
 the program will crash silently instead of printing the corresponding message. 
 This is due to an incorrectness in the external BamTools library being used. 
-With single-end BED alignment **fragDist** exits correctly, as well as with both formats under Linux.<br>
-Default: `FRAG`
+With single-end BED alignment **calldist** exits correctly, as well as with both formats under Linux.<br>
+Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
-`-n|--norm`
-If the input data does not have a predetermined distribution pattern, the application calls the lognormal parameters 
-and determines whether it makes sense to fit the data with a normal distribution. 
-However, there are situations when the data does not fit the normal distribution, 
-and yet you still need to determine its parameters. This option forces to do it anyway.<br>
-It is applicable only to input data of type *.dist*.
+`-D|--dist <N,LN,G>`<br>
+specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma. 
+Types can be specified independently of each other and in any order.<br>
+For each specified type, the called distribution parameters are displayed, as well as the Pearson correlation coefficient 
+(PCC) with the original sequence. The coefficient is calculated on the basis from the beginning of the distribution 
+to the first point with an ordinate that is less than 0.1% of the maximum.<br>
+The types of distributions are sorted by PCC in descending order, and the ratio of the PCC to the maximum, in percent, 
+is indicated as well.<br>
+While a lognormal type is specified (default or explicit), the actual sequence is also automatically checked for normal distribution. 
+Its parameters are displayed if its PCC exceeds the threshold of PCC_lognorm-2%. 
+This is done because the lognormal distribution for certain parameters may differ slightly from the normal one. 
+The final judgment is up to the user.<br>
+Default: `LN` for BAM/BED, `N` for FASTQ
 
-`-D|--dist`<br>
-prints fragment size frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
+`-p|--pr-dist`
+prints actual fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.
 This allows to visualize the distribution using some suitable tool such as Excel.
 
 `-o|--out [<name>]`<br>
