@@ -2,9 +2,9 @@
 Statistical package for NGS data.<br>
 It includes:<br>
  * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; advanced correlation calculator for basic bioinformatics file formats<br>
- * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp; calls fragment/read length distribution<br>
- * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; aligned reads verifier<br>
- * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FastQ 'N' statistics calculator
+ * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp;&nbsp;calls fragment/read length distribution<br>
+ * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
+ * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FastQ 'N' statistics calculator
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
@@ -303,9 +303,10 @@ Although the correct answer is -1.<br>
 Thus, for the features only the Pearson method is correct.
 
 ---
-## calldist
+## callDist
 
 *Originally called **fragDist**.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
+Can check it against normal, lognormal and gamma distributions.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
 in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
@@ -315,7 +316,7 @@ in the ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/ma
 
 `biostat calldist [options] <in-file>`<br>
 or<br>
-`calldist [options] <in-file>`
+`callDist [options] <in-file>`
 
 ### Options
 ```
@@ -382,7 +383,7 @@ Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-D|--dist <N,LN,G>`<br>
 specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma. 
-Types can be specified independently of each other and in any order.<br>
+Can be combined and in any order.<br>
 For each specified type, the called distribution parameters are displayed, as well as the Pearson correlation coefficient 
 (PCC) with the original sequence. The coefficient is calculated on the basis from the beginning of the distribution 
 to the first point with an ordinate that is less than 0.1% of the maximum.<br>
@@ -394,7 +395,7 @@ This is done because the lognormal distribution for certain parameters may diffe
 The final judgment is up to the user.<br>
 Default: `LN` for BAM/BED (assuming fragments), `N` for FASTQ (assuming reads)
 
-`-p|--pr-dist`
+`-p|--pr-dist`<br>
 prints original (actual) fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
 This allows to visualize the distribution using some suitable tool such as Excel.
 
