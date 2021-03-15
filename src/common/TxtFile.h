@@ -330,7 +330,7 @@ protected:
 	//	return: pointer to line or NULL if no more lines
 	char*	GetNextRecord(short* const tabPos, const BYTE tabCnt);
 
-#if defined _FRAGDIST || defined _FQSTATN
+#if defined _CALLDIST || defined _FQSTATN
 	// Gets next record
 	//	return: point to the next record in a buffer.
 	inline const char* NextRecord() const { return _buff + _currRecPos; }
@@ -1159,7 +1159,7 @@ public:
 
 #endif	// _WIGREG
 #endif	// no _FQSTATN
-#if defined _FRAGDIST || defined _FQSTATN
+#if defined _CALLDIST || defined _FQSTATN
 
 // 'FqFile' implements reading/writing file in FQ format.
 class FqFile : public TxtInFile
@@ -1184,7 +1184,7 @@ public:
 	inline ULONG Count() const { return RecordCount(); }
 };
 
-#endif	// _FRAGDIST || _FQSTATN
+#endif	// _CALLDIST || _FQSTATN
 
 #if !defined _WIGREG && !defined _FQSTATN
 
@@ -1305,7 +1305,7 @@ public:
 		Score(score),
 		InitCID(cid)
 	{}
-#elif defined _FRAGDIST
+#elif defined _CALLDIST
 
 	Read(const Region& rgn, ULLONG numb, bool strand)
 		: Pos(rgn.Start), Len(readlen(rgn.Length())), Numb(numb), Strand(strand) {}

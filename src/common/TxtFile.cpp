@@ -1189,7 +1189,7 @@ FaFile::FaFile(const string& fName, ChromDefRegions* rgns) : TxtInFile(fName, eA
 
 #endif	// _ISCHIP, _READDENS, _BIOCC
 #endif	// no _FQSTATN
-#if defined _FRAGDIST || defined _FQSTATN
+#if defined _CALLDIST || defined _FQSTATN
 
 /************************ FqFile ************************/
 
