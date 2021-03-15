@@ -4,7 +4,7 @@ It includes:<br>
  * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;advanced correlation calculator for basic bioinformatics file formats<br>
  * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp;&nbsp;calls fragment/read length distribution<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
- * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;FastQ 'N' statistics calculator
+ * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;fastQ 'N' statistics calculator
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
@@ -306,7 +306,7 @@ Thus, for the features only the Pearson method is correct.
 ## callDist
 
 *Originally called **fragDist**.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
-Can check it against normal, lognormal and gamma distributions.<br>
+Can check it against *normal*, *lognormal* and *gamma* distributions.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
 in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
@@ -357,12 +357,12 @@ An example of the output:
 $ callDist -D ln,g -p 5278099.bam
 5278099.bam: 4557867 fragments
 
-	 PCC	relPCC	p1\*	p2\*\*	mode	exp.val
+	 PCC	relPCC	p1*	p2**	mode	exp.val
 Lognorm	0.9811		5.775	0.4631	260	358.6
 Gamma	0.95554	-2.6%	4.856	67.43	260	327.4
 
-  \*p1 - mean, or alpha for Gamma
- \*\*p2 - sigma, or beta for Gamma
+  *p1 - mean, or alpha for Gamma
+ **p2 - sigma, or beta for Gamma
 
 Original distribution:
 length	frequency
@@ -383,7 +383,7 @@ Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-D|--dist <N,LN,G>`<br>
 specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma. 
-Can be combined and in any order.<br>
+Can be combined in any order.<br>
 For each specified type, the called distribution parameters are displayed, as well as the Pearson correlation coefficient 
 (PCC) with the original sequence. The coefficient is calculated on the basis from the beginning of the distribution 
 to the first point with an ordinate that is less than 0.1% of the maximum.<br>
