@@ -4,7 +4,7 @@ This is a command shell for calling statistical programs.
 
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 30.01.2020
+Last modified: 14.03.2021
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -40,12 +40,12 @@ struct pairCommand { const char* first; const char* second; };
 
 const pairCommand commands[] = {
 	{ "cc",			"bioCC" },
-	{ "fragdist",	"fragDist" },
+	{ "calldist",	"callDist" },
 	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
-const BYTE	commCnt = sizeof(commands) / sizeof(pairCommand);
+const BYTE	commCnt = sizeof(commands) / sizeof(commands[0]);
 
 const string appName = "biostat";
 const char* optSumm = "--summ";
