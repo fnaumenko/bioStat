@@ -10,7 +10,7 @@ endef
 #--- programmes
 progMAIN:= biostat
 progCC	:= bioCC
-progFD	:= fragDist
+progFD	:= callDist
 #progRD	:= readDens
 progVA	:= vAlign
 progFQS	:= fqStatN
@@ -19,7 +19,7 @@ dirROOT	:= src
 dirBAM	:= $(dirROOT)/bam
 dirCMN	:= $(dirROOT)/common
 dirCC	:= $(dirROOT)/biocc
-dirFD	:= $(dirROOT)/fragdist
+dirFD	:= $(dirROOT)/calldist
 #dirRD	:= $(dirROOT)/readdens
 dirVA	:= $(dirROOT)/valign
 dirFQS	:= $(dirROOT)/fqstatn
@@ -31,7 +31,7 @@ srcCMN	:= $(wildcard $(dirCMN)/*.cpp)
 srcCMN_	:= $(notdir $(srcCMN))
 srcMAIN	:= $(wildcard $(dirROOT)/*.cpp)
 srcCC	:= $(addprefix $(dirCC)/, $(srcCMN_) Calc.cpp bioCC.cpp)
-srcFD	:= $(addprefix $(dirFD)/, $(srcCMN_) fragDist.cpp)
+srcFD	:= $(addprefix $(dirFD)/, $(srcCMN_) callDist.cpp)
 #srcRD	:= $(addprefix $(dirRD)/, $(srcCMN_) readDens.cpp)
 srcVA	:= $(addprefix $(dirVA)/, $(srcCMN_) vAlign.cpp)
 srcFQS	:= $(addprefix $(dirFQS)/, $(addsuffix .cpp, fqStatN common TxtFile))
