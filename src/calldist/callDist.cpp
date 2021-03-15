@@ -54,7 +54,7 @@ Options::Option Options::List[] = {
 	{ 'D',"dist",	fNone,	tCOMB,	gOTHER, float(LenFreq::eCType::LNORM), float(LenFreq::eCType::NORM), 
 	ArrCnt(dTypes),	(char*)dTypes,
 	"called distribution, in any order: ? - normal, ? - lognormal, ? - Gamma", NULL },
-	{ 'p', "pr-dist",fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, "print frequency distribution", NULL },
+	{ 'p', "pr-dist",fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, "print original frequency distribution", NULL },
 	{ 'o', sOutput,	fOptnal,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
 	{ 't',	sTime,	fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
 	{ HPH,	sSumm,	fHidden,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
