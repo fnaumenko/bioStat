@@ -31,13 +31,6 @@ const string OutFile = Product::Title + "_out.txt";
 const string HelpOutFile = "duplicate standard output to " + OutFile + " file";
 const string InFiles = "input files";
 
-enum eOptGroup { gINPUT, gTREAT, gTREAT_R, gOUTPUT, gOTHER };	// gOTHER should be the last 
-
-const char* Options::OptGroups[] = {
-	"Input", "Processing", "Region processing", "Output", "Other"
-};
-const BYTE Options::GroupCount = sizeof(Options::OptGroups) / sizeof(char*);
-
 // --cc option: correlation coefficient notations
 const char* CCs[] = { "P", "S" };			// corresponds to CCkey::eCC
 // --total option: total coefficients notations
@@ -49,6 +42,14 @@ const char* infos[] = { "LAC", "NM", "CNT", "STAT" };	// corresponds to eInfo; i
 
 const char* ForAligns = "For the alignments only";
 const char* IgnoreBed = "Ignored for the ordinary beds";
+
+// *** Options definition
+
+enum eOptGroup { gINPUT, gTREAT, gTREAT_R, gOUTPUT, gOTHER };	// gOTHER should be the last 
+const char* Options::OptGroups[] = {
+	"Input", "Processing", "Region processing", "Output", "Other"
+};
+const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 //	{ char,	str,	Signs,	type,	group,	defVal,	minVal,	maxVal,	strVal,	descr, addDescr }
 // field 7: vUNDEF if value is prohibited
@@ -90,13 +91,13 @@ Options::Option Options::List[] = {
 	{ 'v', sVers,	fNone,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
 	{ 'h', sHelp,	fNone,	tHELP,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrUsage, NULL }
 };
-const BYTE	Options::OptCount = sizeof(Options::List) / sizeof(Options::Option);
+const BYTE	Options::OptCount = ArrCnt(Options::List);
 
 const Options::Usage Options::Usages[] = {	// content of 'Usage' variants in help
 	{ vUNDEF, "<file1> <file2> ...", true, NULL },
 	{ oFILE_LIST, NULL, true, NULL }
 };
-const BYTE Options::UsageCount = sizeof(Options::Usages) / sizeof(Options::Usage);
+const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 
 dostream dout;	// stream's duplicator
 
