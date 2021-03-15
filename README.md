@@ -1,10 +1,10 @@
 # bioStat
 Statistical package for NGS data.<br>
 It includes:<br>
- * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; advanced correlation calculator for basic bioinformatics file formats<br>
+ * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;advanced correlation calculator for basic bioinformatics file formats<br>
  * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp;&nbsp;calls fragment/read length distribution<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
- * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FastQ 'N' statistics calculator
+ * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;FastQ 'N' statistics calculator
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
