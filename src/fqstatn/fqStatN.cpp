@@ -3,7 +3,7 @@ fqStatN outputs statistic of ambiguous reference characters ‘N’ in fq-file.
 
 Copyright (C) 2018 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 15.11.2020
+Last modified: 15.03.2021
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -45,9 +45,11 @@ const char* ProgParam = "<sequence>";	// program parameter tip
 const string OutFileSuff = "_statn.txt";
 const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sFileDuplEnd;
 
+// *** Options definition
+
 enum eOptGroup { oOPTION };	// oOTHER should be the last
 const char* Options::OptGroups[] = { NULL };
-const BYTE Options::GroupCount = sizeof(Options::OptGroups) / sizeof(char*);
+const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 // { char, str, Signs (8: hidden), type, group, 
 //	defVal (if NO_DEF then no default value printed),
@@ -59,12 +61,12 @@ Options::Option Options::List[] = {
 	{ 'v',	sVers,	fNone,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sPrVersion, NULL },
 	{ 'h',	sHelp,	fNone,	tHELP,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrUsage, NULL }
 };
-const BYTE	Options::OptCount = sizeof(Options::List) / sizeof(Options::Option);
+const BYTE	Options::OptCount = ArrCnt(Options::List);
 
 const Options::Usage Options::Usages[] = {
 	{ vUNDEF, ProgParam, true, "nucleotide sequence in fastq format" }
 };
-const BYTE Options::UsageCount = sizeof(Options::Usages) / sizeof(Options::Usage);
+const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 
 dostream dout;	// stream's duplicator
 
