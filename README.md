@@ -305,7 +305,7 @@ Thus, for the features only the Pearson method is correct.
 ---
 ## calldist
 
-*Originally called callDist.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
+*Originally called **fragDist**.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
 in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
@@ -320,9 +320,8 @@ or<br>
 ### Options
 ```
   -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
-  -D|--dist <N,LN,G>    called distribution, in any order:
-                        N – normal, LN – lognormal, G - Gamma [LN]
-  -p|--pr-dist          print frequency distribution
+  -D|--dist <N,LN,G>    called distribution, in any order: N – normal, LN – lognormal, G - Gamma [LN]
+  -p|--pr-dist          print original frequency distribution
   -o|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.dist if file is not specified
   -t|--time             print run time
@@ -332,10 +331,10 @@ or<br>
 ### Details
 
 #### Input
-Fragment size distribution is called based on aligned DNA paired-end sequence in 
+*Fragment* size distribution is called based on aligned DNA paired-end sequence in 
 [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm)/
 [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
-Read size distribution is called based on original DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format 
+*Read* size distribution is called based on original DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format 
 or aligned DNA sequence in BAM/BED format.<br>
 Note that the number of mapped reads can be significantly less than the initial one, which can lead to distortion 
 of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
@@ -348,11 +347,11 @@ A similar file is produced when the `-p|--pr-dist` option is activated, and it c
 The program recognizes the file format automatically by their extension (case-insensitive).
 
 #### Output
-Called distribution parameters and Pearson correlation coefficient for the original and called distributions, 
-calculated on the basis of the \<start of the sequence\> – \<the first frequency value less than 0.1% of the maximum\>.<br>
+Called distribution parameters and Pearson correlation coefficient (PCC) for the original and called distributions, 
+calculated on the basis of the \<start of the sequence\>–\<the first frequency value less than 0.1% of the maximum\>.<br>
 If the original distribution is assumed to be lognormal, 
-the program also outputs the parameters and Pearson's coefficient for the normal distribution if it looks similar.<br>
-An example of the extended output:
+the program also outputs the parameters and PCC for the normal distribution if it looks similar.<br>
+An example of the output:
 ```
 $ callDist -D ln,g -p 5278099.bam
 5278099.bam: 4557867 fragments
@@ -389,14 +388,14 @@ For each specified type, the called distribution parameters are displayed, as we
 to the first point with an ordinate that is less than 0.1% of the maximum.<br>
 The types of distributions are sorted by PCC in descending order, and the ratio of the PCC to the maximum, in percent, 
 is indicated as well.<br>
-While a lognormal type is specified (default or explicit), the actual sequence is also automatically checked for normal distribution. 
+While a lognormal type is specified (default or explicit), the original sequence is also automatically checked for normal distribution. 
 Its parameters are displayed if its PCC exceeds the threshold of PCC_lognorm-2%. 
 This is done because the lognormal distribution for certain parameters may differ slightly from the normal one. 
 The final judgment is up to the user.<br>
-Default: `LN` for BAM/BED, `N` for FASTQ
+Default: `LN` for BAM/BED (assuming fragments), `N` for FASTQ (assuming reads)
 
 `-p|--pr-dist`
-prints actual fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.
+prints original (actual) fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
 This allows to visualize the distribution using some suitable tool such as Excel.
 
 `-o|--out [<name>]`<br>
