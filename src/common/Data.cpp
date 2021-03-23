@@ -2,7 +2,7 @@
 Data.cpp (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 14.03.2021
+Last modified: 23.03.2021
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -1258,37 +1258,38 @@ const string LenFreq::sInaccurateParams = sParams + " may be inaccurate";
 const float LenFreq::lghRatio = float(log(LenFreq::hRatio));	// log of ratio of the summit height to height of the measuring point
 
 
-//	Add element and return average
-float LenFreq::SMA::Push(ULONG x)
+// Add last value and pop the first one (QUEUE functionality)
+void LenFreq::SS::PushVal(ULONG x)
 {
-	_sum += x;
-	_q.push(x);
-	size_t size = _q.size();
-	if (size > Size()) { _sum -= _q.front(); _q.pop(); size--;  }
-	return float(_sum) / size;
+	move(begin() + 1, end(), begin());
+	*(end() - 1) = x;
 }
 
-//	Add element and return median
-ULONG LenFreq::SMM::GetMedian(citer it)
+//	Add value and return average
+float LenFreq::MA::Push(ULONG x)
 {
-	for (auto vit = _v.begin(); vit != _v.end(); *vit++ = it++->second);
-	sort(_v.begin(), _v.end());
-	return _v[Size() >> 1];		// mid-_size
+	_sum += x - *begin();
+	PushVal(x);
+	return float(_sum) / size();
+}
+
+//	Add value and return median
+ULONG LenFreq::MM::GetMedian(ULONG x)
+{
+	PushVal(x);
+	copy(begin(), end(), _ss.begin());
+	sort(_ss.begin(), _ss.end());
+	return _ss[size() >> 1];		// mid-size
 }
 
 // Constructor
-//	@halfSize: half of subset length; if 0 then empty instance (initialized by empty Push() method)
-LenFreq::SMM::SMM(fraglen halfSize) : SSL(halfSize)
+//	@halfSize: sliding subset length:
+//	if 0 then empty instance (initialized by empty Push() method)
+LenFreq::MM::MM(fraglen halfSize) : SS(halfSize)
 {
-	if (halfSize) {
-		_v.reserve(Size());
-		for (fraglen i = Size(); i; i--)	_v.push_back(0);	// initialize vector
-		_push = &SMM::GetMedian;
-	}
+	if (halfSize)	_ss.insert(_ss.begin(), size(), 0);
+	else			_push = &MM::GetMedianStub;
 }
-
-
-//#define _DEBUG
 
 const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
 
@@ -1482,7 +1483,7 @@ fraglen LenFreq::GetBase()
 	auto it = begin();
 	spoint p0(*it), p;			// previous, current point
 	spoint pMin(0, 0), pMax(pMin), pMMax(pMin);	// current, previous, maximum point
-	SMA	sma(base);
+	MA	sma(base);
 	vector<spoint> extr;		// local extremums
 
 	//== define pMMax and halfX
@@ -1577,23 +1578,21 @@ fpair LenFreq::GetKeyPoints(fraglen base, point& summit) const
 	auto it = begin();
 	auto End = end();
 	point p0(*it), p(0, 0);			// previous, current point
-	SMA	sma(base);
-	SMM smm(baseSMM);				// have tried 2*baseSMM, no real difference
+	MA ma(base);
+	MM mm(baseSMM);
 
 	summit.first = 0, summit.second = 0;
-	for (int i = smm.Size(); i; i--)	End--;	// reduce End because of SMM forward reading
-	//advance(it, size() - smm.Base());			// slower
 #ifdef _DEBUG
 	_spline.clear();
 	fpair keyPts(0, 0);
 #endif
 	for (; it != End; it++) {
-		p.first = it->first - base + baseSMM;	// minus SMA base back shift plus SMM base forward shift
-		p.second = sma.Push(smm.Push(it));		// spline smooth input by SMA only
+		p.first = it->first - base - baseSMM;		// X: minus MA & MM base back shift
+		p.second = ma.Push(mm.Push(it->second));	// Y: splined
 #ifdef _DEBUG
 		// *** to print splicing individually
-		//p.first = it->first - base;		p.second = sma.Push(it->second);	// spline by SMA
-		//p.first = it->first + baseSMM;	p.second = smm.Push(it);			// spline by SMM
+		//p.first = it->first - base;		p.second = sma.Push(it->second);	// spline by MA
+		//p.first = it->first - baseSMM;	p.second = smm.Push(it->second);			// spline by MM
 		if (_fillSpline)	_spline.push_back(p);
 #endif
 		if (p.second >= summit.second)	summit = p;
@@ -1683,8 +1682,10 @@ void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 	int i = 0;					// counter of steps
 #endif
 
+	//base = 9;					// to print spline for fixed base
 	// progressive calculate PCC with unknown key points & summit
 	for (; base; base--) {
+	//for (int i=0; !i; i++) {	// to print spline for fixed base
 		const fpair keypts = GetKeyPoints(base, summit0);
 		SetPCC(type, keypts, dParams0, summit0.first);
 #ifdef _DEBUG
@@ -1692,7 +1693,7 @@ void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 		*_s << "base: " << setw(2) << base << "  summitX: " << keypts.first << "\tpcc: " << dParams0.PCC;
 		if (dParams0 > dParams)	*_s << "\t>";
 		*_s << LF;
-		//if (_fillSpline)	for (point p : _spline)	*_s << p.first << TAB << p.second << LF;
+		if (_fillSpline) { for (point p : _spline)	*_s << p.first << TAB << p.second << LF; _fillSpline = false; }
 #endif
 		if (dParams0 > dParams) {
 			dParams = dParams0;
@@ -1712,7 +1713,6 @@ void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 
 #ifdef _DEBUG
 	*_s << LF;
-	_fillSpline = false;
 #endif
 }
 
@@ -1723,7 +1723,7 @@ void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 void LenFreq::PrintTraits(dostream& s, fraglen base, const LenFreq::point& summit)
 {
 	if (base == smoothBase)		s << Spec(eSpec::SMOOTH) << LF;
-	if (summit.first - begin()->first < SMA::Size(base)
+	if (summit.first - begin()->first < MA::Size(base)
 		|| begin()->second / summit.second > 0.95)
 		Err(Spec(eSpec::HCROP) + SepSCl + sInaccurateParams).Warning();
 	else if (_spec == eSpec::MODUL)
@@ -1768,6 +1768,12 @@ void LenFreq::PrintSeq(dostream& s) const
 	}
 }
 
+//#define _TIME
+#ifdef _TIME
+#include <chrono> 
+using namespace std::chrono;
+#endif
+
 // Calculate and print dist params
 //	@s: print stream
 //	@ctype: combined type of distribution
@@ -1781,7 +1787,10 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 		else {
 			point summit;				// returned value
 			fraglen base = GetBase();	// initialized returned value
-
+#ifdef _TIME
+			auto start = high_resolution_clock::now();
+			const int	tmCycleCnt = 100;
+#endif			
 			// For optimization purposes, we can initialize base, keypts & summit at the first call of CallParams,
 			// and use them on subsequent calls to avoid repeated PCC iterations.
 			// However, the same base (and, as a consequence, keypts & summit) only works well for LNORM and GAMMA.
@@ -1789,6 +1798,9 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 #ifdef _DEBUG
 			_s = &s;
 			if(_fillSpline)	_spline.reserve(size() / 2);
+#endif
+#ifdef _TIME
+			for(int i=0; i < tmCycleCnt; i++)
 #endif
 			for (dtype i = 0; i < DTCNT; i++)
 				if (IsType(ctype, i))
@@ -1799,6 +1811,11 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 				_allParams.ClearNormDistBelowThreshold(1.02);	// threshold 2%
 			}
 
+#ifdef _TIME
+			auto stop = high_resolution_clock::now();
+			auto duration = duration_cast<microseconds>(stop - start);
+			s << duration.count()/ tmCycleCnt << " mcs\n";
+#endif
 			PrintTraits(s, base, summit);
 			_allParams.Print(s);
 		}

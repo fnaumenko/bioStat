@@ -2,7 +2,7 @@
 Data.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 14.03.2021
+Last modified: 23.03.2021
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -1246,59 +1246,58 @@ private:
 	static const int hRatio = 2;	// ratio of the summit height to height of the measuring point
 	static const float lghRatio;	// log of ratio of the summit height to height of the measuring point
 
-	// Sliding subset Length
-	class SSL
+	// Sliding subset
+	class SS : protected vector<ULONG>
 	{
-		const fraglen	_size;		// sliding subset length
+	protected:
+		// Constructor
+		//	@halfSize: half of subset length
+		SS(fraglen halfSize) { insert(begin(), Size(halfSize), 0);	}
+
+		// Add last value and pop the first one (QUEUE functionality)
+		void PushVal(ULONG x);
 
 	public:
 		// Returns length of sliding subset
-		static fraglen Size(fraglen halfSize) { return 2 * halfSize + 1; }
-
-		// Constructor
 		//	@halfSize: half of subset length
-		inline SSL(fraglen halfSize) : _size(Size(halfSize)) {}
-
-		// Returns length of sliding subset
-		inline fraglen Size() const { return _size; }
+		static fraglen Size(fraglen halfSize) { return 2 * halfSize + 1; }
 	};
 
 	// Simple Moving Average splicer
 	// https://en.wikipedia.org/wiki/Moving_average
-	class SMA : public SSL
+	class MA : public SS
 	{
-		ULONG	_sum;		// sum of adding elements
-		queue<ULONG> _q;	// sliding subset
+		ULONG	_sum = 0;		// sum of adding values
 
 	public:
 		// Constructor
-		//	@halfSize: half of subset length
-		inline SMA(fraglen halfSize) : _sum(0), SSL(halfSize) {}
+		//	@halfSize: half of sliding subset length
+		inline MA(fraglen halfSize) : SS(halfSize) {}
 
-		// Add element and return average
+		// Add value and return average
 		float Push(ULONG x);
 	};
 
 	// Simple Moving Median splicer
-	class SMM : public SSL
+	class MM : public SS
 	{
-		//citer	_end;			// end of external collection
-		vector<ULONG> _v;		// sliding subset
-		ULONG(SMM::* _push)(citer it) = &SMM::GetMedianStub;	// pointer to GetMedian function: real or empty (stub)
+		vector<ULONG> _ss;		// sorted sliding subset
+		ULONG(MM::* _push)(ULONG) = &MM::GetMedian;	// pointer to GetMedian function: real or empty (stub)
 
 		//	Return stub median
-		inline ULONG GetMedianStub(citer it) { return it->second; }
+		inline ULONG GetMedianStub(ULONG x) { return x; }
 
-		//	Add element and return median
-		ULONG GetMedian(citer it);
+		//	Add value and return median
+		ULONG GetMedian(ULONG x);
 
 	public:
 		// Constructor
-		//	@halfSize: half of base (subset length); if 0 then empty instance (initialized by empty Push() method)
-		SMM(fraglen halfSize);
+		//	@halfSize: half of sliding subset length;
+		//	if 0 then empty instance (initialized by empty Push() method)
+		MM(fraglen halfSize);
 
-		// Add element and return median
-		inline ULONG Push(citer it) { return (*this.*_push)(it); }
+		// Add value and return median
+		inline ULONG Push(ULONG x) { return (*this.*_push)(x); }
 	};
 
 	// Keeps distribution params: PCC, mean(alpha), sigma(beta)
