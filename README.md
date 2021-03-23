@@ -308,7 +308,7 @@ Thus, for the features only the Pearson method is correct.
 *Originally called **fragDist**.* Calculates paired-end fragment size or read variable length distribution parameters.<br>
 Can check it against *normal*, *lognormal* and *gamma* distributions.<br>
 Examples of frequency profiles and recovered distributions of experimental datasets from NCBI database are shown 
-in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/FragPE_distrs.png).<br>
+in the ![Frag distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png).<br>
 Examples of frequency profiles and recovered read length distributions of experimental datasets from NCBI database are shown 
 in the ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png).
 
