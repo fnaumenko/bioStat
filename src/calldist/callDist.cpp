@@ -134,6 +134,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 		case FT::eType::DIST:
+			dout << LF;
 			LenFreq(iName).Print(dout, LenFreq::eCType(Options::GetIVal(oDTYPE)), prDist);
 			break;
 		default:
