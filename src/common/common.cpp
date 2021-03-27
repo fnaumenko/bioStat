@@ -1128,11 +1128,11 @@ bool FS::GetFiles	(vector<string>& files, const string& dirName, const string& e
 		files.reserve(count);
 		// fill files
 		hFind = FindFirstFile( fileTempl.c_str(), &ffd );
-		do	files.push_back( string(ffd.cFileName) );
+		do	files.emplace_back(ffd.cFileName);
 		while (FindNextFile(hFind, &ffd));
 	}
 	else
-		files.push_back( string(ffd.cFileName) );
+		files.emplace_back(ffd.cFileName);
 	FindClose(hFind);
 	return true;
 #else

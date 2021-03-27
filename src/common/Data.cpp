@@ -2,7 +2,7 @@
 Data.cpp (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 23.03.2021
+Last modified: 27.03.2021
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -487,7 +487,7 @@ bool Reads::AddItem(const Region& rgn, Spotter& spotter)
 		Err("Cannot find number in the read's name. It should be '<name>.<number>'",
 			file.LineNumbToStr().c_str()).Throw();
 #ifdef _CALLDIST
-	_items.push_back( Read(rgn, atol(numb), _strand) );
+	_items.emplace_back(rgn, atol(numb), _strand);
 #else	// _VALIGN
 	//const char* cid = strstr(name, Chrom::Abbr);
 	const char* cid = strchr(name, Read::NmDelimiter);
@@ -503,10 +503,11 @@ bool Reads::AddItem(const Region& rgn, Spotter& spotter)
 	if(score <= _minScore)	return false;				// pass Read with under-threshhold score
 	if(score > _maxScore)	_maxScore = score;
 
-	_items.push_back( Read(rgn, atol(numb), _strand, atol(pos), score, Chrom::IDbyAbbrName(cid)) );
+	_items.emplace_back(rgn, atol(numb), _strand, atol(pos), score, Chrom::IDbyAbbrName(cid));
 #endif	// _CALLDIST #else
 #else	
-	_items.push_back( Read(rgn) );
+	//_items.push_back( Read(rgn) );
+	_items.emplace_back(rgn);
 #endif	//  _VALIGN || _CALLDIST
 	return true;
 }
@@ -625,7 +626,7 @@ bool Features::AddItem(const Region& rgn, Spotter& spotter)
 #endif
 #ifdef _ISCHIP
 	float score = spotter.File().ItemValue();
-	_items.push_back(Featr(rgn, score));
+	_items.emplace_back(rgn, score);
 	if(score > _maxScore)	_maxScore = score;
 #else
 	_items.push_back(rgn);
@@ -1240,26 +1241,26 @@ void DefRegions::Print() const
 #if defined _ISCHIP || defined _CALLDIST
 /************************ LenFreq ************************/
 
-static const string sDDistrib = "Distribution";
+const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
+
+const float LenFreq::DParams::UndefPCC = -1;
+const float LenFreq::lghRatio = float(log(LenFreq::hRatio));	// log of ratio of the summit height to height of the measuring point
+const string LenFreq::sParams = "parameters";
+const string LenFreq::sInaccurate = " may be inaccurate";
 const char* LenFreq::sTitle[] = { "Norm", "Lognorm", "Gamma" };
 const string LenFreq::sSpec[] = {
 	strEmpty,
-	sDDistrib + " is smooth",
-	sDDistrib + " is modulated",
-	sDDistrib + " is even",
-	sDDistrib + " is cropped to the left",
-	sDDistrib + " is heavily cropped to the left",
-	sDDistrib + " looks slightly defective on the left",
-	sDDistrib + " looks defective on the left"
+	"is smooth",
+	"is modulated",
+	"is even",
+	"is cropped to the left",
+	"is heavily cropped to the left",
+	"looks slightly defective on the left",
+	"looks defective on the left"
 };
-const string LenFreq::sParams = "parameters";
-const string LenFreq::sInaccurateParams = sParams + " may be inaccurate";
-
-const float LenFreq::lghRatio = float(log(LenFreq::hRatio));	// log of ratio of the summit height to height of the measuring point
-
 
 // Add last value and pop the first one (QUEUE functionality)
-void LenFreq::SS::PushVal(ULONG x)
+void LenFreq::MW::PushVal(ULONG x)
 {
 	move(begin() + 1, end(), begin());
 	*(end() - 1) = x;
@@ -1283,15 +1284,13 @@ ULONG LenFreq::MM::GetMedian(ULONG x)
 }
 
 // Constructor
-//	@halfSize: sliding subset length:
+//	@base: moving window half-length;
 //	if 0 then empty instance (initialized by empty Push() method)
-LenFreq::MM::MM(fraglen halfSize) : SS(halfSize)
+LenFreq::MM::MM(fraglen base) : MW(base)
 {
-	if (halfSize)	_ss.insert(_ss.begin(), size(), 0);
-	else			_push = &MM::GetMedianStub;
+	if (base)	_ss.insert(_ss.begin(), size(), 0);
+	else		_push = &MM::GetMedianStub;
 }
-
-const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
 
 // Returns two constant terms of the distrib equation of type, supplied as an index
 //	@params: distrib params: mean/alpha and sigma/beta
@@ -1310,7 +1309,6 @@ fpair (*InitEqTerms[])(const fpair& params) = {
 //	@params: distrib params: mean/alpha and sigma/beta
 //	@x: x-coordinate
 //	@eqTerms: two constant terms of the distrib equation
-//	Implemeted as na array of lambdas treated like a regular function and assigned to a function pointer.
 double (*Distrs[])(const fpair& params, fraglen x, const fpair& eqTerms) = {
 	[](const fpair& params, fraglen x, const fpair& eqTerms) ->	double { return 		// normal
 		exp(-pow(((x - params.first) / params.second), 2) / 2) / eqTerms.first; },
@@ -1340,32 +1338,28 @@ float(*GetMean[])(const fpair& params) = {
 		{ return params.first * params.second; }
 };
 
-// Calls distribution parameters by simple distribution type as index
+// Calls distribution parameters by consecutive distribution type as index
 //	@keypts: key pointers: X-coord of highest point, X-coord of right middle hight point
 //	@params: returned mean(alpha) & sigma(beta)
 //	Defined as a member of the class only to use the private short 'lghRatio'
 void (*LenFreq::SetParams[])(const fpair& keypts, fpair& params) = {
-	[](const fpair& keypts, fpair& params) { //** normal
-		params.first = keypts.first;													// mean
-		params.second = sqrt(pow(keypts.second - params.first, 2) / (lghRatio * 2));		// sigma
+	[](const fpair& keypts, fpair& params) {	//** normal
+		params.first = keypts.first;												// mean
+		params.second = sqrt(pow(keypts.second - params.first, 2) / (lghRatio * 2));// sigma
 	},
-	[](const fpair& keypts, fpair& params) {						//** lognormal
-		const float A = lghRatio + log(keypts.first / keypts.second);	// logarifm of 2*mean / middle height
-		const float lgM = log(keypts.first);							// logarifm of Mode
-		const float lgH = log(keypts.second);							// logarifm of middle height
+	[](const fpair& keypts, fpair& params) {	//** lognormal
+		const float lgM = log(keypts.first);	// logarifm of Mode
+		const float lgH = log(keypts.second);	// logarifm of middle height
 		
-		params.first = (lgM * A + (lgH * lgH - lgM * lgM) / 2) / (A + lgH - lgM);
+		params.first = (lgM * (lghRatio + lgM - lgH) + (lgH * lgH - lgM * lgM) / 2) / lghRatio;
 		params.second = sqrt(params.first - lgM);
 	},
-	[](const fpair& keypts, fpair& params) {						//** gamma
+	[](const fpair& keypts, fpair& params) {	//** gamma
 		params.second =
 			(keypts.second - keypts.first * (1 + log(keypts.second / keypts.first))) / lghRatio;
 		params.first = (keypts.first / params.second) + 1;
 	}
 };
-
-
-const float LenFreq::DParams::UndefPCC = -1;
 
 // Prints restored distr parameters
 //	@s: print stream
@@ -1410,7 +1404,7 @@ int LenFreq::AllDParams::SetCntInSorted() const
 	return cnt;
 }
 
-// Sorts in descending order of PCC
+// Sorts in PCC descending order
 void LenFreq::AllDParams::Sort()
 {
 	if (!_sorted) {
@@ -1425,13 +1419,16 @@ void LenFreq::AllDParams::Sort()
 // Default constructor
 LenFreq::AllDParams::AllDParams()
 {
-	for (int i = 0; i < DTCNT; i++)
-		_allParams[i].SetTitle(i);
+	int i = 0;
+	for (QualDParams& dp : _allParams)
+		dp.SetTitle(i++);
+	//for (int i = 0; i < DTCNT; i++)
+	//	_allParams[i].SetTitle(i);
 }
 
 // Returns parameters of distribution with the highest (best) PCC
 //	@dParams: returned PCC, mean(alpha) & sigma(beta)
-//	return: type of distribution with the highest (best) PCC
+//	return: consecutive distribution type with the highest (best) PCC
 LenFreq::dtype LenFreq::AllDParams::GetBestParams(DParams& dParams)
 {
 	Sort();
@@ -1439,7 +1436,6 @@ LenFreq::dtype LenFreq::AllDParams::GetBestParams(DParams& dParams)
 	dParams = QualDParams.dParams;
 	return GetDType(QualDParams.Type);
 }
-
 
 // Prints sorted distibutions params
 //	@s: print stream
@@ -1471,19 +1467,19 @@ void LenFreq::AllDParams::Print(dostream& s)
 	}
 }
 
-// Returns estimated slicing base
-//	return: estimated half base, or 0 in case of degenerate distribution
+// Returns estimated moving window half-length ("base")
+//	return: estimated base, or 0 in case of degenerate distribution
 fraglen LenFreq::GetBase()
 {
 	const int CutoffFrac = 100;	// fraction of the maximum height below which scanning stops on the first pass
 	ULONG	cutoffY = 0;			// Y-value below which scanning stops on the first pass
-	fraglen base = 1, halfX = 0;
+	fraglen halfX = 0;
 	USHORT peakCnt = 0;
 	bool up = false;
 	auto it = begin();
 	spoint p0(*it), p;			// previous, current point
 	spoint pMin(0, 0), pMax(pMin), pMMax(pMin);	// current, previous, maximum point
-	MA	sma(base);
+	MA	sma(1);
 	vector<spoint> extr;		// local extremums
 
 	//== define pMMax and halfX
@@ -1560,7 +1556,7 @@ fraglen LenFreq::GetBase()
 	if (!halfX)		return smoothBase;
 	fraglen diffX = halfX - pMMax.first;
 #ifdef _DEBUG
-	base = float(diffX) * (isPeakAfterDip ? 0.9F : (diffX > 20 ? 0.1F : 0.35F));
+	fraglen base = float(diffX) * (isPeakAfterDip ? 0.9F : (diffX > 20 ? 0.1F : 0.35F));
 	cout << "isPeakAfterDip: " << isPeakAfterDip << "\thalfX: " << halfX << "\tdiffX: " << diffX << "\tbase: " << base << LF;
 	return base;
 #else
@@ -1569,30 +1565,28 @@ fraglen LenFreq::GetBase()
 }
 
 // Defines key pointers
-//	@base: splining base
+//	@base: moving window half-length
 //	@summit: returned X,Y coordinates of spliced (smoothed) summit
 //	return: key pointers: X-coord of highest point, X-coord of right middle hight point
 fpair LenFreq::GetKeyPoints(fraglen base, point& summit) const
 {
 	const fraglen baseSMM = base <= smoothBase ? 0 : base;
-	auto it = begin();
-	auto End = end();
-	point p0(*it), p(0, 0);			// previous, current point
+	point p0(*begin()), p(0, 0);			// previous, current point
 	MA ma(base);
 	MM mm(baseSMM);
 
-	summit.first = 0, summit.second = 0;
+	summit.second = 0;
 #ifdef _DEBUG
 	_spline.clear();
 	fpair keyPts(0, 0);
 #endif
-	for (; it != End; it++) {
-		p.first = it->first - base - baseSMM;		// X: minus MA & MM base back shift
-		p.second = ma.Push(mm.Push(it->second));	// Y: splined
+	for (const value_type& f : *this) {
+		p.first = f.first - base - baseSMM;		// X: minus MA & MM base back shift
+		p.second = ma.Push(mm.Push(f.second));	// Y: splined
 #ifdef _DEBUG
 		// *** to print splicing individually
-		//p.first = it->first - base;		p.second = sma.Push(it->second);	// spline by MA
-		//p.first = it->first - baseSMM;	p.second = smm.Push(it->second);			// spline by MM
+		//p.first = f.first - base;		p.second = sma.Push(f.second);	// spline by MA
+		//p.first = f.first - baseSMM;	p.second = smm.Push(f.second);	// spline by MM
 		if (_fillSpline)	_spline.push_back(p);
 #endif
 		if (p.second >= summit.second)	summit = p;
@@ -1623,7 +1617,7 @@ fpair LenFreq::GetKeyPoints(fraglen base, point& summit) const
 }
 
 // Compares this sequence with calculated one by given mean & sigma, and returns PCC
-//	@type: simple distribution type
+//	@type: consecutive distribution type
 //	@dParams: returned PCC, input mean(alpha) & sigma(beta)
 //	@Mode: X-coordinate of summit
 //	@full: if true then correlate from the beginning, otherwiase from summit
@@ -1639,12 +1633,12 @@ void LenFreq::CalcPCC(dtype type, DParams& dParams, fraglen Mode, bool full) con
 
 	// one pass PCC calculation
 	dParams.SetUndefPcc();
-	for (auto it = begin(); it != end(); it++) {
-		if (!full && it->first < Mode)			continue;
-		double b = Distrs[type](dParams.Params, it->first, eqTerms);	// y-coordinate (value) of the calculated sequence
-		if (isNaN(b))							return;
-		if (it->first > Mode && b < cutoffY)	break;
-		double a = it->second;									// y-coordinate (value) of the original sequence
+	for (const value_type& f : *this) {
+		if (!full && f.first < Mode)		continue;
+		const double b = Distrs[type](dParams.Params, f.first, eqTerms);	// y-coordinate (value) of the calculated sequence
+		if (isNaN(b))						return;
+		if (f.first > Mode && b < cutoffY)	break;
+		const double a = f.second;											// y-coordinate (value) of the original sequence
 		sumA += a;
 		sumB += b;
 		sumA2 += a * a;
@@ -1658,7 +1652,7 @@ void LenFreq::CalcPCC(dtype type, DParams& dParams, fraglen Mode, bool full) con
 }
 
 // Calculates distribution parameters
-//	@type: simple distribution type
+//	@type: consecutive distribution type
 //	@keyPts: key pointers: X-coord of highest point, X-coord of right middle hight point
 //	@dParams: returned PCC, mean(alpha) & sigma(beta)
 //	@Mode: X-coordinate of summit
@@ -1669,8 +1663,8 @@ void LenFreq::SetPCC(dtype type, const fpair& keypts, DParams& dParams, fraglen 
 }
 
 // Calculates and print called distribution parameters
-//	@eType: type of distribution
-//	@base: half of splining win size
+//	@type: consecutive distribution type
+//	@base: moving window half-length
 //	@summit: returned X,Y coordinates of spliced (smoothed) summit
 void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 {
@@ -1718,14 +1712,14 @@ void LenFreq::CallParams(dtype type, fraglen base, point& summit)
 
 // Prints original distrib features
 //	@s: print stream
-//	@base: splining base
+//	@base: moving window half-length
 //	@summit: X,Y coordinates of spliced (smoothed) summit
 void LenFreq::PrintTraits(dostream& s, fraglen base, const LenFreq::point& summit)
 {
 	if (base == smoothBase)		s << Spec(eSpec::SMOOTH) << LF;
 	if (summit.first - begin()->first < MA::Size(base)
 		|| begin()->second / summit.second > 0.95)
-		Err(Spec(eSpec::HCROP) + SepSCl + sInaccurateParams).Warning();
+		Err(Spec(eSpec::HCROP) + SepSCl + sParams + sInaccurate).Warning();
 	else if (_spec == eSpec::MODUL)
 		s << Spec(_spec) << LF;
 	else if (begin()->second / summit.second > 0.5)
@@ -1738,9 +1732,21 @@ void LenFreq::PrintTraits(dostream& s, fraglen base, const LenFreq::point& summi
 		s << "summit: " << summit.first << "\tPCCsummit: " << dParams.PCC << "\tdiff PCC: " << diffPCC << LF;
 #endif
 		if (diffPCC > 0.01)
-			Err(Spec(eSpec::DEFECT) + SepSCl + sInaccurateParams).Warning();
+			Err(Spec(eSpec::DEFECT) + SepSCl + sParams + sInaccurate).Warning();
 		else if (diffPCC > 0.002)
 			Err(Spec(eSpec::SDEFECT)).Warning();
+	}
+}
+
+// Prints original distribution as a set of <frequency>-<size> pairs
+void LenFreq::PrintSeq(dostream& s) const
+{
+	const chrlen maxLen = INT_MAX / 10;
+
+	s << "\nOriginal " << sDistrib << COLON << "\nlength\tfrequency\n";
+	for (const value_type& f : *this) {
+		if (f.first > maxLen)	break;
+		s << f.first << TAB << f.second << LF;
 	}
 }
 
@@ -1753,19 +1759,6 @@ LenFreq::LenFreq(const char* fName)
 	for(int x; file.GetNextLine();)
 		if(x = file.IntField(0))	// IntField(0) returns 0 if zero field is not an integer
 			(*this)[x] = file.IntField(1);
-}
-
-// Prints original distribution as a set of <frequency>-<size> pairs
-
-void LenFreq::PrintSeq(dostream& s) const
-{
-	const chrlen maxLen = INT_MAX / 10;
-
-	s << "\nOriginal " << sDistrib << COLON << "\nlength\tfrequency\n";
-	for (auto it = begin(); it != end(); it++) {
-		if (it->first > maxLen)	break;
-		s << it->first << TAB << it->second << LF;
-	}
 }
 
 //#define _TIME
@@ -1789,7 +1782,7 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 			fraglen base = GetBase();	// initialized returned value
 #ifdef _TIME
 			auto start = high_resolution_clock::now();
-			const int	tmCycleCnt = 100;
+			const int	tmCycleCnt = 1000;
 #endif			
 			// For optimization purposes, we can initialize base, keypts & summit at the first call of CallParams,
 			// and use them on subsequent calls to avoid repeated PCC iterations.
@@ -1802,19 +1795,19 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 #ifdef _TIME
 			for(int i=0; i < tmCycleCnt; i++)
 #endif
-			for (dtype i = 0; i < DTCNT; i++)
+			for (dtype i = 0; i < eCType::CNT; i++)
 				if (IsType(ctype, i))
 					CallParams(i, base, summit);
+#ifdef _TIME
+			auto stop = high_resolution_clock::now();
+			auto duration = duration_cast<microseconds>(stop - start);
+			s << duration.count() / tmCycleCnt << " mcs\n";
+#else
 			// check for NORM if LNORM is defined
 			if (IsType(ctype, eCType::LNORM) && !IsType(ctype, eCType::NORM)) {
 				CallParams(GetDType(eCType::NORM), base, summit);
 				_allParams.ClearNormDistBelowThreshold(1.02);	// threshold 2%
 			}
-
-#ifdef _TIME
-			auto stop = high_resolution_clock::now();
-			auto duration = duration_cast<microseconds>(stop - start);
-			s << duration.count()/ tmCycleCnt << " mcs\n";
 #endif
 			PrintTraits(s, base, summit);
 			_allParams.Print(s);
@@ -1825,4 +1818,4 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 }
 
 /************************ LenFreq: end ************************/
-#endif	// _ISCHIP
+#endif	// _ISCHIP & _CALLDIST

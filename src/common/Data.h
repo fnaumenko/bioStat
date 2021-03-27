@@ -2,7 +2,7 @@
 Data.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 23.03.2021
+Last modified: 27.03.2021
 -------------------------
 Provides common data functionality
 ***********************************************************/
@@ -1194,8 +1194,6 @@ public:
 #endif	// _READDENS || _BIOCC
 
 #if defined _ISCHIP || defined _CALLDIST
-#include <queue>
-//#include <random>
 #include <array>
 
 typedef pair<float, float> fpair;
@@ -1204,23 +1202,23 @@ typedef pair<float, float> fpair;
 class LenFreq : map<fraglen,ULONG>
 {
 public:
-	// combined type of distribution; remember to maintain compliance with DTCNT
-	enum class eCType {
-		UNDEF = 0,
-		NORM  = 1 << 0,
+	// combined type of distribution
+	enum /*class*/ eCType {		// not class to have a cast to integer by default
+		NORM = 1 << 0,
 		LNORM = 1 << 1,
 		GAMMA = 1 << 2,
+		CNT = 3,
 	};
 
 private:
-	static const int DTCNT = 3;	// number of distribution types
+	using dtype = int;	// consecutive distribution type: just to designate dist type, used as an index
+	using spoint = pair<unsigned, ULONG>;	// initial sequence point
+	using point = pair<unsigned, float>;	// distribution point 
 
-	using dtype = int;	// simple distribution type: just to designate dist type, used as an index
-
-	// Returns combined distribution type by simple distribution type
+	// Returns combined distribution type by consecutive distribution type
 	inline static eCType GetCType(dtype type) { return eCType(1 << type); }
 
-	// Returns simple distribution type by combined distribution type
+	// Returns consecutive distribution type by combined distribution type
 	const static dtype GetDType(eCType ctype) { return RightOnePos(int(ctype)); }
 
 	enum class eSpec {	// distribution specification
@@ -1234,54 +1232,48 @@ private:
 		DEFECT		// defective; exclusive
 	};
 
-	typedef map<fraglen, ULONG>::const_iterator citer;
-	typedef pair<fraglen, ULONG> spoint;		// initial sequence point
-	typedef pair<fraglen, float> point;		// distribution point 
-
 	static const char* sTitle[];
 	static const string sSpec[];
 	static const string sParams;
-	static const string sInaccurateParams;
+	static const string sInaccurate;
 	const fraglen smoothBase = 1;	// splining base for the smooth distribution
 	static const int hRatio = 2;	// ratio of the summit height to height of the measuring point
 	static const float lghRatio;	// log of ratio of the summit height to height of the measuring point
 
-	// Sliding subset
-	class SS : protected vector<ULONG>
+	// Moving window (Sliding subset)
+	class MW : protected vector<ULONG>
 	{
 	protected:
-		// Constructor
-		//	@halfSize: half of subset length
-		SS(fraglen halfSize) { insert(begin(), Size(halfSize), 0);	}
+		// Constructor by half of moving window length ("base")
+		MW(unsigned base) { insert(begin(), Size(base), 0); }
 
 		// Add last value and pop the first one (QUEUE functionality)
 		void PushVal(ULONG x);
 
 	public:
-		// Returns length of sliding subset
-		//	@halfSize: half of subset length
-		static fraglen Size(fraglen halfSize) { return 2 * halfSize + 1; }
+		// Returns length of moving window
+		//	@base: moving window half-length
+		static fraglen Size(fraglen base) { return 2 * base + 1; }
 	};
 
 	// Simple Moving Average splicer
 	// https://en.wikipedia.org/wiki/Moving_average
-	class MA : public SS
+	class MA : public MW
 	{
 		ULONG	_sum = 0;		// sum of adding values
 
 	public:
-		// Constructor
-		//	@halfSize: half of sliding subset length
-		inline MA(fraglen halfSize) : SS(halfSize) {}
+		// Constructor by half of moving window length ("base")
+		inline MA(fraglen base) : MW(base) {}
 
 		// Add value and return average
 		float Push(ULONG x);
 	};
 
 	// Simple Moving Median splicer
-	class MM : public SS
+	class MM : public MW
 	{
-		vector<ULONG> _ss;		// sorted sliding subset
+		vector<ULONG> _ss;		// sorted moving window (sliding subset)
 		ULONG(MM::* _push)(ULONG) = &MM::GetMedian;	// pointer to GetMedian function: real or empty (stub)
 
 		//	Return stub median
@@ -1292,9 +1284,9 @@ private:
 
 	public:
 		// Constructor
-		//	@halfSize: half of sliding subset length;
+		//	@base: moving window half-length;
 		//	if 0 then empty instance (initialized by empty Push() method)
-		MM(fraglen halfSize);
+		MM(fraglen base);
 
 		// Add value and return median
 		inline ULONG Push(ULONG x) { return (*this.*_push)(x); }
@@ -1322,12 +1314,11 @@ private:
 		// 'QualDParams' keeps restored distribution parameters
 		struct QualDParams
 		{
-			//dtype	Type = FPLEN;
-			eCType	Type = eCType::UNDEF;
-			const char* Title;
+			eCType	Type;			//  combined distribution type
+			const char* Title;		// distribution type title
 			DParams dParams;		// PCC, mean(alpha), sigma(beta)
 
-			// Sets type and title
+			// Sets combined type and title by consecutive type
 			void SetTitle(dtype type) { Type = GetCType(type); Title = sTitle[type]; }
 
 			// Returns true if distrib parameters set
@@ -1339,7 +1330,7 @@ private:
 			void Print(dostream& s, float maxPCC) const;
 		};
 
-		array<QualDParams, DTCNT>	_allParams;
+		array<QualDParams, eCType::CNT>	_allParams;
 		bool _sorted = false;
 
 		// Returns true if distribution parameters set in sorted instance
@@ -1348,10 +1339,10 @@ private:
 		// Returns number of distribution parameters set in sorted instance
 		int SetCntInSorted() const;
 
-		// Returns DParams by distribution comb type
+		// Returns DParams by combined distribution type
 		inline DParams& Params(eCType ctype) { return _allParams[GetDType(ctype)].dParams; }
 
-		// Sorts in descending order of PCC
+		// Sorts in PCC descending order
 		void Sort();
 
 	public:
@@ -1359,7 +1350,7 @@ private:
 		AllDParams();
 
 		// Set distribution parameters by type
-		//	@type: simple distribution type
+		//	@type: consecutive distribution type
 		//	@dp: PCC, mean(alpha) & sigma(beta)
 		inline void SetParams(dtype type, const DParams& dp) { _allParams[type].dParams = dp; }
 
@@ -1370,9 +1361,8 @@ private:
 		}
 
 		// Returns parameters of distribution with the highest (best) PCC
-		//	@pcc: returned PCC
-		//	@params: returned mean(alpha) & sigma(beta)
-		//	return: type of distribution with the highest (best) PCC
+		//	@dParams: returned PCC, mean(alpha) & sigma(beta)
+		//	return: consecutive distribution type with the highest (best) PCC
 		dtype GetBestParams(DParams& dParams);
 
 		// Prints sorted distibutions params
@@ -1381,21 +1371,21 @@ private:
 	};
 	
 	// Returns specification string by specification type
-	inline static const string& Spec(eSpec s) { return sSpec[int(s)]; }
+	inline static const string Spec(eSpec s) { return "Distribution " + sSpec[int(s)]; }
 	
-	// Returns true if simple type is represented in combo cType
-	inline static bool IsType(eCType cType, dtype type) { return int(cType) & (1 << type); }
+	// Returns true if consecutive type is represented in combo cType
+	inline static bool IsType(eCType cType, dtype type) { return cType & (1 << type); }
 
-	// Returns true if type is represented in combo cType
-	inline static bool IsType(eCType cType, eCType type) { return int(cType) & int(type); }
+	// Returns true if combo type is represented in combo cType
+	inline static bool IsType(eCType cType, eCType type) { return cType & type; }
 
-	// Calls distribution parameters by simple distribution type as index
+	// Calls distribution parameters by consecutive distribution type
 	//	@keypts: key pointers: X-coord of highest point, X-coord of right middle hight point
 	//	@params: returned mean(alpha) & sigma(beta)
 	//	Defined as a member of the class only to use the private short name lghRatio
 	static void (*SetParams[])(const fpair& keypts, fpair& params);
 
-	eSpec _spec = eSpec::CLEAR;		// distrib specification
+	eSpec _spec = eSpec::CLEAR;		// distribution specification
 	AllDParams	_allParams;			// distributions parameters
 #ifdef _DEBUG
 	mutable vector<point> _spline;		// splining curve (container) to visualize splining
@@ -1403,18 +1393,18 @@ private:
 	dostream* _s = NULL;				// print stream
 #endif
 
-	// Returns estimated slicing base
-	//	return: estimated half base, or 0 in case of degenerate distribution
+	// Returns estimated moving window half-length ("base")
+	//	return: estimated base, or 0 in case of degenerate distribution
 	fraglen GetBase();
 
 	// Defines key pointers
-	//	@base: splining base
+	//	@base: moving window half-length
 	//	@summit: returned X,Y coordinates of spliced (smoothed) summit
 	//	return: key pointers: X-coord of highest point, X-coord of right middle hight point
 	fpair GetKeyPoints(fraglen base, point& summit) const;
 
 	// Compares this sequence with calculated one by given mean & sigma, and returns PCC
-	//	@type: simple distr type
+	//	@type: consecutive distribution type
 	//	@dParams: returned PCC, input mean(alpha) & sigma(beta)
 	//	@Mode: X-coordinate of summit
 	//	@full: if true then correlate from the beginning, otherwiase from summit
@@ -1422,21 +1412,21 @@ private:
 	void CalcPCC(dtype type, DParams& dParams, fraglen Mode, bool full = true) const;
 
 	// Calculates distribution parameters
-	//	@type: distribution type
+	//	@type: consecutive distribution type
 	//	@keyPts: key pointers: X-coord of highest point, X-coord of right middle hight point
 	//	@dParams: returned PCC, mean(alpha) & sigma(beta)
 	//	@Mode: X-coordinate of summit
 	void SetPCC(dtype type, const fpair& keypts, DParams& dParams, fraglen Mode) const;
 
 	// Calculates and print called distribution parameters
-	//	@dType: type of distribution
-	//	@base: half of splining win size
+	//	@type: consecutive distribution type
+	//	@base: moving window half-length
 	//	@summit: returned X,Y coordinates of best spliced (smoothed) summit
 	void CallParams(dtype type, fraglen base, point& summit);
 
 	// Prints original distribution features
 	//	@s: print stream
-	//	@base: splining base
+	//	@base: moving window half-length
 	//	@summit: X,Y coordinates of spliced (smoothed) summit
 	void PrintTraits(dostream& s, fraglen base, const point& summit);
 

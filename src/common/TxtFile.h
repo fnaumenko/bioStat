@@ -965,7 +965,7 @@ public:
 	inline Regions() {}
 	
 	// Single region constructor
-	inline Regions(chrlen start, chrlen end) { _regions.push_back(Region(start, end)); }
+	inline Regions(chrlen start, chrlen end) { _regions.emplace_back(start, end); }
 
 	// Copying constructor
 	//inline Regions(const Regions& rgns) { _regions = rgns._regions;	}
