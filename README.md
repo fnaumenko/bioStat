@@ -12,6 +12,11 @@ or<br>
 `<Command> [options] [<file>…]`<br><br>
 Yes, the utilities can be invoked separately. They all are packed in one archive bioStat.
 
+*Notes for all utilities:*<br>
+Enumerable option values are case-insensitive.<br>
+Single letter options with missing values can be merged.<br>
+Compressed input files in gzip format are acceptable.
+
 ## Installation
 ### Executable file
 
@@ -167,7 +172,6 @@ A histogram of their frequency distribution with a step of 0.1 is also displayed
 In this case, we see that 81% of features have a correlation coefficient greater than 0.9.
 
 ### Options description
-Note: enumerable option values are case-insensitive.<br>
 
 `-a|--align`<br>
 indicates that input bed files are *alignments*, so the read density correlation would be performed.
@@ -230,7 +234,7 @@ Default: `LOC`.
 `-B|--bin-width <float>`<br>
 If set, forces to consolidate coefficients into bins, and print histogram values.<br>
 Histogram shows count of coefficients (frequency) within some value ranges (bins). 
-It is printed as a list of pairs *\<bin upper bound\>\<count in bin\>*. 
+It is printed as a list of pairs *\<bin-upper-bound\>\<count-in-bin\>*. 
 Negative coefficients have been turning to absolute during consolidation.<br>
 This option defines the width of bin as a part of 1.<br>
 Empty high and low bins are not printed.<br>
