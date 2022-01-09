@@ -4,7 +4,7 @@ This is a command shell for calling statistical programs.
 
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 14.03.2021
+Last modified: 09.01.2022
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -26,7 +26,7 @@ See the	GNU General Public License for more details.
 typedef unsigned char BYTE;
 #endif
 
-#ifdef _DEBUG
+#ifdef _WIN32
 #define LPWSTR	LPSTR	// type of second param in CreateProcess() WINIP
 #endif
 
@@ -53,6 +53,18 @@ const char* optSumm = "--summ";
 int PrintUsage(bool prTitle);
 int CallApp(BYTE ind, const char* argv[] = NULL, int paramsCnt = 3);
 
+//#ifdef _WIN32
+//#include <direct.h>
+//
+//string CurrDir()
+//{
+//	char* cwd = _getcwd(0, 0); // **** microsoft specific ****
+//	string working_dir(cwd);
+//	free(cwd);
+//	return working_dir + '\\';
+//}
+//#endif
+
 // Incapsulates command line to launch utility
 class CommLine
 {
@@ -64,20 +76,20 @@ public:
 	//	@argv: program arguments
 	//	@argc: number of program arguments
 	CommLine(const char* app, const char* argv[], int argc) {
-		const size_t appLen = strlen(app);
-		size_t	shift, parsLen,
-				commLen = appLen + 1;	// command line length: +1 for closing 0
-		
+		size_t	appLen = strlen(app);
+		size_t	shift = 0, parsLen;
+		size_t	commLen = appLen + 1;	// command line length: +1 for closing 0
+
 		// calculate commLen
 		for (int i = 2; i < argc; commLen += strlen(argv[i++]) + 1);	// +1 for blank
 
 		// in Debug mode the utilities are launched from their original (development) folders
 #ifdef _DEBUG
-		const char* pathHead = "D:\\Documents\\source\\reposCPP\\";
+		const char* pathHead = "D:\\Documents\\source\\reposCPP\\Release\\";
 		const char* pathTail = "\\Release\\";
 		commLen += strlen(pathHead) + strlen(pathTail) + appLen;
 #endif // _DEBUG
-		_comm = new char[commLen + 1];	// +1 for 0
+		_comm = new char[commLen + 1];	// +1 for 0, 2 for ".\"
 		memset(_comm, SPACE, commLen);
 #ifdef _DEBUG
 		memcpy(_comm, pathHead, shift = strlen(pathHead));
@@ -88,6 +100,7 @@ public:
 #else
 		memcpy(_comm, app, shift = appLen);
 #endif // _DEBUG
+
 		for (int i = 2; i < argc; i++) {
 			memcpy(_comm + ++shift, argv[i], parsLen = strlen(argv[i]));
 			shift += parsLen;
