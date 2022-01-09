@@ -2,7 +2,7 @@
 Calc.ccp (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 3.12.2020
+Last modified: 26.12.2021
 -------------------------
 Provides classes for calculating CC
 ***********************************************************/
@@ -10,202 +10,110 @@ Provides classes for calculating CC
 #include "Calc.h"
 #include "Data.h"
 
-const char* AND = " and";
-const string ForCorrelation = " for correlation";
 const string sFormat = " format";
+const char* sUNDEF = "UNDEF";
+const int Undef = -3;	// undefined coefficient
 
-/********************  PSums *********************/
-
-// Adds range length and correlated range values
-void PSums::AddVal(chrlen len, float valX, float valY)
+// Prints PCC
+void PrintR(float cc) 
 {
-	const double valXLen = valX * len, valYLen = valY * len;
-
-	_sumX += valXLen;	_sumSqrX += valX * valXLen;
-	_sumY += valYLen;	_sumSqrY += valY * valYLen;
-	_sumXY += valXLen * valY;
-	_len += len;
-	//cout << ":\tlen: " << len << TAB << valX << TAB << valY;// << LF;
-	//cout << "\t_len: " << _len << LF;
-	//cout << "\tsumX: " << _sumX << "\tsumY: " << _sumY << "\tsumSqrX: " << _sumSqrX << "\tsumSqrY: " << _sumSqrY << LF;
-}
-
-// Returnes Pearson CC
-double PSums::PCC()
-{
-	double pcc = (_len * _sumXY - _sumX * _sumY) /
-		sqrt(_len * _sumSqrX - _sumX * _sumX) /
-		sqrt(_len * _sumSqrY - _sumY * _sumY);
-	return pcc;
-
-	//return (_len * _sumXY - _sumX * _sumY) /
-	//	sqrt(_len * _sumSqrX - _sumX * _sumX) /
-	//	sqrt(_len * _sumSqrY - _sumY * _sumY);
-	// not sqrt((_len * _sumSqrX - _sumX * _sumX) * (_len * _sumSqrY - _sumY * _sumY)); because of possinle overwlov
-}
-
-/********************  end of PSums *********************/
-
-/********************  ÑÑ *********************/
-
-CC::eCC CC::Stated;		// setting for the current session
-
-void CC::Print(double val)
-{
-	if (val == _Empty)	return;
-	dout << left << setw(12) << setfill(' ');
-	if (val == Undef || _isnan(val))	dout << "UNDEF";
-	else	dout << val;
-}
-
-// Sets CC by sums in one pass algorithm
-void CC::Set(PSums& sums)
-{
-	if (IsP())	SetP(sums.PCC());
-	if (IsS())	SetS(sums.SCC());
-}
-
-// set single negative value to absolute value
-void CC::SetSingleAbsVal()
-{
-	if (first != _Empty)	first = fabs(first);
-	else					second = fabs(second);
-}
-
-void CC::Print() const
-{
-	Print(first);
-	Print(second);
+	dout << left << setw(12) << setfill(SPACE);
+	if(cc == Undef || isNaN(cc))	dout << sUNDEF;
+	else	dout << cc;
 	dout << LF;
 }
 
-/********************  end of ÑÑ *********************/
+// Stores the operation state of the - executed or not
+class R
+{
+	mutable bool _done = false;
+protected:
+	// Returns PCC
+	//	@cov: covariance
+	//	@var1: variance 1
+	//	@var2: variance 2
+	float GetR(const double& cov, const double& var1, const double& var2) const {
+		_done = true;
+		return cov ? (var1 && var2 ? float(cov / sqrt(var1) / sqrt(var2)) : Undef) : 1;
+	}
+
+public:
+	// Returns true if calculation was actually done
+	bool IsDone() const { return _done; }
+};
 
 /********************  PrintMngr *********************/
 
-PrintMngr::ePrint	PrintMngr::PrintCC;
-Obj::eInfo	PrintMngr::Verbose;
+PrintMngr::ePrint	PrintMngr::_PrintCC;
+eOInfo				PrintMngr::_OInfo;
+bool				PrintMngr::_PrName;
 
-void PrintMngr::Init(int ccPrint, Obj::eInfo verb)
+// Initialisez by user setings
+void PrintMngr::Init(int ccPrint, eOInfo info, bool multiFiles)
 {
-	PrintCC = ePrint(ccPrint);
-	Verbose = verb;
+	_PrintCC = ePrint (ccPrint);
+	_OInfo = info;
+	_PrName = IsNotLac() || multiFiles;
 }
 
-void PrintMngr::PrintChrom(chrid cID, const CC& cc)
+// Throws an exception for an empty object
+void PrintMngr::CompleteEmpty(const char* fName, FT::eType type)
 {
-	dout << Chrom::AbbrName(cID) << TAB;
-	cc.Print();
+	ostringstream ss;
+	if (!_PrName)	ss << fName;
+	if (_OInfo <= eOInfo::NM)	ss << SepCl;
+	ss << "no " << FT::ItemTitle(type);
+	if (Chrom::CustomID() != Chrom::UnID)	ss << " for stated " << Chrom::ShortName(Chrom::CustomID());
+	Err(ss.str()).Throw();
+}
+
+// Prints PCC
+//	@cc: correlation coefficient
+//	@cID: calculated chrom pcc or total
+void PrintMngr::PrintCC(float cc, chrid cID)
+{
+	if (cID == Chrom::UnID) {	// total CC
+		if (_OInfo > eOInfo::LAC || IsPrintTotal())
+			dout << "total:\t";
+	}
+	else						// chrom CC
+		dout << Chrom::AbbrName(cID) << TAB;
+
+	PrintR(cc);
 	fflush(stdout);		// when called from a package 
-}
-
-void PrintMngr::PrintTotal(const CC& cc)
-{
-	if (Verbose > Obj::eInfo::LAC || IsPrintLocal())
-		dout << "total:\t";
-	cc.Print();
-	fflush(stdout);		// when called from a package
 }
 
 /********************  end of PrintMngr *********************/
 
-/************************ FeatureR ************************/
+/************************ class PlainCover ************************/
 
-// 'FeatureR' represetns pair <feature-ID><feature-CC>
-struct FeatureR : pair<chrlen, CC>
+bool PlainCover::AddPos(const ValPos& vPos, chrlen prevEnd)
 {
-	inline FeatureR(chrlen i, const CC& res) { first = i; second = res; }
-
-	inline bool operator < (const FeatureR& rccr) const { return second < rccr.second; }
-
-	// returns single value
-	inline double GetSingleVal() const { return second.GetSingleVal(); }
-
-	// set single negative value to absolute value
-	inline void SetSingleAbsVal() { second.SetSingleAbsVal(); }
-
-	inline void Print() const { dout << first << TAB; second.Print(); }
-};
-
-// 'FeatureRs' represetns FeatureR collection, including methods to print collection and CC histogram
-class FeatureRs : vector<FeatureR>
-{
-private:
-	// Replace negative values by positive
-	//	return: true if even one value had been replaced
-	bool SetAbsVals()
-	{
-		bool holdNegative = false;
-		for (vector<FeatureR>::iterator it = begin(); it != end(); it++)
-			if (it->GetSingleVal() < 0) {
-				it->SetSingleAbsVal();
-				holdNegative = true;
-			}
-		return holdNegative;
-	}
-
-public:
-	inline FeatureRs(chrlen cnt) { reserve(cnt); }
-
-	inline void AddVal(chrlen ind, CC val) { push_back(FeatureR(ind + 1, val)); }
-
-	void Print(int printFRes)
-	{
-		if (printFRes == rsOFF)	return;
-		if (printFRes == rsC)		// soretd by feature; are sorted initially
-			sort(begin(), end());	// by increase
-		dout << "\n#RGN\tCC\n";
-		for (vector<FeatureR>::iterator it = begin(); it != end(); it++)
-			it->Print();
-	}
-
-	// Creates and prints histogram
-	void PrintHist(double binWidth)
-	{
-		if (!binWidth)		return;
-		SetAbsVals();
-		sort(begin(), end());	// by increase
-		// define factor
-		// factor is a divisor of binWidth: 0.1--0.9=>10, 0.01--0.09=>100 etc
-		short F = 10;
-		for (; binWidth * F < 1; F *= 10);
-		vector<FeatureR>::iterator it = begin();
-		// then float instead of double because of wrong consolidation by round double
-		double minBin = float(int(F * it->GetSingleVal())) / F;
-		//float minBin = F*it->GetSingleVal();
-		//		minBin = float(int(minBin))/F;
-		double maxBin = F * (end() - 1)->GetSingleVal();
-		int	maxdecBin = int(maxBin);
-		if (maxBin - maxdecBin)	maxdecBin++;	// round up
-		if (maxdecBin % 2)			maxdecBin++;	// get even bin
-		maxBin = double(maxdecBin) / F;
-		Array<int> hist(int((maxBin - minBin) / binWidth) + 1);		// histogram
-		// consolidation: fill histogram
-		for (; it != end(); it++)
-			hist[int((maxBin - it->GetSingleVal()) / binWidth)]++;
-		// print histogram
-		dout << "BIN UP\tCOUNT\n";
-		for (BYTE k = 0; k < hist.Length(); k++)
-			dout << (maxBin - k * binWidth) << TAB << hist[k] << LF;
-		//dout << "finish\n";
-	}
-};
-
-/************************ end of FeatureR ************************/
-
-/************************ class BaseCover ************************/
-
-// Adds unzero valued position to the coverage
-//	@start: unzero region start position
-//	@prevEnd: previoues unzero region end position
-//	@val: unzero region value5
-void BaseCover::AddPos(chrlen start, chrlen prevEnd, float val)
-{
+	bool add;
 	// is it a gap between prev and current regions?
-	if (start != prevEnd && val)				// check for the unzero val to avoid duplicate zero items
-		_items.push_back(ValPos(prevEnd, 0));	// add zero space after previous unzero region
-	if (_items.back().Val != val)				// check prev val for wiggle_0 with regular tiems with the same span (MACS output
-		_items.push_back(ValPos(start, val));	// add start of current unzero region
+	if (add = (vPos.Val && vPos.Pos != prevEnd))					// check for the unzero val to avoid duplicate zero items
+		_items.emplace_back(prevEnd, 0);	// add zero space after previous unzero region
+	if (add = (!_items.size() || _items.back().Val != vPos.Val))	// check prev val for wiggle_0 with regular tiems with the same span (MACS output)
+		_items.push_back(vPos);				// add start of current unzero region
+	return add;
+}
+
+// Adds chrom to the instance
+//	@cID: chrom
+//	@cLen: current chrom length
+//	@prevEnd: end of previous entry
+void PlainCover::AddChrom(chrlen cID, chrlen cLen, chrlen prevEnd)
+{
+	if (!prevEnd)	return;				// skip first call with cID == Chrom::UnID
+	// add 2 last items
+	_items.emplace_back(prevEnd, 0);	// add zero region after last unzero one
+	if(prevEnd < cLen)
+		_items.emplace_back(cLen, 0);	// add chrom boundary to finish iterating in CalcR correctly
+
+	// add chrom
+	const chrlen lastInd = _items.size();
+	AddVal(cID, ItemIndexes(_lastInd, lastInd));	// minus added 1 first and 2 last zero intervals
+	_lastInd = lastInd;
 }
 
 // Sets new position and returns current len
@@ -218,25 +126,133 @@ chrlen SetPos(chrlen& pos, chrlen currPos)
 
 // Calculates and prints corr. coefficients, using single-pass range-based algorithm
 //	@cv: compared cover
-//	@rgns: def regions (chrom sizes)
+//	@gRgns: def regions (chrom sizes)
 //	@templ: template to define treated regions
-void BaseCover::CalcR(const BaseCover& cv, const DefRegions& rgns, const Features* templ)
+//	return: true if calculation was actually done
+bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Features* templ)
 {
-	CC totalCC;
-	PSums	totalSums;
-	bool fillLocRes = templ && (_binWidth || _printFRes >= 0);
+	// 'spR' - single-pass Pearson coefficient (R) calculater; keeps accumulates sums & calculates PCC
+	class spR : public R
+	{
+		double	_sumX = 0, _sumY = 0;		// sum of signal values
+		double	_sumXY = 0;					// sum of the products of the values of both signals
+		double	_sumSqrX = 0, _sumSqrY = 0;	// sum of squared signal values
+		genlen	_len = 0;
+
+	public:
+		void Clear() { _sumX = _sumY = _sumXY = _sumSqrX = _sumSqrY = 0; _len = 0; }
+
+		// Adds range length and correlated range values
+		void AddVal(chrlen len, float valX, float valY) {
+			const double valXLen = double(valX) * len;
+			const double valYLen = double(valY) * len;
+
+			_sumX += valXLen;	_sumSqrX += valX * valXLen;
+			_sumY += valYLen;	_sumSqrY += valY * valYLen;
+			_sumXY += valXLen * valY;
+			_len += len;
+		}
+
+		// Returnes Pearson CC
+		float PCC() {
+			return GetR(_len * _sumXY - _sumX * _sumY,
+				_len * _sumSqrX - _sumX * _sumX,
+				_len * _sumSqrY - _sumY * _sumY);
+		}
+	};
+
+	// 'FeatureR' represetns pair <feature-ID><feature-PCC>
+	struct FeatureR : pair<chrlen, float>
+	{
+		inline FeatureR(chrlen id, float cc) { first = id; second = cc; }
+
+		inline bool operator < (const FeatureR& rccr) const { return second < rccr.second; }
+
+		void Print() const { dout << first << TAB; PrintR(second); }
+	};
+
+	// 'FeatureRs' represetns FeatureR collection, including methods to print collection and CC histogram
+	class FeatureRs : vector<FeatureR>
+	{
+		// Creates and prints histogram
+		void PrintHist(float binWidth)
+		{
+			// ** set abs values and sort
+			for (auto& i : *this)
+				if (i.second < 0)	i.second = -i.second;
+			sort(begin(), end());	// by increase
+			
+			// ** define factor - a divisor of binWidth: 0.1--0.9=>10, 0.01--0.09=>100 etc
+			short F = 10;
+			for (; binWidth * F < 1; F *= 10);
+
+			// ** define min scaled bin value
+			auto it = begin();
+			// then float instead of double because of wrong consolidation by round double
+			float minBin = float(int(it->second * F)) / F;
+			
+			// ** define max scaled bin value
+			auto itEnd = prev(end());	// pointed to the LAST item!
+			size_t undefCnt = 0;		// count of regions with undefined CC
+			while (itEnd->second > 1)	// eliminate UNDEF CC
+				itEnd--, undefCnt++;
+			float maxBin = float(F * itEnd->second);
+			{	// round maxBin
+				int	maxdecBin = int(maxBin);
+				if (maxBin - maxdecBin)	maxdecBin++;	// round up
+				if (maxdecBin % 2)		maxdecBin++;	// get even bin
+				maxBin = float(maxdecBin) / F;
+			}
+			vector<int> hist(size_t((maxBin - minBin) / binWidth) + 1, 0);		// histogram
+
+			// ** fill histogram by consolidated values
+			while (it <= itEnd)
+				hist[int((maxBin - it++->second) / binWidth)]++;
+
+			// ** cut off low bins with zero value
+			size_t lim = hist.size() - 1;
+			for (size_t k = lim; k; k--)
+				if (!hist[k]) lim--;
+				else break;
+			// ** print histogram
+			dout << "BIN UP\tCOUNT\n";
+			for (BYTE k = 0; k <= lim; k++)
+				dout << (maxBin - k * binWidth) << TAB << hist[k] << LF;
+			if (undefCnt)
+				dout << sUNDEF << TAB << undefCnt << LF;
+		}
+
+	public:
+		inline FeatureRs(chrlen cnt) { reserve(cnt); }
+
+		inline void AddVal(chrlen ind, double val) { emplace_back(ind + 1, val); }
+
+		// Prints result and histogram
+		void Print(eRS printFRes, float binWidth)
+		{
+			if (printFRes != rsOFF) {
+				if (printFRes == rsC)		// soretd by feature; are sorted initially
+					sort(begin(), end());	// by increase
+				dout << "\n#RGN\tCC\n";
+				for (const auto& cc : *this)		cc.Print();
+			}
+			if (binWidth)	PrintHist(binWidth);
+		}
+	};
+
+	const bool fillLocRes = templ && (_binWidth || _printFRes);
+	spR chrR, totR;
 #ifdef _DEBUG
-	//Print("first", 15);
-	//cv.Print("second", 15);	cout << LF;
-	//rgns.Print();
+	//Print("first", 0);
+	//cv.Print("second", 0);	cout << LF;
+	////rgns.Print();
 	//if (templ)	templ->Print();
 #endif
 	// rgns is already limited by chroms represented in template, if it's defined
-	for (DefRegions::cIter rit = rgns.cBegin(); rit != rgns.cEnd(); rit++) {
-		CC chrCC;
-		chrlen fCnt = 0;	// count of features
+	for (auto rit = rgns.cBegin(); rit != rgns.cEnd(); rit++) {
 		chrid cID = CID(rit);
 		if (!FindChrom(cID) || !cv.FindChrom(cID))	continue;
+		chrlen fCnt = 0;							// count of templ features
 		Items<Featr>::cItemsIter itF, itFend;		// template feature iterator
 		if (templ) {
 			auto itC = templ->GetIter(cID);
@@ -246,368 +262,315 @@ void BaseCover::CalcR(const BaseCover& cv, const DefRegions& rgns, const Feature
 		}
 
 		// local results
-		CC locCC;
-		chrlen i = 0;
+		spR locR;
+		chrlen ind = 0;				// item index
 		FeatureRs locResults(_binWidth ? fCnt : 0);	// create histogram
-
-		// X, Y denotes values corresponding to the first and second sequence
-		PSums cSums, locSums;
 		chrlen len;					// length of current united (with equal X, Y values) region
-		chrlen posN, pos = 0;		// position keeps posX or posY, current position, 
-		float valX = 0, valY = 0;	// X, Y current value
+		chrlen posN, pos = 0;		// max(posX,posY), current position, 
+		float valX = 0, valY = 0;	// first sequence, second sequence current value
 		bool insideF = !templ;		// true if current position is inside current template feature
-		bool closeF = false;		// true if the feature has just ended
 		bool inTempl = templ;		// true if current position did not go beyond the border of the last feature 
-		cItemsIter itX = ItemsBegin(cID), itY = cv.ItemsBegin(cID);
-		const cItemsIter itXend = ItemsEnd(cID), itYend = cv.ItemsEnd(cID);
+		bool closeF = false;		// true if the feature has just ended
+		const auto itXend = ItemsEnd(cID), itYend = cv.ItemsEnd(cID);
 
-		while (itX != itXend && itY != itYend) {
-			const chrlen posX = itX->Pos,	posY = itY->Pos;
-			const float prevValX = valX,	prevValY = valY;	// X, Y current value
+		chrR.Clear();
+		// loop through cover items (intervals)
+		for (auto itX = ItemsBegin(cID), itY = cv.ItemsBegin(cID);
+			itX != itXend && itY != itYend; ) {
+			const chrlen posX = itX->Pos, posY = itY->Pos;
+			const float prevValX = valX, prevValY = valY;	// X, Y current value
 
 			//== set valX, valY
 			if (posX > posY)			// more
 				posN = posY, valY = itY++->Val;
 			else {						// equal or less
 				posN = posX; valX = itX++->Val;
-				if (posX == posY) 	// equal
+				if (posX == posY) 		// equal
 					valY = itY++->Val;
 			}
 			//== set pos, len
 			if (inTempl)
-				if (posN > itF->End) {							// exit current feature
-					closeF = len = SetPos(pos, itF->End+1);		// take len including the end of the feature
-					inTempl = ++itF != itFend;					// next feature
+				if (posN > itF->End) {						// exit current feature
+					closeF = true;
+					len = SetPos(pos, itF->End);			// take len including the end of the feature
+					inTempl = ++itF != itFend;				// next feature
 				}
-				else if (!insideF && posN >= itF->Start)		// entry current feature
-					insideF = len = (pos = posN) - itF->Start;	// cutoff range before feature start
-				else len = SetPos(pos, posN);
-			else len = SetPos(pos, posN);
+				else if (!insideF && posN >= itF->Start)	// entry current feature
+					insideF = true,
+					len = (pos = posN) - itF->Start;		// cutoff range before feature start
+				else 
+					len = SetPos(pos, posN);
+			else 
+				len = SetPos(pos, posN);
 
 			//== accumulate sums; the last interval, ended by pos, is saved!!
 			if (insideF && len) {		// len can be 0 at the boundary of the feature
-				//cout << pos;
-				if (fillLocRes)		locSums.AddVal(len, prevValX, prevValY);
-				cSums.AddVal(len, prevValX, prevValY);		// previous combined region
+				if (fillLocRes)		
+					locR.AddVal(len, prevValX, prevValY);
+				chrR.AddVal(len, prevValX, prevValY);		// previous combined region
 				if (PrintMngr::IsPrintTotal())
-					totalSums.AddVal(len, valX, valY);
+					totR.AddVal(len, prevValX, prevValY);
+					//totR.AddVal(len, valX, valY);
 			}
 
-			//== close feature, save its CC
+			//== close feature, save loc CC
 			if (closeF) {
 				if (fillLocRes) {			// add CC for each feature
-					locCC.Set(locSums);
-					locResults.AddVal(i++, locCC);
-					locSums.Clear();
+					locResults.AddVal(ind++, locR.PCC());
+					locR.Clear();
 				}
 				closeF = insideF = false;
 			}
 		}
+		
 		//== print current result
-		chrCC.Set(cSums);
 		if (PrintMngr::IsPrintLocal()) {
 			if (templ)
-				locResults.Print(_printFRes),
-				locResults.PrintHist(_binWidth);	// print histogram
-			PrintMngr::PrintChrom(cID, chrCC);
+				locResults.Print(_printFRes, _binWidth);
+			PrintMngr::PrintCC(chrR.PCC(), cID);
 		}
 	}
-	if (PrintMngr::IsPrintTotal())	
-		totalCC.Set(totalSums),
-		PrintMngr::PrintTotal(totalCC);
+	if (PrintMngr::IsPrintTotal())
+		PrintMngr::PrintCC(totR.PCC());
+	return chrR.IsDone() || totR.IsDone();
 }
 
-/************************ end of BaseCover ************************/
+// Writes inner representation to BEDGRAPG file
+void PlainCover::Write(const string& fName) const
+{
+	ofstream file;
+	file.open(fName);
+	file << "track type=bedGraph\n";
+	for (const auto& c : Container()) {
+		const string& chr = Chrom::AbbrName(c.first);
+		const auto itEnd = --ItemsEnd(c.second.Data);
+		for (auto it = ItemsBegin(c.second.Data); it != itEnd; it++)
+			if(it->Val)
+				file << chr << TAB << it->Pos << TAB << next(it)->Pos << TAB << it->Val << LF;
+	}
+	file.close();
+}
+
+/************************ end of PlainCover ************************/
 
 /************************ class Cover ************************/
 
-// Adds frag/read to the container.
-// Abstract BaseItems<> method implementation.
-//	@rgn: Region with mandatory fields
-//	@spotter: temporary values & ambiguities
-//	return: true if frag/read was added successfully
-bool Cover::AddItem(const Region& rgn, Spotter& spotter)
-{
-	AddPos(rgn.Start, spotter.lastEnd, spotter.File().ItemValue());
-	spotter.lastEnd = rgn.End;
-	return true;
-}
-
-// Adds last zero range to close the coverage.
-//	Abstract BaseItems<> method implementation 
-//	@spotter: used do get last item end
-//	return: count of added items
-UINT Cover::FinishItems(const Spotter& spotter)
-{
-	_items.push_back(ValPos(spotter.lastEnd, 0));	// add zero region after last unzero one
-	_items.push_back(ValPos(spotter.chrLen - 1, 0));// add chrom boundary to finish iterating in CalcR correctly
-	return 2;
-}
-
-// Returns a pointer to the substring defined by key.
-//	@str: null-terminated string to search the key
-//	@key: null-terminated string to search for
-//	return: a pointer to the substring after key, or NULL if key does not appear in str
-const char* KeyStr(const char* str, const char* key)
-{
-	const char* strKey = strstr(str, key);
-	return strKey ? (strKey + strlen(key)) : NULL;
-}
-
-// Checks definition or declaration line for key
-//	@str: null-terminated string to search the key
-//	@key: null-terminated string to search for
-//	@file: file to print error message with line number
-//	return: point to substring followed after the key
-const char* CheckSpec(const char* str, const char* key, const TabFile& file)
-{
-	const char* strKey = KeyStr(str, key);
-	if (!strKey)
-		Err(string("absent or wrong '") + key + "' key", file.LineNumbToStr().c_str()).Throw();
-	return strKey;
-}
-
-// Returns required int value with check
-//	@str: null-terminated string to search the key
-//	@key: null-terminated string to search for
-//	@file: file to print error message with line number
-//	return: key value, or throws an exception if key does not appear in str
-inline chrlen GetIntKey(const char* str, const char* key, const TabFile& file)
-{
-	return atoi(CheckSpec(str, key, file) + 1);
-}
-
-// Returns int value
-//	@str: null-terminated string to search the key
-//	@key: null-terminated string to search for
-//	return: key value, or 0 if key does not appear in str
-chrlen GetIntKey(const char* str, const char* key)
-{
-	const char* line = KeyStr(str, key);
-	return line ? atoi(line + 1) : 0;
-}
-
 // Initializes instance from wig file
-//	@spotter: spotter to control ambiguities
-//	@cSizes: chrom sizes to control chrom length exceedeing
 //	return: numbers of all and initialied items for given chrom
-p_ulong Cover::InitDerived(Spotter& spotter, const ChromSizes& cSizes)
+void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 {
-	const char* keyTrackType = "track type=";
-	const char* typeBGraph = "bedGraph";
-	const char* typeWiggle = "wiggle_0";
-	const char* keyVarStep = "variableStep";
-	const char* keyFixStep = "fixedStep";
+	static const string keyChrom = "chrom";
+	static const string keyStart = "start";
+	static const string keyStep = "step";
+	static const string keySpan = "span";
 
-	BedInFile& file = (BedInFile&)spotter.File();
-	const char* line = file.GetNextLine(false);			// for WIG the first line should be a track definition line
-
-	line = CheckSpec(line, keyTrackType, file);		// check track type key
-	const chrlen len = strchr(line, SPACE) - line;	// the length of wiggle type in definition line
-	if (!len)	file.ThrowExcept("track type is not specified");
-	if (!strncmp(line, typeBGraph, len))			// BedGraph
-		return InitBed(spotter, cSizes);
-	else if (!strncmp(line, typeWiggle, len)) {		// fixed or variable step
-		line = file.GetNextLine(false);
-		if (KeyStr(line, keyFixStep))				// fixed step
-			file.ResetWigType(FT::eType::WIG_FIX, 0, BYTE(strlen(keyFixStep)) + 1);
-		else if (KeyStr(line, keyVarStep))			// variableStep
-			file.ResetWigType(FT::eType::WIG_VAR, 1, BYTE(strlen(keyVarStep)) + 1);
-		else file.ThrowExcept(string(line) + ": absent or unknown wiggle data format");
-	}
-	else file.ThrowExcept("type '" + string(line, len) + "' does not supported");
-
-	ULONG estItemCnt = file.EstItemCount();
-	if (!estItemCnt)		return make_pair(0, 0);
-
-	const char* keyChrom = "chrom";
-	const char* keyStart = "start";
-	const char* keyStep = "step";
-	const char*	keySpan = "span";
-
-	chrid	cID = Chrom::UnID;		// current chrom ID
 	bool	skipChrom = false;		// if true skip data lines for current chrom
-	chrlen	pos = 0, 				// region start position, previous region start position, 
-			span = 1, step = 0,		// span spec, step spec (for fixedStep),
-			firstInd = 0;			// first index in item's container for current chrom
+	chrlen	prevEnd = 0,			// previous region end position, 
+			span = 1, step = 0;		// span spec, step spec (for fixedStep),
+	const char* line;
 	const bool fixedStep = file.Type() == FT::eType::WIG_FIX;
+	chrid	cID = Chrom::UnID, nextCID = cID;	// current, next chrom ID
+	size_t	cItemCnt = 0,	// count of total accepted intervals
+			itemCnt = 0,	// count of accepted intervals of current chrom, total
+			recCnt = 0;		// count of total records
+	BYTE	offset = 0;		// offset to value delimiter (TAB or SPACE); for Variable Step, only increases
+	ValPos	vPos;			// region start position & value
+	char	firstC;
+	Timer timer(UniBedInFile::IsTimer);
+	// pointer to initialise position & value function
+	void (*setValPos)(ValPos & vPos, chrlen step, BYTE & offset, const char* s);
 
-	Items::ReserveItems(estItemCnt);
-	//estItemCnt = 0;	// then used as counter	
-	do
-		if (isdigit(*line)) {	// *** data line
-			//estItemCnt++;
-			if (skipChrom)	continue;
-			if (fixedStep)	pos += step;
-			else			pos = file.IntField(0);
-			AddPos(pos, spotter.lastEnd, file.ItemValue());
-			spotter.lastEnd = pos + span;	// use spotter.lastEnd instead of local variable becouse of calling it in FinishItems()
-		}
-		else {					// *** declaration line
-			//== set specifications
-			//=== check keyChrom
-			line = file.ChromMark() - strlen(Chrom::Abbr);			// level the initial value of chrom mark position
-			const char* line1 = CheckSpec(line, keyChrom, file);	// keyChrom initial position
-			BYTE spaceCnt = line1 - line + 1;			// number of extra spaces before keyChrom (+1 for '='
+	if(fixedStep) {
+		firstC = 'f';
+		setValPos = [](ValPos& vPos, chrlen step, BYTE&, const char* s) {
+			vPos.Pos += step;
+			vPos.Val = float(atof(s));
+		};
+	}
+	else {
+		firstC = 'v';
+		setValPos = [](ValPos& vPos, chrlen, BYTE& offset, const char* s) {
+			vPos.Pos = atoi(s);
+			for (s += offset; *s != SPACE && *s != TAB; ++s, ++offset);	// go to value
+			vPos.Val = float(atof(++s));
+		};
+	}
+
+	while (line = file.GetNextLine(false))
+		if (*line == firstC) {		// *** declaration line
+			// *** set specifications
+			// ** check keyChrom
+			line = file.ChromMark() - strlen(Chrom::Abbr);					// level the initial value of chrom mark position
+			const char* line1 = line = file.CheckSpec(line, keyChrom) + 1;	// keyChrom initial position
+
 			if (fixedStep) {							// fix declarative parameters
-				//=== check keyStart & keyStep
-				pos = GetIntKey(line1, keyStart, file);	// initial position
-				line1 += strlen(keyStart) + 1;			// shift to scan the rest of the line faster
-				step = GetIntKey(line1, keyStep, file);	// initial step
-				line1 += strlen(keyStep) + 1;			// shift to scan the rest of the line faster
-				pos -= step;		// shift 'back' before the first pass, where pos+=step will be invoke
+				// * check keyStart & keyStep
+				vPos.Pos = file.GetIntKey(line1, keyStart);	// initial position
+				line1 += keyStart.length() + 1;			// shift to scan the rest of the line faster
+				step = file.GetIntKey(line1, keyStep);	// initial step
+				vPos.Pos -= step;							// shift 'back' before the first pass, where pos+=step will be invoke
+				line1 += keyStep.length() + 1;			// shift to scan the rest of the line faster
 			}
-			if (!(span = GetIntKey(line1, keySpan)))	// initial span: both for fixed- and variableStep
-				span = 1;
-			//== check chrom
-			if (file.GetNextChrom(spaceCnt)) {
-				chrid nextCID = file.GetChrom();
-				if (skipChrom = nextCID == Chrom::UnID)
-					continue;								// negligible next chrom
-				if (Chrom::NoCustom()) {					// are all chroms specified?
-					if (cID != Chrom::UnID)					// skip first pass, while cutt chrom is still undefined
-						AddChrom(cID, firstInd, spotter);
+			line1 = TabFile::KeyStr(line1, keySpan);
+			span = line1 ? atoi(line1 + 1) : 1;			// initial span: both for fixed- and variableStep
+			// * check chrom
+			if (file.GetNextChrom(nextCID, line)) {
+				if (Chrom::IsCustom()) {				// are all chroms specified?
+					if (cID != Chrom::UnID)				// skip first pass, when curr chrom is still undefined
+						PlainCover::AddChrom(cID, cSizes[cID], prevEnd),
+						itemCnt += cItemCnt;
 				}
-				else {										// single chrom is specified
-					if (!fixedStep && pos)		// rigion is initialized: items for the specified chrom are existed and saved
-						break;		// the chrom itself will be saved after loop
+				else {								// single chrom is specified
+					if (!fixedStep && vPos.Pos)		// region is initialized: items for the specified chrom are existed and saved
+						break;						// the chrom itself will be saved after loop
 					if (skipChrom = nextCID != Chrom::CustomID())
 						continue;
 				}
 				cID = nextCID;
-				spotter.lastEnd = 0;
-				firstInd = ItemsCount();
-				spotter.SetTreatedChrom(cID);
-				if (cSizes.IsFilled())	spotter.chrLen = cSizes[cID];
+				cItemCnt = prevEnd = offset = 0;
+				vPos.Clear();
 			}
 		}
-	while (line = file.GetNextLine(false));
+		else {				// *** data line
+			if (skipChrom)	continue;
+			setValPos(vPos, step, offset, file.GetLine());
+			cItemCnt += AddPos(vPos, prevEnd);
+			prevEnd = vPos.Pos + span;
+			recCnt++;
+		}
 	// save last chrom
-	if (cID != Chrom::UnID)		// is last chrom valid?
-		AddChrom(cID, firstInd, spotter);
-	//cout << " est/fact: " << float(estItemCnt) / ItemsCount() << SPACE;
-	return make_pair(ItemsCount(), ItemsCount());	// option i=CNT prints: <name>: XXXX intervals
+	if (cID != Chrom::UnID) {	// is last chrom valid?
+		PlainCover::AddChrom(cID, cSizes[cID], prevEnd);
+		itemCnt += cItemCnt;
+	}
+	// print stats
+	if (PrintMngr::OutInfo() >= eOInfo::STD) {
+		if (itemCnt == 1)	itemCnt = 0;	// single interval is equal to an empty coverage
+		UniBedInFile::PrintItemCount(itemCnt, FT::ItemTitle(FT::eType::WIG_FIX, itemCnt != 1));
+		if (PrintMngr::OutInfo() == eOInfo::STAT)
+			dout << " (" << recCnt << " data lines)";
+		if (!(Timer::Enabled && UniBedInFile::IsTimer))	dout << LF;
+	}
+	timer.Stop(1, true, PrintMngr::OutInfo() > eOInfo::NM);
+}
+
+// Creates new instance by wig-file name
+// Invalid instance wil be completed by throwing exception.
+//	@fName: file name
+//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
+//	@prfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
+//	@abortInval: true if invalid instance should abort excecution
+Cover::Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval)
+	: PlainCover()
+{
+	UniBedInFile file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, abortInval);
+
+	ReserveItems(file.EstItemCount());	// EstItemCount() > 0 even for empty file, because of track line
+	if (file.Type() == FT::eType::BGRAPH)
+		Pass(this, file);
+	else
+		InitWiggle((BedInFile&)file.BaseFile(), cSizes);
+	
+	if (Options::GetBVal(oWRITE)) {
+		const string ext = FS::GetExt(fName);
+		Write(FS::FileNameWithoutExt(fName) + "_out." + ext);
+	}
+
+	//PrintEst(file.EstItemCount());
 }
 
 /************************ end of class Cover ************************/
 
 /************************ class ReadDens ************************/
 
-// Adds read to the container.
-// Abstract BaseItems<> method implementation.
-//	@rgn: Region with mandatory fields
-//	@spotter: temporary values & ambiguities
-//	return: true if read was added successfully
-bool ReadDens::AddItem(const Region& rgn, Spotter& spotter)
+// Adds chrom to the instance
+//	@cID: current chrom ID
+//	@cLen: current chrom length
+void ReadDens::AddChrom(chrid cID, chrlen cLen)
 {
-	CheckStrand(spotter);
-	_map[spotter.File().ItemStrand() ? rgn.Start : rgn.End]++;
-	return true;
+	// fill items
+	chrlen prevEnd = 0;
+	for (const freqPair& i : *_freq) {
+		AddPos(i, prevEnd);
+		prevEnd = i.first + 1;
+	}
+	_freq->clear();
+	PlainCover::AddChrom(cID, cLen, prevEnd);
 }
 
-// Fills items from intermediate container
-//	BaseItems<> abstract method implementation.
-void ReadDens::FillChromItems(const Spotter& spotter)
+// Creates new instance by abed/bam-file name
+// Invalid instance wil be completed by throwing exception.
+//	@fName: file name
+//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
+//	@printfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
+//	@abortInval: true if invalid instance should abort excecution
+ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval)
+	: PlainCover()
 {
-	if (!_map.size())	return;
-	chrlen prevEnd = 0;
-	for (auto it = _map.begin(); it != _map.end(); it++) {
-		AddPos(it->first, prevEnd, it->second);
-		prevEnd = it->first + 1;
-	}
-	_items.push_back(ValPos(prevEnd, 0));			// add zero region after last unzero one
-	_items.push_back(ValPos(spotter.chrLen - 1, 0));// add chrom boundary to finish iterating in CalcR correctly
-	_map.clear();
+	RBedInFile file(fName, &cSizes, Options::GetRDuplLevel(oDUPL), oinfo, printfName, abortInval);
+	rfreq freq;
+	_freq = &freq;
+
+	ReserveItems(file.EstItemCount());
+	Pass(this, file);
+	_freq = nullptr;
+
+	//PrintEst(file.EstItemCount());
 }
 
 /************************ end of class ReadDens ************************/
-
-/************************ class JointedBeds ************************/
-
-// Keeps mean values for fs1, fs2. 
-//	@clear: if true, clear instance for treatment of new chromosome
-void JointedBeds::R::Init(double mean1, double mean2, bool clear)
-{
-	double	d1 = 1 - mean1,
-		d2 = 1 - mean2;
-
-	_sqMeans1[0] = _sqMeans1[2] = mean1 * mean1;
-	_sqMeans1[1] = _sqMeans1[3] = d1 * d1;
-	_sqMeans2[0] = _sqMeans2[1] = mean2 * mean2;
-	_sqMeans2[2] = _sqMeans2[3] = d2 * d2;
-	_crossMeans[0] = mean1 * mean2;
-	_crossMeans[1] = -mean2 * d1;
-	_crossMeans[2] = -mean1 * d2;
-	_crossMeans[3] = d1 * d2;
-	if (clear)
-		_cov = _var1 = _var2 = 0;
-}
-
-// Accumulates next length of range
-void JointedBeds::R::Increment(chrlen len, char val)
-{
-	_cov += len * _crossMeans[val];
-	_var1 += len * _sqMeans1[val];
-	_var2 += len * _sqMeans2[val];
-}
 
 // Fills ChromRanges & Range by given two beds.
 // Beds chromosomes should be checked as Treated.
 // Both fs1 & fs2 must be valid: no duplicated, crossed, adjacent, coverage features;
 // in other case R may be wrong
-JointedBeds::JointedBeds(Features& fs1, Features& fs2)
+JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 {
 	const Region fEnd = Region(CHRLEN_UNDEF, CHRLEN_UNDEF - 1);	// last chromosome's joint feature
 	const char VAL1 = 0x1;	// value represented first Features's feature
 	const char VAL2 = 0x2;	// value represented second Features's feature
-	
-	char val;							// current joint range value
-	chrlen	pos, pos2;					// current positions and in fs2. Initially are equal
-	chrlen	fi1, fi2;					// features indexes in fs1, fs2
+	const auto cit1end = fs1.cEnd(), cit2end = fs2.cEnd();
+
 	chrlen	firstInd = 0, lastInd = 0;	// current first, last feature indexes in JointedBeds
-	Region	f1, f2;						// dedicated feature used for detecting
-	BaseItems::cIter cit1, cit2;
-	const BaseItems::cIter cit1end = fs1.End(), cit2end = fs2.End();
+	Region	r1, r2;						// dedicated feature used for detecting
 
 	_ranges.reserve(2 * (fs1.Count() + fs2.Count()));	// ranges
-
-	for (cit1 = fs1.Begin(); cit1 != cit1end; cit1++) {
+	for (auto cit1 = fs1.cBegin(); cit1 != cit1end; cit1++) {
 		if (!fs1.IsTreated(cit1))	continue;
-		fi1 = fi2 = val = 0;
-		cit2 = fs2.GetIter(CID(cit1));
+		auto cit2 = fs2.GetIter(CID(cit1));
 		if(cit2 == cit2end)			continue;		// no chrom
 		const chrlen fCnt1 = fs1.ItemsCount(cit1);	// count of features in fs1, fs2
 		const chrlen fCnt2 = fs2.ItemsCount(cit2);
-		f1 = fs1.Feature(cit1);
-		f2 = fs2.Feature(cit2);
+		r1 = fs1.Regn(cit1);
+		r2 = fs2.Regn(cit2);
+		char val = 0;							// current joint range value
 		// loop through current chromosome's features 
-		while (fi1 < fCnt1 || fi2 < fCnt2) {
-			pos = val & VAL1 ? (f1.End + 1) : f1.Start;
-			pos2 = val & VAL2 ? (f2.End + 1) : f2.Start;
+		for (chrlen fi1 = 0, fi2 = 0; fi1 < fCnt1 || fi2 < fCnt2;) {
+			chrlen pos = val & VAL1 ? (r1.End + 1) : r1.Start;
+			const chrlen pos2 = val & VAL2 ? (r2.End + 1) : r2.Start;
 			if (pos < pos2) {
 				val ^= VAL1;		// flip val for fs1
 				if (!(val & VAL1))	// true when fs1 feature is closed (every second range)
-					f1 = ++fi1 < fCnt1 ? fs1.Feature(cit1, fi1) : fEnd;
+					r1 = ++fi1 < fCnt1 ? fs1.Feature(cit1, fi1) : fEnd;
 			}
 			else if (pos > pos2) {
 				pos = pos2;
 				val ^= VAL2;		// flip val for fs2
 				if (!(val & VAL2))	// true when fs2 feature is closed (every second range)
-					f2 = ++fi2 < fCnt2 ? fs2.Feature(cit2, fi2) : fEnd;
+					r2 = ++fi2 < fCnt2 ? fs2.Feature(cit2, fi2) : fEnd;
 			}
 			else {
 				val ^= VAL1 ^ VAL2;	// flip val for both beds
 				if (!(val & VAL1))	// true when fs1 feature is closed 
-					f1 = ++fi1 < fCnt1 ? fs1.Feature(cit1, fi1) : fEnd;
+					r1 = ++fi1 < fCnt1 ? fs1.Feature(cit1, fi1) : fEnd;
 				if (!(val & VAL2))	// true when fs2 feature is closed 
-					f2 = ++fi2 < fCnt2 ? fs2.Feature(cit2, fi2) : fEnd;
+					r2 = ++fi2 < fCnt2 ? fs2.Feature(cit2, fi2) : fEnd;
 			}
-			_ranges.push_back(Range(pos, val));	// add new joint feature
+			_ranges.emplace_back(pos, val);	// add new joint feature
 			lastInd++;
 		}
 		AddVal(CID(cit1), ChromRanges(
-			firstInd,
-			lastInd,
+			firstInd, lastInd,
 			fs1.FeaturesLength(cit1),
 			fs2.FeaturesLength(cit2)
 		));
@@ -618,35 +581,77 @@ JointedBeds::JointedBeds(Features& fs1, Features& fs2)
 // Calculates r and fills results
 //	@cSizes: chrom sizes
 //	@results: object to fill results
-void JointedBeds::CalcR(const ChromSizes& cSizes)
+//	return: true if calculation was actually done
+bool JointedBeds::CalcR(const ChromSizes& cSizes)
 {
+	// 'dsR' - discrete signal Pearson coefficient (R) calculater; keeps cumulative data & calculates PCC
+	class dsR : public R	// DsR
+	{
+		double	_var1 = 0, _var2 = 0;	// variances 
+		double	_cov = 0;				// covariance: SUM( X-Xmean)^2 * (Y-Ymean)^2 )
+		/*
+		Mean value for every range may accept only one of two values: 0-mean or 1-mean,
+		and they are const within chromosome.
+		So for efficiency we can keep theirs in 3 arrays:
+		two square's arrays: arrays of squared values from each bed;
+		there are only 2 combinations, but they are duplicated for the simplicity acces,
+		and one crossing array: array of all combinations
+		of multiplications different values from fs1 and fs2
+		*/
+		double _sqMeans1[4], _sqMeans2[4];	// square's arrays for fs1, fs2
+		double _crossMeans[4];				// crossing array
+
+	public:
+		// Keeps mean values for both features. 
+		//	@clear: if true, clear instance for treatment of new chromosome
+		void Init(const double(&mean)[2], bool clear) {
+			const double d1 = 1 - mean[0], d2 = 1 - mean[1];
+
+			_sqMeans1[0] = _sqMeans1[2] = mean[0] * mean[0];
+			_sqMeans1[1] = _sqMeans1[3] = d1 * d1;
+			_sqMeans2[0] = _sqMeans2[1] = mean[1] * mean[1];
+			_sqMeans2[2] = _sqMeans2[3] = d2 * d2;
+			_crossMeans[0] = mean[0] * mean[1];
+			_crossMeans[1] = -mean[1] * d1;
+			_crossMeans[2] = -mean[0] * d2;
+			_crossMeans[3] = d1 * d2;
+			if (clear)
+				_cov = _var1 = _var2 = 0;
+		}
+
+		// Accumulates next length of range
+		void Increment(chrlen len, char val) {
+			_cov += len * _crossMeans[val];
+			_var1 += len * _sqMeans1[val];
+			_var2 += len * _sqMeans2[val];
+		}
+
+		// Returns Pearson coefficient of correlation
+		inline float PCC() const { return GetR(_cov, _var1, _var2); }
+	};
+
 	const bool isPrLocal = PrintMngr::IsPrintLocal();
 	const bool isPrTotal = PrintMngr::IsPrintTotal();
 	const genlen gSize = isPrTotal ? cSizes.GenSize() : 0;	// genome's size
+	dsR chrR, totR;
 
-	chrlen	cSize;			// chromosome's size
-	chrlen	start, stop;	// range's boundary positions
-	chrlen	ri, len;		// index of range, length of range
-	char	val;			// value of current range
-	double	featrsLen1, featrsLen2;
-	PairR	pairLocR, pairTotR;
-	ChromRanges cRanges;	// current ChromRanges
+	for (const auto& c : Container()) {						// loop through chroms
+		const ChromRanges& cRanges = c.second.Data;			// current ChromRanges
+		const chrlen cSize = cSizes[c.first];
+		const double fsLen[2]{ 
+			double(cRanges.FeatrsLen1) / cSize,
+			double(cRanges.FeatrsLen2) / cSize
+		};
+		if (isPrLocal)	chrR.Init(fsLen, true);
+		if (isPrTotal)	totR.Init(fsLen, false);
 
-	for (cIter it = cBegin(); it != cEnd(); it++) {
-		cRanges = it->second.Data;
-		cSize = cSizes[CID(it)];
-		featrsLen1 = double(cRanges.FeatrsLen1);
-		featrsLen2 = double(cRanges.FeatrsLen2);
-
-		if (isPrLocal)	pairLocR.Init(featrsLen1 / cSize, featrsLen2 / cSize, true);
-		if (isPrTotal)	pairTotR.Init(featrsLen1 / gSize, featrsLen2 / gSize, false);
-
-		start = val = 0;	// first range
-		for (ri = cRanges.FirstInd; ri <= cRanges.LastInd; ri++) {
+		chrlen start = 0, stop = 0, len;	// range's boundary positions, length of range
+		char val = 0;						// value of current range
+		for (chrlen ri = cRanges.FirstInd; ri <= cRanges.LastInd; ri++) {
 			stop = _ranges[ri].Start;
 			len = stop - start;
-			if (isPrLocal)	pairLocR.Increment(len, val);
-			if (isPrTotal)	pairTotR.Increment(len, val);
+			if (isPrLocal)	chrR.Increment(len, val);
+			if (isPrTotal)	totR.Increment(len, val);
 			// next range
 			val = _ranges[ri].Val;
 			start = stop;
@@ -655,14 +660,16 @@ void JointedBeds::CalcR(const ChromSizes& cSizes)
 
 		//== print current result
 		if (isPrLocal) {
-			pairLocR.Increment(len, 0);
-			PrintMngr::PrintChrom(CID(it), pairLocR.Get());
+			chrR.Increment(len, 0);
+			PrintMngr::PrintCC(chrR.PCC(), c.first);
 		}
 		if (isPrTotal)
-			pairTotR.Increment(len, 0);
+			totR.Increment(len, 0);
 	}
 	if (isPrTotal)
-		PrintMngr::PrintTotal(pairTotR.Get());
+		PrintMngr::PrintCC(totR.PCC());
+
+	return chrR.IsDone() || totR.IsDone();
 }
 
 #ifdef _DEBUG
@@ -671,9 +678,9 @@ void	JointedBeds::Print()
 	chrlen	ri;				// index of range
 	cout << "JointedBeds:\n";
 	for (cIter it = cBegin(); it != cEnd(); it++) {
-		cout << Chrom::AbbrName(CID(it)) << ":";
+		cout << Chrom::AbbrName(CID(it)) << COLON;
 		for (ri = Data(it).FirstInd; ri <= Data(it).LastInd; ri++)
-			cout << '\t' << _ranges[ri].Start << '\t' << int(_ranges[ri].Val) << LF;
+			cout << TAB << _ranges[ri].Start << TAB << int(_ranges[ri].Val) << LF;
 	}
 }
 #endif
@@ -681,78 +688,64 @@ void	JointedBeds::Print()
 
 /************************ class CorrPair ************************/
 
-static inline void DelWig(Obj* obj) { if (obj) delete (Cover*)obj; }
-static inline void DelBedF(Obj* obj) { if (obj) delete (Features*)obj; }
-static inline void DelBedR(Obj* obj) { if (obj) delete (ReadDens*)obj; }
-
 CorrPair::FileType CorrPair::_FileTypes[] = {
-	{ &CorrPair::CreateWig,  DelWig},
-	{ &CorrPair::CreateBedF, DelBedF},
-	{ &CorrPair::CreateBedR, DelBedR}
+	{ &CorrPair::CreateWig,  [](void* obj) { delete (Cover*)obj; }},
+	{ &CorrPair::CreateBedF, [](void* obj) { delete (Features*)obj; }},
+	{ &CorrPair::CreateBedR, [](void* obj) { delete (ReadDens*)obj; }}
 };
-
-int CorrPair::_FileTypesCnt = sizeof(CorrPair::_FileTypes) / sizeof(CorrPair::FileType);
-
-//void IgnoreOption(int opt, chrlen len)
-//{
-//	const string optName = Options::OptionToStr(opt);
-//	Err("in order for the " + optName +
-//		" to be valid, the space should be at least 5 times less than the shortest extended feature length of "
-//		+ NSTR(len)).
-//		Warning(". " + optName + " is ingored.");
-//	Options::ResetIntVal(opt);
-//}
 
 // Creates an instance with checking primary object.
 //	@cID: chromosome's ID
 //	@primefName: primary file's name
 //	@rgns: genome regions
-//	@templ: name of template bed file, or NULL if undefined
+//	@tfName: name of template bed file, or NULL if undefined
 //	@multiFiles: true if more then one secondary files are placed
-CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* templ, bool multiFiles) :
-	_firstObj(NULL),
-	_secondObj(NULL),
-	_templ(NULL),
+CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName, bool multiFiles) :
 	_gRgns(rgns),
-	_typeInd(CheckFileExt(primefName, true)),
-	_printWarn(Options::GetBVal(oWARN)),
-	_printName(multiFiles)
+	_typeInd(CheckFileExt(primefName, true))
 {
-	if (templ)
+	PrintMngr::Init(Options::GetIVal(oPRCC), eOInfo(Options::GetIVal(oVERB)), multiFiles);
+	UniBedInFile::IsTimer = PrintMngr::OutInfo() > eOInfo::LAC;
+	if (tfName)
 		if (IsBedF()) {
-			if (PrintMngr::IsNotLac())
-				Err("ignored", string(sTemplate) + sBLANK + templ).Throw(false);
+			if (PrintMngr::IsNotLac()) {
+				ostringstream ss;
+				ss << sTemplate << SPACE << tfName;
+				Err("ignored", ss.str()).Throw(false);
+			}
 		}
 		else {
-			_templ = new Features(sTemplate, FS::CheckedFileName(templ),
-				rgns.ChrSizes(), PrintMngr::Verb(), _printName, true, _printWarn);
-			chrlen minDistance = _templ->GetMinDistance();
+			if (PrintMngr::IsPrName())	dout << sTemplate << SepCl;
+			_templ = new Features(FS::CheckedFileName(tfName), _gRgns.ChrSizes(),
+				Options::GetBVal(oOVERL), PrintMngr::OutInfo(), PrintMngr::IsPrName(), true);
+			CheckItemsCount(_templ, tfName);
+
 			chrlen extLen = Options::GetIVal(oEXTLEN);
-			if (extLen > minDistance / 2) {
-				dout << "WARNING: extended length of " << extLen
-					<< " exceeds half the distance between the nearest features. Reduced to ";
-				extLen = minDistance / 20;		// len /= 10, len *= 10; to round up to 10
-				dout << (extLen *= 10) << LF;
+			if (extLen) {
+				chrlen minDistance = _templ->GetMinDistance();
+				if (extLen > minDistance / 2) {
+					extLen = minDistance / 2 - 1;		// len /= 10, len *= 10; to round up to 10
+					ostringstream ss;
+					ss	<< "extended length exceeds half the distance between the nearest features. Reduced to "
+						<< extLen;
+					Err(ss.str(), PrintMngr::EchoName(tfName)).Warning();
+				}
+				_templ->Extend(extLen, rgns.ChrSizes(), UniBedInFile::eAction::ABORT);
 			}
-			_templ->Extend(extLen, rgns.ChrSizes(), PrintMngr::Verb());
 		}
-	if (PrintMngr::IsNotLac()) {
-		if (CC::IsP())		dout << "Pearson";
-		if (CC::IsBoth())	dout << AND << SPACE;
-		if (CC::IsS())		dout << "Signal";
-		dout << " CC between\n";
-	}
+	if (PrintMngr::IsNotLac()) 	dout << "Pearson CC between\n";
+
 	_firstObj = (this->*_FileTypes[_typeInd].Create)(primefName, true);
 	_gRgns.Init();
-	if (_printName || PrintMngr::IsNotLac()) {
-		dout << AND;
+	if (PrintMngr::IsNotLac()) {
+		dout << " and";
 		if (multiFiles)	dout << "...";
 		dout << LF;
 	}
 }
 
 CorrPair::~CorrPair() {
-	if (_templ)		delete _templ;
+	delete _templ;
 	_FileTypes[_typeInd].Delete(_firstObj);
 	_FileTypes[_typeInd].Delete(_secondObj);
 }
@@ -760,73 +753,98 @@ CorrPair::~CorrPair() {
 // Adds secondary object, calculates and prints CCkey.
 void CorrPair::CalcCC(const char* fName)
 {
+	{	//== check type
+		char typeInd = CheckFileExt(fName, false);
+		if (typeInd != _typeInd) {
+			if (typeInd == vUNDEF)		return;		// already checked
+			return Err("different" + sFormat, fName).Throw(false);
+		}
+	}
 	_FileTypes[_typeInd].Delete(_secondObj);
-	_secondObj = NULL;
-
-	//== check type
-	BYTE typeInd = CheckFileExt(fName, false);
-	if (typeInd == _FileTypesCnt)	return;
-	if (typeInd != _typeInd)
-		return Err("different" + sFormat, fName).Throw(false);
+	_secondObj = nullptr;
 
 	//== create object
-	_secondObj = (this->*_FileTypes[_typeInd].Create)(fName, false);
-	if (_secondObj->IsBad())	return;
-
+	try { _secondObj = (this->*_FileTypes[_typeInd].Create)(fName, false); }
+	catch (const Err& e) { dout << e.what() << LF; return; }
+	
 	//== calculate r
+	bool done;
 	if (IsBedF()) {
-		int expStep = Options::GetIVal(oEXTSTEP);
-		if (expStep) {	// calculation r by step increasing expanding length
-			int expLen = Options::GetIVal(oEXTLEN);
-			for (int i = 0; i <= expLen; i += expStep) {
-				Features corrBedF(*((Features*)_firstObj));
-
-				corrBedF.Extend(i, _gRgns.ChrSizes(), PrintMngr::Verb());
-				CalcCCBedF(corrBedF);
+		if (done = CalcCCBedF(*((Features*)_firstObj))) {		// 'zero extended'
+			const int extStep = Options::GetIVal(oEXTSTEP);
+			if (extStep) {		// calculation r by step increasing expanding length
+				const int extLen = Options::GetIVal(oEXTLEN);
+				if (extLen < extStep)
+					Err("extending length is less then extending step. Extension has stopped here.",
+						PrintMngr::EchoName(fName)).Warning();
+				else {
+					Features bedF(*((Features*)_firstObj));
+					for (int i = extStep; i <= extLen; i += extStep) {
+						dout << "primer extended by " << i << ":\n";
+						if (!bedF.Extend(extStep, _gRgns.ChrSizes(), UniBedInFile::eAction::ABORT))
+							break;
+						CalcCCBedF(bedF);
+					}
+				}
 			}
-			return;
 		}
-		else			// primary fs is already extended
-			CalcCCBedF(*((Features*)_firstObj));
 	}
 	else				
-		CalcCCWigCover(_gRgns);
+		done = CalcCCCover(_gRgns);
+	if (!done)
+		Err("no " + FT::ItemTitle(_type) + " for common " + Chrom::Title(true)).
+			Throw(false, true);
 }
 
 // Creates features bed object.
 //	@fName: file name
 //	@primary: if true object is primary
-Obj* CorrPair::CreateBedF(const char* fName, bool primary)
+void* CorrPair::CreateBedF(const char* fName, bool primary)
 {
-	Features* fs = new Features(NULL, fName, _gRgns.ChrSizes(),
-		PrintMngr::Verb(), _printName, primary, _printWarn);
-	// if primary is bad, it throws exception and quit, so check at once
-	if (!fs->IsBad() && fs->IsStrandPres()) {
-		if (fs->EOLNeeded())	dout << LF;
-		Err("looks like an alignment!", fName).Warning();
-	}
-	if (primary)
-		// expand primary fs f.e. to get true correlation
-		// between narrow TFBS (primary) and wide recovered peaks (secondary)
-		fs->Extend(Options::GetIVal(oEXTLEN), _gRgns.ChrSizes(), PrintMngr::Verb());
-	return fs;
+	Features* obj = new Features(fName, _gRgns.ChrSizes(), Options::GetBVal(oOVERL),
+		PrintMngr::OutInfo(), PrintMngr::IsPrName(), primary);
+	CheckItemsCount(obj, fName);
+	if (obj->NarrowLenDistr())
+		Err("looks like an alignment but is handled as ordinary bed!", PrintMngr::EchoName(fName)).Warning();
+	return obj;
+}
+
+// Creates alignment object
+void* CorrPair::CreateBedR(const char* fName, bool isPrimary)
+{
+	ReadDens* obj = new ReadDens(fName, _gRgns.ChrSizes(),
+		PrintMngr::OutInfo(), PrintMngr::IsPrName(), isPrimary);
+	CheckItemsCount(obj, fName);
+	return obj;
+}
+
+// Creates covering object.
+//	@fName: file name
+//	@primary: if true object is primary
+void* CorrPair::CreateWig(const char* fName, bool isPrimary)
+{
+	Cover* obj = new Cover(fName, _gRgns.ChrSizes(),
+		PrintMngr::OutInfo(), PrintMngr::IsPrName(), isPrimary);
+	CheckItemsCount(obj, fName);
+	return obj;
 }
 
 // Checks file extisting and extention validity
 //	@fName: file's name
 //	@abortInvalid: if true throw extention if checking is false
 //	return: index in _FileTypes or _FileTypesCnt if checking is false
-BYTE CorrPair::CheckFileExt(const char* fName, bool abortInvalid)
+char CorrPair::CheckFileExt(const char* fName, bool abortInvalid)
 {
-	if (FS::CheckFileExist(fName, abortInvalid))	return _FileTypesCnt;
-	switch (FT::GetType(fName, Options::GetBVal(oALIGN))) {
-	case FT::eType::BGRAPH:	return 0;
-	case FT::eType::BED:	return 1;
-	case FT::eType::ABED:
-	case FT::eType::BAM:	return 2;
+	if (!FS::CheckFileExist(fName, abortInvalid)) {
+		switch (_type = FT::GetType(fName, Options::GetBVal(oALIGN))) {
+		case FT::eType::BGRAPH:	return 0;
+		case FT::eType::BED:	return 1;
+		case FT::eType::ABED:
+		case FT::eType::BAM:	return 2;
+		}
+		Err("unpredictable" + sFormat, fName).Throw(abortInvalid);
 	}
-	Err("unpredictable" + sFormat, fName).Throw(abortInvalid);
-	return _FileTypesCnt;
+	return vUNDEF;
 }
 
 /************************ end of class CorrPair ************************/

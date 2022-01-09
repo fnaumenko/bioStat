@@ -2,7 +2,7 @@
 bioCC.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 27.11.2020
+Last modified: 13.12.2021
 -------------------------
 Provides option emum and FileList class
 ***********************************************************/
@@ -10,12 +10,12 @@ Provides option emum and FileList class
 
 enum optValue {
 	oALIGN,
-	oGEN,
+	oGENOM,
+	oCHROM,
 	oGAPLEN,
 	oDUPL,
+	oOVERL,
 	oFILE_LIST,
-	oCHROM,
-	oCC,
 	oFBED,
 	oEXTLEN,
 	oEXTSTEP,
@@ -23,7 +23,7 @@ enum optValue {
 	oBINWIDTH,
 	oPRFCC,
 	oVERB,
-	oWARN,
+	oWRITE,
 	oOUTFILE,
 	oTIME,
 	oVERSION,
@@ -40,24 +40,15 @@ class FileList
  */
 {
 private:
-	char **_files;		// file names
-	short _count;		// count of file names
-	//bool _memRelease;	// true if memory should be free in destructor
+	char **_files = NULL;	// file names
+	short _count = 0;		// count of file names
 
 public:
-	// Constructor for argument list.
-	//FileList	(char* files[], short cntFiles);
-	
 	// Constructor for list from input file.
 	// Lines begining with '#" are commetns and would be skipped.
-	FileList	(const char* fileName);
+	FileList(const char* fileName);
 
-	~FileList()	{
-		if( _files /*&& _memRelease*/ ) {
-			for (int i = 0; i < _count; delete [] _files[i++]);
-			delete [] _files;
-		}
-	}
+	~FileList();
 	
 	// Gets count of file's names.
 	inline short Count() const { return _count; }
