@@ -6,7 +6,7 @@ and prints statistics of right and wrong mappings.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 1.12.2020
+Last modified: 11.12.2021
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -21,42 +21,40 @@ See the	GNU General Public License for more details.
 using namespace std;
 
 const string Product::Title = "vAlign";
-const string Product::Version = "1.0";
+const string Product::Version = "2.0";
 const string Product::Descr = "alignment verifier";
 
 const char* ProgParam = "<in-file>";	// program parameter tip
 const string OutFileSuff = "_valign.txt";
 const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sFileDuplEnd;
 
-// --info option: types of info notations
-const char* infos[] = { "NM", "CNT", "STAT" };	// corresponds to eInfo; iNONE and iLAC are hidden
-
 // *** Options definition
+const char* verbs[] = { "TOT", "LAC","DET" };	// verbose option; corresponds to Inp
 
-enum eOptGroup { oTREAT, oOTHER };	// oOTHER should be the last 
-const char* Options::OptGroups[] = { "Treatment", "Other" };
+// --info option: types of info notations
+enum eOptGroup { gTREAT, gOUTPUT, gOTHER };	// gOTHER should be the last 
+const char* Options::OptGroups[] = { "Processing", "Output", "Other" };
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 //	{ char,	str,	Signs,	type,	group,	defVal,	minVal,	maxVal,	strVal,	descr, addDescr }
 // field 7: vUNDEF if value is prohibited
 // field 6: vUNDEF if no default value should be printed
 Options::Option Options::List[] = {
-	{ 'g', sGen,	fOblig, tNAME, oTREAT, vUNDEF, 0, 0, NULL,
+	{ 'g', sGen,	fOblig, tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
 	"reference genome library or single nucleotide sequence.", NULL },
-	{ 'c',Chrom::Abbr,fNone,tNAME,	oTREAT, vUNDEF, 0, 0, NULL,
+	{ 'c',Chrom::Abbr,fNone,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
 	"treat specified chromosome only. For reference genome only", NULL },
-	{ HPH,"min-scr",fNone,	tINT,	oTREAT, vUNDEF, 0, 1000, NULL, "score threshold for treated reads", NULL },
-	{ HPH,"char-case",fNone,tENUM,	oTREAT, FALSE,	0, 2, (char*)Options::Booleans,
+	{ HPH,"min-scr",	fNone,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
+	{ HPH,"char-case",	fNone,tENUM,gTREAT, FALSE,	0, 2, (char*)Options::Booleans,
 	"recognize uppercase and lowercase characters in template and test\nas different", NULL },
-	{ 'i', "info",	fHidden,tENUM, oTREAT,	float(Obj::eInfo::STAT), float(Obj::eInfo::NM), float(Obj::eInfo::STAT), (char*)infos,
-	"print information about file:\n? - name only, ? - number of reads, ? - statistics", NULL },
-	{ 'w', "warn",	fHidden,tENUM,	oTREAT, FALSE,	vUNDEF, 2, NULL,
-	"print each read ambiguity, if they exist", NULL },
-	{ 'o', sOutput,	fOptnal,tNAME,	oTREAT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
-	{ 't', sTime,	fNone,	tENUM,	oOTHER,	FALSE,	NO_VAL, 2, NULL, sPrTime, NULL },
-	{ HPH, sSumm,	fHidden,tSUMM,	oOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
-	{ 'v', sVers,	fNone,	tVERS,	oOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
-	{ 'h', sHelp,	fNone,	tHELP,	oOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
+	{ 'o', sOutput,	fOptnal,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'T', "sep",	fNone,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
+	{ 'V', "verbose",fNone,	tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
+	 "set output verbose level:\n? - only total detailed,\n? - laconic for each chromosome and total detailed,\n? - detailed for each chromosome", NULL },
+	{ 't', sTime,	fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 2, NULL, sPrTime,	NULL },
+	{ HPH, sSumm,	fHidden,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary,NULL },
+	{ 'v', sVers,	fNone,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion,NULL },
+	{ 'h', sHelp,	fNone,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage,	NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 
@@ -74,7 +72,8 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option
 	int ret = 0;						// main() return code
 
-	Chrom::SetCustomOption(oCHROM);
+	if (Options::GetBVal(oLOCALE))	cout.imbue(locale(LOCALE_ENG));
+
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
@@ -82,22 +81,17 @@ int main(int argc, char* argv[])
 		const char* oName = Options::GetSVal(oOUTFILE);			// output
 
 		if (Options::Assigned(oOUTFILE)
-		&& (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName, OutFileSuff))))
+		&& (!dout.OpenFile(Options::GetFileName(oOUTFILE, oName, OutFileSuff))))
 			Err(Err::FailOpenOFile).Throw();
 
-		ChromSizes cSizes(Options::GetSVal(oGEN), NULL, true);
-		Reads test(ProgParam, iName, cSizes,
-			Obj::eInfo(Options::GetIVal(oINFO)),
-			true, true, Options::GetBVal(oALARM),
-			true, Options::GetIVal(oMINSCR));
-
-		vAlign(cSizes, test);
+		dout << iName << LF;	cout.flush();
+		ChromSizes cSizes(Options::GetSVal(oGEN), oCHROM, true);
+		vAlign(iName, cSizes);
 	}
 	catch (Err & e) { ret = 1;	cerr << e.what() << LF; }
 	catch (exception & e) { ret = 1;	cerr << e.what() << LF; }
-	//catch(...)			{ ret = 1;	cerr << "Unregistered error\n"; }
 
-	timer.Stop();
+	timer.Stop(0, false, true);
 	//#ifdef OS_Windows
 	//	system("pause");
 	//#endif
@@ -106,72 +100,149 @@ int main(int argc, char* argv[])
 
 /************************ class vAlign ************************/
 
-vAlign::vAlign(const ChromSizes& cSizes, Reads& reads) :
-	_caseDiff(Options::GetBVal(oCCASE)),
-	_maxScore(reads.MaxScore())
+// Adds chrom statistisc to total one
+void vAlign::Stat::Add(const Stat& stat, readlen rLen)
 {
-	Reads::cItemsIter rit, ritend;
-	chrid	cID;
-	//bool	isPE = reads.IsPE();
-
-	Read::FixedLen = reads.ReadLen();
-	_mismAccums.Reserve(Read::FixedLen + 1);
-	for (Reads::cIter cit = reads.cBegin(); cit != reads.cEnd(); cit++) {
-		cID = CID(cit);
-		if (!Chrom::NoCustom() && Chrom::CustomID() != cID)	continue;
-		dout << Chrom::AbbrName(cID) << LF;
-		_preciseAccum.Reset();
-		_mismAccums.Clear();
-		RefSeq seq(cID, cSizes);
-		ritend = reads.ItemsEnd(cit);
-		for (rit = reads.ItemsBegin(cit); rit != ritend; rit++)
-			if (rit->InitCID == cID)
-				if (rit->Pos == rit->RecPos)	// second number in PE Read name is the end of fragment
-					_preciseAccum.AddRead(rit->Score);
-				else
-					_mismAccums[VerifyRead(seq, chrlen(rit->RecPos), rit->Pos)].AddRead(rit->Score);
-		PrintStats(cID, reads.ItemsCount(cID));
+	_lowScoreCnt += stat._lowScoreCnt;
+	_preciseAccum.Add(stat._preciseAccum);
+	SetMaxScore(stat._maxScore);
+	for (readlen i = 0; i <= rLen; i++) {
+		const bool found = stat._mismAccum.find(i) != stat._mismAccum.end();
+		if (_mismAccum.find(i) == _mismAccum.end()) {
+			if (found)
+				_mismAccum[i] = stat._mismAccum.at(i);
+		}
+		else if (found)
+			_mismAccum[i].Add(stat._mismAccum.at(i));
 	}
 }
 
-// Gets count of mismatches for tested Read
-//	@seq: chromosome sequence
-//	@templPos: template Read start position 
-//	@testPos: tested Read start position
-//	return: count of testet Read's mismatches in comparison with template Read
-readlen vAlign::VerifyRead(const RefSeq& seq, chrlen templPos, chrlen testPos)
+// Prints count and percentage of total
+void PrintCount(const string& title, int sWidth, size_t cnt, ULONG totalCnt, int dWidth)
 {
-	const char* pos1 = seq.Read(templPos);
-	const char* pos2 = seq.Read(testPos);
-	readlen cnt = 0;
-
-	for (readlen i = 0; i < Read::FixedLen; i++)
-		if (_caseDiff) {
-			if (*(pos1 + i) != *(pos2 + i))	cnt++;
-		}
-		else if (toupper(*(pos1 + i)) != toupper(*(pos2 + i)))	cnt++;
-	return cnt;
+	if(cnt)
+		dout<< left << setw(sWidth) << title
+			<< right << setw(dWidth) << cnt << SPACE << SPACE << sPercent(cnt, totalCnt, 4, 0, false) << LF;
 }
 
 // Prints statistic for given chrom
 //	@cID: chrom ID
-//	@rCnt: total count of Reads for given chrom
-void vAlign::PrintStats(chrid cID, size_t rCnt)
+//	@cnt: total count of Reads for given chrom
+//	@duplCnt: number of duplicates for given chrom
+//	@prMismDist: if TRUE then print mismatches distribution
+void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) const
 {
-	dout << "mism\treadCnt\tquality\n";
-	dout << "precise\t";	_preciseAccum.Print(_maxScore);
-	//dout << "_lowScoreCnt = " << _lowScoreCnt << LF;
-	size_t cnt = _preciseAccum.Count();		// count of Reads at given chrom
-	for (readlen i = 0; i <= Read::FixedLen; i++) {
-		dout << int(i) << TAB;
-		_mismAccums[i].Print(_maxScore);
-		cnt += _mismAccums[i].Count();
+	const bool isTotal = cID == Chrom::UnID;
+
+	if (isTotal)		dout << "TOTAL\n";
+	int wd;			// wigth of digital field
+	// *** print mismathes distribution
+	ULONG rCnt = _preciseAccum.Count();
+	ULONG rPrecCnt = rCnt;
+	if (prMismDist) {
+		//dout << "mismCnt\treadCnt\tAvrQual\n";
+		//wd = 3 * 8;		// wigth of digital field
+		dout << "mismCnt\treadCnt\n";
+		wd = 2 * 8;		// wigth of digital field
+		PrintHorLine(wd);
+		dout << "precise\t";	_preciseAccum.Print(_maxScore);
 	}
-	dout << "total reads per chrom " << Chrom::Mark(cID) << ":\t" << cnt << TAB
-		<< sPercent(cnt, rCnt, 0, 0, false) //<< LF;
-		<< TAB << rCnt << LF;
-	cnt = rCnt - cnt;
-	dout << "reads per different chroms:\t" << cnt << TAB << sPercent(cnt, rCnt, 0, 0, false) << LF;
-	fflush(stdout);		// when called from a package
+	for (const auto& acc : _mismAccum) {
+		if (prMismDist) {
+			dout << acc.first << TAB;
+			acc.second.Print(_maxScore);
+		}
+		if (!acc.first)	rPrecCnt += acc.second.Count();
+		rCnt += acc.second.Count();
+	}
+	if (prMismDist)	PrintHorLine(wd);
+
+	// *** print stats
+	wd = DigitsCount(cnt, Options::GetBVal(oLOCALE));
+	const string reads = "reads ";
+	const string mapped = "mapped ";
+	const string misms = " mismathes:";
+	const string title = reads + mapped + " to the correct chrom";
+	const int ws = title.length() + 3 + (isTotal ? 0 : Chrom::MarkLength(cID));
+
+	// total reads
+	dout << left << setw(ws) << (reads + "total" + (isTotal ? strEmpty : (" per chrom " + Chrom::Mark(cID))) + COLON);
+	dout << right << setw(wd) << cnt;
+	if (duplCnt)
+		dout << "  (including " << duplCnt << sPercent(duplCnt, cnt, 3, 0, true) << " duplicates)";
+	dout << LF;
+	// reads discarded due to low score
+	PrintCount(reads + "discarded due to low score:", ws, _lowScoreCnt, cnt, wd);
+	// reads mapped correctly to the chrom
+	PrintCount(title + (isTotal ? strEmpty : (SPACE + Chrom::Mark(cID))) + COLON, ws, rCnt, cnt, wd);
+	dout << "from wich:\n";
+	// reads mapped reads mapped without mismathes
+	PrintCount(string(reads.length(), SPACE) + mapped + "without" + misms, ws, rPrecCnt, cnt, wd);
+	// reads mapped reads mapped with mismathes
+	PrintCount(string(reads.length(), SPACE) + mapped + "with" + misms, ws, rCnt - rPrecCnt, cnt, wd);
+	// reads mapped to different chroms
+	PrintCount(reads + mapped + "to different chroms:", ws, cnt - rCnt - _lowScoreCnt, cnt, wd);
+	fflush(stdout);				// when called from a package
 }
+
+// Gets count of mismatches for tested Read
+//	@seq: chromosome sequence
+//	@r: tested Read 
+//	return: count of testet Read's mismatches in comparison with template pattern
+readlen vAlign::VerifyRead(const RefSeq& seq, const Read& r)
+{
+	const char* pos1 = seq.Seq(r.RecPos) - 1;
+	const char* pos2 = seq.Seq(r.Pos) - 1;
+	readlen cnt = 0;
+
+	if (_caseDiff)
+		for (readlen i = 0; i < r.Len; i++)
+			cnt += *++pos1 != *++pos2;
+	else
+		for (readlen i = 0; i < r.Len; i++)
+			cnt += toupper(*++pos1) != toupper(*++pos2);
+
+	return cnt;
+}
+
+// Treats current read
+bool vAlign::operator()()
+{
+	Read r(*_file);
+	if (r.Score < _minScore)	_chrStat.IncrLowScoreCnt();
+	else {
+		_chrStat.SetMaxScore(r.Score);
+		if (r.RecCID == _cID)			// mapped to the same chrom
+			if (r.Pos == r.RecPos)		// second number in PE Read name is the end of fragment
+				_chrStat.IncrPrecise(r.Score);
+			else
+				_chrStat.IncrMism(VerifyRead(*_seq, r), r.Score);
+	}
+	return true;
+}
+
+// Closes current chrom, open next one
+//	@cID: current chrom ID
+//	@cnt: current chrom items count
+//	@nextcID: next chrom ID
+void vAlign::operator()(chrid cID, chrlen, size_t cnt, chrid nextcID)
+{
+	if (cID != Chrom::UnID)	// not pre-first chrom
+		CloseChromStat(cID, cnt, _file->DuplCount());
+	if (_verb >= eVerb::LAC) { dout << Chrom::ShortName(nextcID) << LF;	fflush(stdout); }
+	_seq.reset(new RefSeq(_cID = nextcID, _cs));
+	_chrStat.Clear();
+}
+
+// Closes last chrom
+//	@cID: last chrom ID
+//	@cnt: last chrom items count
+//	@tCnt: total items count
+void vAlign::operator()(chrid cID, chrlen, size_t cCnt, ULONG tCnt)
+{
+	CloseChromStat(cID, cCnt, _file->DuplCount());
+	if (_file->ReadedChromCount() > 1)
+		_totStat.Print(Chrom::UnID, tCnt, _file->DuplTotalCount(), _verb >= eVerb::TOT);
+}
+
 /************************ end of class vAlign ************************/

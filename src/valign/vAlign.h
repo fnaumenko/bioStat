@@ -2,7 +2,7 @@
 vAlign.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 1.1.2020
+Last modified: 11.12.2021
 -------------------------
 Provides option emum and main functionality
 ***********************************************************/
@@ -10,80 +10,147 @@ Provides option emum and main functionality
 
 enum optValue {
 	oGEN,
-	//oTEMPL,
 	oCHROM,
 	oMINSCR,
 	oCCASE,
-	oINFO,
-	oALARM,
 	oOUTFILE,
+	oLOCALE,
+	oVERBOSE,
 	oTIME,
 	oSUMM,
 	oVERSION,
 	oHELP
 };
 
+enum class eVerb {	// verbose level
+	TOT,	// total laconic output
+	LAC,	// laconic for each chrom output
+	DET		// detailed for each chrom output
+};
+
+// 'vAlign' represents Read's mismatches frequency and its output
 class vAlign
-/*
- * 'vAlign' represents Read's mismatches density
- */
 {
-private:
-	struct ReadAccum
-	/*
-	 * 'ReadAccum' - accumulator of Read's count and average score 
-	 */
+	// Statistics accumulater
+	class Stat
 	{
-	private:
-		size_t	_count;		// count of Reads
-		double	_avrScore;	// average score
+		// 'ReadAccum' - accumulator of Read's count and average score 
+		struct ReadAccum
+		{
+		private:
+			ULONG	_count = 0;		// count of Reads
+			double	_avrScore = 0;	// average score
+
+		public:
+			// Gets count of mismatches
+			inline ULONG Count() const { return _count; }
+
+			inline void	Clear() { _avrScore = _count = 0; }
+
+			// Add Read's score
+			//	@score: Read's score
+			void AddRead(float score) {
+				_count++;
+				_avrScore = (_avrScore * (_count - 1) + score) / _count;	// rolling average
+			}
+
+			// Adds chrom read accum to total one
+			void Add(const ReadAccum& rAcc) {
+				_avrScore = (_avrScore * _count + rAcc._avrScore * rAcc._count) / (_count + rAcc._count);
+				_count += rAcc._count;
+			}
+
+			inline void Print(float maxScore) const {
+				dout << _count /*<< TAB << (_avrScore / maxScore)*/ << LF;
+			}
+		};
+
+		float	_maxScore = 0;
+		size_t	_lowScoreCnt = 0;
+		size_t	_duplCnt;
+		ReadAccum	_preciseAccum;			// accumulator for exactly matched Reads
+		map<readlen,ReadAccum>	_mismAccum;	// mismatches accumulator with count of mismatches as a key
 
 	public:
-		ReadAccum() : _count(0), _avrScore(0) {}
+		inline void SetMaxScore(float score) { if (score > _maxScore)	_maxScore = score; }
 
-		// Gets count of mismatches
-		inline size_t	Count() const { return _count; }
+		// Increments count of too low scored reads
+		inline void IncrLowScoreCnt() { _lowScoreCnt++; }
 
-		inline void	Reset() { _count = 0; _avrScore = 0.0; }
+		// Increments count of precisely mapped reads
+		//	@score: read's score
+		inline void IncrPrecise(float score) { _preciseAccum.AddRead(score); }
 
-		// Add Read's score
-		//	@score: Read's score
-		void AddRead(float score) {
-			_avrScore = _count ? 
-				(_avrScore*(_count-1) + score)/_count:	// rolling average
-				score;
-			_count++;
-		}
+		// Increments count of with mismatches mapped reads
+		//	@mCnt: number of mismatches
+		//	@score: read's score
+		inline void IncrMism(readlen mCnt, float score) { _mismAccum[mCnt].AddRead(score); }
 
-		void Print(float maxScore) {
-			dout << _count;
-			if( _count )	dout << TAB << (_avrScore/maxScore);
-			dout << LF;
-		}
+		// Adds chrom statistisc to total one
+		void Add(const Stat& stat, readlen rLen);
+
+		void Clear() { _lowScoreCnt = 0; _preciseAccum.Clear(); _mismAccum.clear(); }
+
+		// Prints statistic for chrom
+		//	@cID: chrom ID
+		//	@rCnt: total count of Reads for given chrom
+		//	@prMismDist: if TRUE then print mismatches distribution
+		void Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) const;
 	};
 
-	bool _caseDiff;		// differ uppercase and lowercase characters
-	float _maxScore;
-	//int _lowScoreCnt;
-
-	// container of mismatches Reads:
-	// index - count of mismatches,
-	// value by index - count of Reads and mean score by given amount of mismatches
-	Array<ReadAccum> _mismAccums;
-	ReadAccum	_preciseAccum;		// accumulator for exactly matched Reads
+	const bool _caseDiff;		// differ uppercase and lowercase characters
+	const bool	_multy;			// if TRUE then output of statistics not only for one chrom
+	const eVerb	_verb;
+	const float _minScore;		// min possible score
+	chrid	_cID;				// current chrom ID
+	unique_ptr<RefSeq>	_seq;	// ref sequence
+	const ChromSizes& _cs;
+	RBedInFile* _file;			// valid in constructor only!
+	Stat	_chrStat;			// current chrom statistics
+	Stat	_totStat;			// total statistics
 
 	// Gets count of mismatches for tested Read
 	//	@seq: chromosome sequence
-	//	@templPos: template Read start position 
-	//	@testPos: tested Read start position
-	//	return: count of testet Read's mismatches in comparison with template Read
-	readlen VerifyRead(const RefSeq& seq, chrlen templPos, chrlen testPos);
+	//	@r: tested Read
+	//	@duplCnt: number of duplicates
+	//	return: count of testet Read's mismatches in comparison with template pattern
+	readlen VerifyRead(const RefSeq& seq, const Read& r);
+
+	void CloseChromStat(chrid cID, size_t cnt, size_t duplCnt)
+	{
+		if (_verb >= eVerb::LAC || _file->ReadedChromCount() == 1)
+			_chrStat.Print(cID, cnt, duplCnt, _verb == eVerb::DET);
+		if (_multy)		_totStat.Add(_chrStat, _file->ReadLength());
+	}
 
 public:
-	vAlign(const ChromSizes& cSizes, Reads &reads);
+	vAlign(const char* fname, ChromSizes& cs) :
+		_caseDiff(Options::GetBVal(oCCASE)),
+		_multy(Chrom::CustomID() == Chrom::UnID),
+		_verb(eVerb(Options::GetIVal(oVERBOSE))),
+		_minScore(Options::GetFVal(oMINSCR)),
+		_cs(cs)
+	{
+		RBedInFile file(fname, &cs, vUNDEF, eOInfo::LAC, false);
+		_file = &file;
+		file.Pass(*this);
+		_file = nullptr;
+	}
 
-	// Prints statistic for chrom
-	//	@cID: chrom ID
-	//	@rCnt: total count of Reads for given chrom
-	void PrintStats(chrid cID, size_t rCnt);
+	// Treats current read
+	bool operator()();
+
+	// Closes current chrom, open next one
+	//	@cID: current chrom ID
+	//	@cLen: current chrom length
+	//	@cnt: current chrom items count
+	//	@nextcID: next chrom ID
+	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID);
+
+	// Closes last chrom
+	//	@cID: last chrom ID
+	//	@cLen: current chrom length
+	//	@cnt: last chrom items count
+	//	@tCnt: total items count
+	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt);
 };
