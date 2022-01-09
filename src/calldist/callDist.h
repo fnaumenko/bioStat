@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 14.03.2021
+Last modified: 11.12.2021
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -10,22 +10,14 @@ Provides main functionality
 #pragma once
 
 #include "Data.h"
-#ifdef _WIN32
 #include <unordered_map>
-#else
-#include <tr1/unordered_map>
-using namespace std::tr1;
-#endif
 
 enum optValue {		// options id
-	//oCHROM,
-	oNO_DUPL,
-	oINFO,
-	oALARM,
 	oINPUT,
 	oDTYPE,
-	//oNORM,
+	oDUPL,
 	oPR_DIST,
+	oPR_STATS,
 	oOUTFILE,
 	oTIME,
 	oSUMM,
@@ -33,75 +25,110 @@ enum optValue {		// options id
 	oHELP,
 };
 
-
 // Input data type
 enum class InpType { FRAG, READ };
 
 // Base length distribution class 
 class LenDist
 {
-	static const char* ItemTitles[];
-	int	_itemInd;		// index of item title
+	LenFreq	_freq;					// length frequency statistics
+	RBedInFile* _file = nullptr;	// valid in constructor only!
 
 protected:
-	LenFreq	_freq;		// length frequency statistics
-	ULONG _cnt = 0;		// count of items
+	// pass through file records
+	template<typename T>
+	void Pass(T* obj, RBedInFile& file) {
+		_file = &file;
+		file.Pass(*obj);
+		_file = nullptr;
+	}
 
-	inline LenDist(InpType iType) : _itemInd(int(iType)) {}
+	// Gets the file being read
+	inline const RBedInFile& File() { return *_file; }
+
+	// Adds frag length to the frequency distribution
+	inline void AddLen(fraglen len) { _freq.AddLen(len); }
 
 public:
 	// Print actual frequency distribution
 	//	@ctype: combined type of distribution
 	//	@prDistr: if true then print distribution additionally
-	void Print(LenFreq::eCType ctype, bool prDistr) {
-		dout << _cnt << SPACE << ItemTitles[_itemInd] << LF;
-		_freq.Print(dout, ctype, prDistr);
-	}
-
+	inline void Print(LenFreq::eCType ctype, bool prDistr) { _freq.Print(dout, ctype, prDistr); }
 };
 
 // 'FragDist' represents fragment's length frequency statistics ('fragment distribution')
 class FragDist : public LenDist
 {
-	unordered_map<ULLONG, Reads::cItemsIter> _waits;	// 'waiting list' - pair mate candidate's collection
+	unordered_map<ULONG, Read> _waits;	// 'waiting list' - pair mate candidate's collection
+	vector<UniBedInFile::Issue> _issues = { "duplicates" };
+	ULONG	_cnt = 0;					// count of items
+	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg, [1] - pos)
+	bool	_dupl;						// if TRUE then duplicate frags are allowed
+	bool	_uncheckedPE = true;		// if TRUE then reads have not yet been checked for PE
 
 	// Adds frag to the freq distribution
-	//	@rit1: iter to the first read in a pair
-	//	@rit2: iter to the second read in a pair
-	void AddFrag(const Reads::cItemsIter& rit1, const Reads::cItemsIter& rit2) {
-		_cnt++;
-		_freq.AddLen(rit1->Strand ?
-			rit2->Pos + rit2->Len - rit1->Pos :
-			rit1->Pos + rit1->Len - rit2->Pos
-		);
-	}
-
-	// Add read to statistics if its mate is waiting already, otherwhise put it on the waiting list
-	//	@rit: read's iterator
-	void PutRead(const Reads::cItemsIter& rit);
-
-	// clear waiting list to count the next chrom
-	inline void Clear() { _waits.clear(); }
+	//	@r1: first read in a pair
+	//	@r2: second read in a pair
+	inline void AddFrag(const Read& r1, const Read& r2) { AddLen(r1.FragLen(r2)); }
 
 public:
-	// Constructor by alignment; the instance is initialized according to the reads
-	//	@test: paired-end reads collection
-	FragDist(Reads& test);
+	FragDist(const char* fname, bool prStats) : _dupl(Options::GetBVal(oDUPL))
+	{
+		RBedInFile file(fname, nullptr, vUNDEF, eOInfo::NONE, false);
+		Pass(this, file);
+
+		UniBedInFile::PrintItemCount(_cnt, "fragments");
+		if (_issues[0].Cnt) {
+			if (_dupl)	_issues[0].Action = UniBedInFile::eAction::ACCEPT;
+			UniBedInFile::PrintStats(_cnt, _issues[0].Cnt, _issues, prStats);
+		}
+	}
+
+	// treats current read
+	bool operator()();
+
+	// Closes current chrom, open next one
+	inline void operator()(chrid, chrlen, size_t, chrid) {}
+
+	// Closes last chrom
+	inline void operator()(chrid, chrlen, size_t, ULONG) {}
 };
 
 // 'ReadDist' represents Read's length frequency statistics ('Read distribution')
 class ReadDist : public LenDist
 {
 public:
-	// Constructor by FastQ file
-	ReadDist(FqFile& file) : LenDist(InpType::READ) {
-		for (; file.GetSequence(); _cnt++)
-			_freq.AddLen(file.ReadLength());
+	// Constructor by BAM/BED file
+	ReadDist(const char* fname, bool prStats) {
+		RBedInFile file(fname, nullptr,
+			Options::GetRDuplLevel(oDUPL),
+			prStats ? eOInfo::STAT : eOInfo::STD,
+			false);
+
+		Pass(this, file);
 	}
 
-	// Constructor by BAM/BED file
-	ReadDist(DataInFile& file) : LenDist(InpType::READ) {
-		for (; file.GetNextItem(); _cnt++)
-			_freq.AddLen(file.ItemLength());
+	// treats current read
+	inline bool operator()() { AddLen(File().ItemRegion().Length()); return true; }
+
+	// Closes current chrom, open next one
+	inline void operator()(chrid, chrlen, size_t, chrid) {}
+
+	// Closes last chrom
+	inline void operator()(chrid, chrlen, size_t, ULONG) {}
+};
+
+// 'FqReadDist' represents 'row' (fastq) Read's length frequency statistics ('Read distribution')
+class FqReadDist : public LenDist
+{
+public:
+	// Constructor by FastQ file
+	FqReadDist(const char* fname)  {
+		ULONG	cnt = 0;		// count of reads
+
+		for (FqFile file(fname); file.GetSequence(); cnt++)
+			AddLen(file.ReadLength());
+		UniBedInFile::PrintItemCount(cnt, FT::ItemTitle(FT::eType::FQ, cnt > 1));
+		dout << LF;
 	}
 };

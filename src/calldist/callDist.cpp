@@ -8,7 +8,7 @@ Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 15.03.2021
+Last modified: 11.12.2021
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -18,12 +18,11 @@ See GNU General Public License for more details.
 ************************************************************************************/
 
 #include "callDist.h"
-#include <memory>		// unique_ptr
 
 using namespace std;
 
 const string Product::Title = "callDist";
-const string Product::Version = "1.0";
+const string Product::Version = "2.0";
 const string Product::Descr = "PE-fragment-size/read-length distribution parameters caller";
 
 const char* ProgParam = "<in-file>";	// program parameter tip
@@ -35,31 +34,27 @@ const char* dTypes[] = { "N","LN","G" };	// input distrib option; corresponds to
 
 // *** Options definition
 
-enum eOptGroup { gOTHER };						// the only member - no gropus in help
-const char* Options::OptGroups[] = { NULL };	// no gropus in help
+enum eOptGroup { gTREAT, gOUTPUT };
+const char* Options::OptGroups[] = { "Processing", "Output" };
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 // { char, str, Signs (8: hidden), type, group, 
 //	defVal (if NO_DEF then no default value printed),
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
-	//{ 'c',Chrom::Abbr,fNone,tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, "treat specified chromosome only", NULL },
-	{ 'd', "no-dup",fHidden,tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, "reject duplicate reads", NULL },
-	{ 'I', "info",	fHidden,tENUM,	gOTHER,	FALSE,	NO_VAL,	0, NULL,
-	"print statistical info about alignment", NULL },
-	{ 'w', "warn",	fHidden,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL,
-	"print each read ambiguity, if they exist" },
-	{ 'i', "inp",	fNone,	tENUM,	gOTHER, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs),
+	{ 'i', "inp",	fNone,	tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs),
 	 (char*)inputs, "input data to call distribution: ? - fragments, ? - reads", NULL },
-	{ 'D',"dist",	fNone,	tCOMB,	gOTHER, float(LenFreq::LNORM), float(LenFreq::NORM),
+	{ 'D',"dist",	fNone,	tCOMB,	gTREAT, float(LenFreq::LNORM), float(LenFreq::NORM),
 	ArrCnt(dTypes), (char*)dTypes,
-	"called distribution, in any order: ? - normal, ? - lognormal, ? - Gamma", NULL },
-	{ 'p', "pr-dist",fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, "print original frequency distribution", NULL },
-	{ 'o', sOutput,	fOptnal,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
-	{ 't',	sTime,	fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
-	{ HPH,	sSumm,	fHidden,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
-	{ 'v',	sVers,	fNone,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
-	{ 'h',	sHelp,	fNone,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
+	"called distribution (in any order): ? - normal, ? - lognormal, ? - Gamma", NULL },
+	{ 'd', "dup",	fNone,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Options::Booleans, "allow duplicates", NULL },
+	{ 'p', "pr-dist",fNone,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
+	{ 's', "stats",	fNone,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
+	{ 'o', sOutput,	fOptnal,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 't',	sTime,	fNone,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
+	{ HPH,	sSumm,	fHidden,tSUMM,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
+	{ 'v',	sVers,	fNone,	tVERS,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
+	{ 'h',	sHelp,	fNone,	tHELP,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
 };
 const BYTE Options::OptCount = ArrCnt(Options::List);
 
@@ -71,11 +66,14 @@ const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 dostream dout;	// stream's duplicator
 
 // Returns explicitly defined by user combo type, otherwise default combo type
-LenFreq::eCType GetType(LenFreq::eCType defType)
-{
+LenFreq::eCType GetType(LenFreq::eCType defType) {
 	return Options::Assigned(oDTYPE) ? LenFreq::eCType(Options::GetIVal(oDTYPE)) : defType;
 }
 
+void pr(float v) {
+	if (v-int(v)!=0)	cout << fixed << setprecision(2);
+	cout << v << LF;
+}
 /*****************************************/
 int main(int argc, char* argv[])
 {
@@ -88,9 +86,7 @@ int main(int argc, char* argv[])
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);		// input
 		const char* oName = Options::GetSVal(oOUTFILE);				// output
-		FT::eType ftype = FT::GetType(iName);
-		InpType inpType = InpType(Options::GetIVal(oINPUT));
-		bool prDist = Options::GetBVal(oPR_DIST);
+		const FT::eType ftype = FT::GetType(iName);
 
 		// while input file is distribution, add "_out" to output file name -
 		// only if isn't specified or the same as input
@@ -104,82 +100,72 @@ int main(int argc, char* argv[])
 			Err(Err::FailOpenOFile).Throw();
 
 		// take distribution
-		dout << iName << SepCl;	cout.flush();
+		const bool fragType = InpType(Options::GetIVal(oINPUT)) == InpType::FRAG;
+		const bool prDist = Options::GetBVal(oPR_DIST);
+		const bool prStat = Options::GetBVal(oPR_STATS);
+		const string sWFormat = "wrong format";
+		const string sRExt = "should be BED or BAM";
+
+		dout << iName;	cout.flush();
 		switch (ftype) {
 		case FT::eType::BED:
 		case FT::eType::BAM:
-			if (inpType == InpType::FRAG) {
-				ChromSizes cSizes;
-				Reads reads(NULL, iName, cSizes,
-					Obj::eInfo(Options::GetBVal(oINFO) ? Obj::eInfo::STAT : Obj::eInfo::NONE),
-					false, true, Options::GetBVal(oALARM),
-					true, !Options::GetBVal(oNO_DUPL), -1);
-				FragDist(reads).Print(GetType(LenFreq::eCType::LNORM), prDist);
-			}
-			else {			// reads
-				unique_ptr<DataInFile> file;
-				if (ftype == FT::eType::BED)
-					file.reset(new BedInFile(iName, FT::eType::ABED, 0, true, false));
-				else
-					file.reset(new BamInFile(iName, false));
-				ReadDist(*file).Print(GetType(LenFreq::eCType::NORM), prDist);
-			}
+			if (fragType)
+				FragDist(iName, prStat).Print(GetType(LenFreq::eCType::LNORM), prDist);
+			else
+				ReadDist(iName, prStat).Print(GetType(LenFreq::eCType::NORM), prDist);
 			break;
 		case FT::eType::FQ:
-			if (inpType == InpType::FRAG && Options::Assigned(oINPUT))
-				Err("wrong format for fragment distribution; should be BED or BAM").Throw();
-			else {
-				FqFile file(iName);
-				ReadDist(file).Print(GetType(LenFreq::eCType::NORM), prDist);
-			}
+			if (fragType && Options::Assigned(oINPUT))
+				Err(sWFormat + " for fragment distribution; " + sRExt).Throw();
+			FqReadDist(iName).Print(GetType(LenFreq::eCType::NORM), prDist);
 			break;
 		case FT::eType::DIST:
 			dout << LF;
 			LenFreq(iName).Print(dout, LenFreq::eCType(Options::GetIVal(oDTYPE)), prDist);
 			break;
 		default:
-			Err("wrong format; should be BED or BAM or FQ").Throw();
+			Err(sWFormat + SepSCl + sRExt + " or FQ").Throw();
 			break;
 		}
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }
-	timer.Stop("wall-clock: ", false, true);
+	//timer.Stop("wall-clock: ", false, true);
+	timer.Stop();
 	return ret;
 }
 
-
-const char* LenDist::ItemTitles[] = { "fragments", "reads" };
-
 // *********************** FragDist *********************************
 
-// Add read to statistics if its mate is waiting already, otherwhise put it on the waiting list
-//	@rit: read's iterator
-void FragDist::PutRead(const Reads::cItemsIter& rit)
+// treats current read
+bool FragDist::operator()()
 {
-	auto mit = _waits.find(rit->Numb);		// look for the read with given Numb
-
-	if (mit == _waits.end())							// is read not on the waiting list?
-		_waits[rit->Numb] = rit;						// add read the waiting list
-	else if (mit->second->Strand != rit->Strand) {		// is it mate, not duplicate read?
-		AddFrag(mit->second, rit);						// insert fragment into statistics
-		_waits.erase(rit->Numb);						// remove read from the waiting list
+	if (_uncheckedPE) {
+		if (!File().IsPairedRead())
+			Err("only paired-end reads are acceptable to call fragments distribution",
+				File().CondFileName()).Throw();
+		_uncheckedPE = false;
 	}
+	const Read read(File());
+	const auto itMate = _waits.find(read.Numb);	// look for the read with given Numb
+
+	if (itMate == _waits.end())					// is read not on the waiting list?
+		_waits.emplace(read.Numb, read);		// add read the waiting list
+	else {										// a mate
+		const Read& mate = itMate->second;
+		if (mate.Pos != _pos[mate.Strand] || read.Pos != _pos[read.Strand])	// not a duplicate
+			AddFrag(mate, read);				// add uniq fragment into statistics
+		else {
+			if (_dupl)	AddFrag(mate, read);	// add dupl fragment into statistics
+			_issues[0].Cnt++;
+		}
+		_pos[mate.Strand] = mate.Pos;
+		_pos[read.Strand] = read.Pos;
+		_waits.erase(itMate);					// remove read from the waiting list
+		_cnt++;
+	}
+	return true;
 }
 
-// Constructor by alignment; the instance is initialized according to the reads
-//	@test: paired-end reads collection
-FragDist::FragDist(Reads& test) : LenDist(InpType::FRAG)
-{
-	auto cit = test.cBegin();	// chrom iterator
-	Read::FixedLen = test.ReadLen();
-
-	_waits.rehash(test.ItemsCount(CID(cit)) / 2);	// mem reserve to avoid excessive rehash
-	for (; cit != test.cEnd(); cit++) {
-		const auto end = test.ItemsEnd(cit);		// curr chrom last read iterator
-		for (auto rit = test.ItemsBegin(cit); rit != end; rit++)	// read iteration through chrom 
-			PutRead(rit);
-		Clear();
-	}
-}
 // *********************** end of FragDist *********************************
