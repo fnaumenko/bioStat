@@ -32,29 +32,31 @@ const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sF
 const char* verbs[] = { "TOT", "LAC","DET" };	// verbose option; corresponds to Inp
 
 // --info option: types of info notations
-enum eOptGroup { gTREAT, gOUTPUT, gOTHER };	// gOTHER should be the last 
+enum tOptGroup { gTREAT, gOUTPUT, gOTHER };	// gOTHER should be the last 
 const char* Options::OptGroups[] = { "Processing", "Output", "Other" };
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
+
+const BYTE Options::Option::IndentInTabs = 3;
 
 //	{ char,	str,	Signs,	type,	group,	defVal,	minVal,	maxVal,	strVal,	descr, addDescr }
 // field 7: vUNDEF if value is prohibited
 // field 6: vUNDEF if no default value should be printed
 Options::Option Options::List[] = {
-	{ 'g', sGen,	fOblig, tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
+	{ 'g', sGen,	tOpt::OBLIG, tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
 	"reference genome library or single nucleotide sequence.", NULL },
-	{ 'c',Chrom::Abbr,fNone,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
+	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
 	"treat specified chromosome only. For reference genome only", NULL },
-	{ HPH,"min-scr",	fNone,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
-	{ HPH,"char-case",	fNone,tENUM,gTREAT, FALSE,	0, 2, (char*)Options::Booleans,
+	{ HPH,"min-scr",  tOpt::NONE,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
+	{ HPH,"char-case",tOpt::NONE,tENUM,	gTREAT, FALSE,	0, 2, (char*)Options::Booleans,
 	"recognize uppercase and lowercase characters in template and test\nas different", NULL },
-	{ 'o', sOutput,	fOptnal,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
-	{ 'T', "sep",	fNone,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
-	{ 'V', "verbose",fNone,	tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
+	{ 'o', sOutput,	tOpt::OBLIG,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'T', "sep",	tOpt::NONE,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
+	{ 'V', "verbose",tOpt::NONE, tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
 	 "set output verbose level:\n? - only total detailed,\n? - laconic for each chromosome and total detailed,\n? - detailed for each chromosome", NULL },
-	{ 't', sTime,	fNone,	tENUM,	gOTHER,	FALSE,	NO_VAL, 2, NULL, sPrTime,	NULL },
-	{ HPH, sSumm,	fHidden,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary,NULL },
-	{ 'v', sVers,	fNone,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion,NULL },
-	{ 'h', sHelp,	fNone,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage,	NULL }
+	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 2, NULL, sPrTime,	NULL },
+	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary,NULL },
+	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion,NULL },
+	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage,	NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 
@@ -122,7 +124,7 @@ void PrintCount(const string& title, int sWidth, size_t cnt, ULONG totalCnt, int
 {
 	if(cnt)
 		dout<< left << setw(sWidth) << title
-			<< right << setw(dWidth) << cnt << SPACE << SPACE << sPercent(cnt, totalCnt, 4, 0, false) << LF;
+			<< right << setw(dWidth) << cnt << SPACE << SPACE << sPercent(ULONG(cnt), totalCnt, 4, 0, false) << LF;
 }
 
 // Prints statistic for given chrom
@@ -163,13 +165,13 @@ void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) 
 	const string mapped = "mapped ";
 	const string misms = " mismathes:";
 	const string title = reads + mapped + " to the correct chrom";
-	const int ws = title.length() + 3 + (isTotal ? 0 : Chrom::MarkLength(cID));
+	const int ws = int(title.length() + 3 + (isTotal ? 0 : Chrom::MarkLength(cID)));
 
 	// total reads
 	dout << left << setw(ws) << (reads + "total" + (isTotal ? strEmpty : (" per chrom " + Chrom::Mark(cID))) + COLON);
 	dout << right << setw(wd) << cnt;
 	if (duplCnt)
-		dout << "  (including " << duplCnt << sPercent(duplCnt, cnt, 3, 0, true) << " duplicates)";
+		dout << "  (including " << duplCnt << sPercent(ULONG(duplCnt), cnt, 3, 0, true) << " duplicates)";
 	dout << LF;
 	// reads discarded due to low score
 	PrintCount(reads + "discarded due to low score:", ws, _lowScoreCnt, cnt, wd);

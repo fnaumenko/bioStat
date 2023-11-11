@@ -54,19 +54,21 @@ int DigitsCount (LLONG val, bool isLocale)
 //	if count of value's mapped digits is more then that, printed "<X%", or exactly by default
 //	@fieldWith: displayed width of value and '%' or '<' sign (excluding parentheses), or exactly if 0;
 //	@parentheses: if true then parenthesize the value (not considering fieldWith)
-string	sPercent(float val, BYTE precision, BYTE fieldWith, bool parentheses)
+string	PercentToStr(float val, BYTE precision, BYTE fieldWith, bool parentheses)
 {
-	float threshold = (float)pow(10., -precision);
+	//const float minVal = float(pow(10.f, -precision));	// minimum printed value
+	const float minVal = 1.f / float(pow(10.f, precision));	// minimum printed value
 	stringstream ss;
+
 	ss << SPACE;
 	if(parentheses)		ss << '(';
 	//if(fieldWith)	ss << setw(--fieldWith);	// decrease to account '%' sign
-	if (val && val < threshold) {
+	if (val && val < minVal) {
 		if (fieldWith) {
 			int blankCnt = fieldWith - precision - 5;
 			if (blankCnt > 0)	ss << setw(blankCnt) << SPACE;
 		}
-		ss << '<' << threshold;
+		ss << '<' << minVal;
 	}
 	else {
 		if (precision && val) {
@@ -153,6 +155,7 @@ bool dostream::OpenFile(const string fname)
 #endif
 
 /************************ class Options ************************/
+
 #define ENUM_REPLACE '?'	// symbol in description that is replaced by enum value
 
 #define PRINT_IN_PRTHS(v)	cout<<" ["<<(v)<<']'	// prints value in parentheses
@@ -208,11 +211,7 @@ end:
 	return !PrintWrong(str0);
 }
 
-// Recursively prints string with replaced ENUM_REPLACE symbol by enum/combi value.
-//	@buff: external buffer to copy and output temporary string
-//	@vals: enum/combi values or NULL for other types
-//	@cnt: external counter of enum/combi values
-void PrintTransformDescr(char* buff, const char** vals, short* cnt)
+void Options::Option::PrintTransformDescr(char* buff, const char** vals, short* cnt)
 {
 	if(vals) {			// enum/combi?
 		const char* subStr = strchr(buff, ENUM_REPLACE);
@@ -228,31 +227,22 @@ void PrintTransformDescr(char* buff, const char** vals, short* cnt)
 	else	cout << buff;
 }
 
-// Recursively prints string with LF inside as a set of left-margin strings
-// Used to output aligned option descriptions
-// First string is printed from current stdout position.
-// Last substring doesn't include LF.
-//	@buff: external buffer to copy and output temporary string
-//	@str: input string with possible LFs
-//	@subStr: substring of input string to the first LF, or NULL if input string is not ended by LF
-//	@vals: enum/combi values or NULL for other types
-//	@cnt: external counter of enum/combi values
-void PrintSubLine(char* buff, const char* str, const char* subStr, const char** vals, short* cnt)
+void Options::Option::PrintSubLine(char* buff, const char* str, const char* subStr, const char** vals, short* cnt)
 {
 	if(subStr) {	// is substring ended by LF exist?
 		// form substring
 		size_t strLen = subStr - str;
-		strncpy(buff, str, strLen);
+		memcpy(buff, str, strLen);	// instead of strncpy(buff, str, strLen);
 		buff[strLen] = 0;
 		PrintTransformDescr(buff, vals, cnt);	// output enum values
 		cout << LF;
-		for(BYTE t=0; t<OPT_DESCF_TSHIFT; t++)	cout << TAB;
+		for(BYTE t=0; t < IndentInTabs; t++)	cout << TAB;
 		str = subStr + 1;		// skip LF
 		subStr = strchr(str, LF);
 		PrintSubLine(buff, str, subStr, vals, cnt);
 	}
 	else {			// output rest of initial string without LF
-		strcpy(buff, str);
+		memcpy(buff, str, strlen(str)); // instead of strcpy(buff, str);
 		PrintTransformDescr(buff, vals, cnt);
 	}
 }
@@ -268,11 +258,11 @@ int Options::Option::SetVal(const char* opt, bool isword, char* val, char* nextI
 {
 	if(isword) { 
 		if(!Str || strcmp(Str, opt))	return -1;	// not this option
-		Sign.MarkAs(eFlag::fWord);
+		Sign.Set(tOpt::WORD);
 	}
 	else if(Char != *opt)	return -1;		// not this option
 
-	if(Sign.Is(eFlag::fTrimmed))	return PrintAmbigOpt(opt, isword, "duplicated");
+	if(Sign.Is(tOpt::TRIMMED))	return PrintAmbigOpt(opt, isword, "duplicated");
 
 	//== check actual value
 	const bool isValOblig = ValRequired() && !IsValEsc();
@@ -294,7 +284,7 @@ int Options::Option::SetVal(const char* opt, bool isword, char* val, char* nextI
 			}
 
 	//== set actual value
-	Sign.MarkAs(eFlag::fTrimmed);
+	Sign.Set(tOpt::TRIMMED);
 	switch(ValType) {
 		case tNAME: SVal = noRealVal ? NULL : val;	return 0;
 		case tENUM:	return SetEnum(val);
@@ -321,7 +311,7 @@ int Options::Option::SetVal(const char* opt, bool isword, char* val, char* nextI
 //	return: -1 if option is obligatory but not stated, otherwise 1
 int Options::Option::CheckOblig() const
 {
-	if( Sign.Is(eFlag::fOblig) && ValRequired()
+	if( Sign.Is(tOpt::OBLIG) && ValRequired()
 	&& ( (ValType == tNAME && !SVal) || (ValType != tNAME && NVal == NO_VAL) ) ) {
 		cerr << Missing << "required option " << NameToStr(false) << LF;
 		return -1;
@@ -331,12 +321,12 @@ int Options::Option::CheckOblig() const
 
 // Return option's signature as a string
 //	@asPointed: true if returns signature as it was stated by user
-inline string Options::Option::NameToStr (bool asPointed) const
+string Options::Option::NameToStr (bool asPointed) const
 {
 	ostringstream ss;
 	ss << HPH;
 	if(asPointed) {
-		if(!Sign.Is(eFlag::fWord))	{ ss << Char; return ss.str(); }
+		if(!Sign.Is(tOpt::WORD))	{ ss << Char; return ss.str(); }
 	}
 	else if(Char != HPH) {
 		ss << Char; 
@@ -367,7 +357,7 @@ const string Options::Option::PairValsToStr(const pairVal* vals) const
 //	return: 1 if limits are exceeded, otherwise 0
 int Options::Option::SetTriedFloat(float val, float min, float max)
 {
-	if(!val && Sign.Is(eFlag::fAllow0))	min = 0;
+	if(!val && Sign.Is(tOpt::ALLOW0))	min = 0;
 	if(val < min || val > max) {
 		cerr << optTitle << NameToStr(true) << SepSCl << sValue << setprecision(4) << SPACE << val
 			 << " is out of available range [" << min << HPH << max << "]\n";
@@ -456,47 +446,53 @@ string Options::Option::ToStr(bool prVal) const
 //	otherwise signature only
 void Options::Option::Print(bool descr) const
 {
-	if(Sign.Is(fHidden))	return;
+	if(Sign.Is(tOpt::HIDDEN))	return;
+
+	const BYTE	TabLEN = 8;
+	const bool	fixValType = ValType==tENUM || ValType==tCOMB;
 	USHORT	len = 0;		// first len is used as counter of printed chars
-	bool	fixValType = ValType==tENUM || ValType==tCOMB;
-	char*	buffer;
 
 	if(descr)	cout << SPACE, len++;	// full way: double blank first
 	// *** signature
 	{
-	string name = NameToStr(false);
-	cout << SPACE << name;
-	len += short(1 + name.length());
+		const string name = NameToStr(false);
+		cout << SPACE << name;
+		len += short(1 + name.length());
 	}
 	// *** option value type
 	cout << SPACE, len++;
 	if(IsValEsc())	cout << '[', len++;
-	if(fixValType)	len += PrintEnumVals();		// print enum values
-	else if((buffer = const_cast<char*>(TypeNames[ValType])) != NULL)
-		cout << buffer,							// print value type
-		len += short(strlen(buffer));
+	if(fixValType)	
+		len += PrintEnumVals();		// print enum values
+	else {
+		const char* buffer = TypeNames[ValType];
+		if (buffer)
+			cout << buffer,							// print value type
+			len += USHORT(strlen(buffer));
+	}
 	if(IsValEsc())	cout << ']', len++;
 	
 	// *** description
 	if(!descr)	return;
 	// align description 
-	short cnt = OPT_DESCF_TSHIFT - len / 8;	// OPT_DESCF_TSHIFT=3 * 8: right boundary of descriptions
+	short cnt = IndentInTabs - len / TabLEN;	// IndentInTabs=3 * TabLEN: right boundary of descriptions
 	if(cnt <= 0)	cnt = 1;
-	if(len + cnt*8 >= (OPT_DESCF_TSHIFT+1)*8)	// too long option,
-		cnt = OPT_DESCF_TSHIFT, cout << LF;	// description on the next line
-	for(int i=0; i<cnt; i++)	cout << TAB;
+	if(len + cnt * TabLEN >= (IndentInTabs + 1) * TabLEN)	// too long option,
+		cnt = IndentInTabs, cout << LF;			// description on the next line
+	for (; cnt; cnt--)	cout << TAB;
 
 	// print description
-	cnt = 0;	// use as external enum counter
-	len = USHORT(strlen(Descr));	// from now len is used as length of description string
-	buffer = new char[len+1];
-	PrintSubLine(buffer, Descr, strchr(Descr, LF), fixValType ? (const char**)SVal : NULL, &cnt);
-	delete [] buffer;
+	len = USHORT(strlen(Descr));	// from now 'len' is used as length of description string,
+									// 'cnt' is used as external enum counter (and cnt = 0)
+	{
+		string buffer(len + 1, 0);
+		PrintSubLine(const_cast<char*>(buffer.c_str()), Descr, strchr(Descr, LF), fixValType ? (const char**)SVal : NULL, &cnt);
+	}
 	if(AddDescr) {
 		if(Descr[len-1] != LF)	cout << SPACE;
 		cout << AddDescr;
 	}
-	if(Sign.Is(fOblig))	cout << " Required";
+	if(Sign.Is(tOpt::OBLIG))	cout << " Required";
 	else if(ValType >= tHELP)	cout << " and exit";
 
 	// print default value
@@ -661,7 +657,7 @@ int Options::PrintAmbigOpt(const char* opt, bool isWord, const char* headMsg, co
 int	Options::PrintVersion()
 {
 	cout<< Product::Version
-#ifndef _NO_ZLIB
+#ifdef _ZLIB
 		<< "\tzlib " << ZLIB_VERSION
 #endif
 		<< endl;
@@ -762,9 +758,19 @@ const string Options::GetFileName(int indOpt, const char* defName, const string&
 	Option opt = List[indOpt];
 	if(opt.SVal)
 		return string(opt.SVal) + ext;
-	if(opt.IsValEsc() && opt.Sign.Is(fTrimmed))
+	if(opt.IsValEsc() && opt.Sign.Is(tOpt::TRIMMED))
 		return FS::ShortFileName(FS::FileNameWithoutExt(defName)) + ext;
 	return strEmpty;
+}
+
+const string Options::GetPartFileName(int opt, const char* defName)
+{
+	const char* outName = Options::GetSVal(opt);
+
+	if (!outName)
+		return FS::FileNameWithoutExt(defName);
+	string sOutName = string(outName);
+	return FS::IsDirExist(outName) ? FS::MakePath(sOutName) + FS::FileNameWithoutExt(defName) : sOutName;
 }
 
 #ifdef DEBUG
@@ -797,8 +803,8 @@ const char* Err::_msgs [] = {
 /* F_EMPTY */	"empty",
 /* F_BIGLINE */	"buffer is less than length of line",
 /* FZ_MEM */	"not enough internal gzip buffer",
-/* FZ_OPEN */	"wrong reading mode READ_ANY for zipped file",
-/* FZ_BUILD */	"this build does not support zipped files",
+/* FZ_OPEN */	"wrong reading mode READ_ANY for gzip file",
+/* FZ_BUILD */	"this build does not support gzip files",
 /* F_WRITE */	"could not write",
 ///* F_FORMAT */	"wrong format",
 #ifndef _FQSTATN
@@ -810,6 +816,8 @@ const char* Err::_msgs [] = {
 
 const char* Err::FailOpenOFile = "could not open output file";
 
+void StrCat(char* dst, const char* src) { memcpy(dst + strlen(dst), src, strlen(src) + 1); }
+
 // Initializes _outText by cstring contained message kind of "<sender>: <txt> <specTxt>".
 void Err::set_message(const char* sender, const char *txt, const char *specTxt)
 {
@@ -820,13 +828,13 @@ void Err::set_message(const char* sender, const char *txt, const char *specTxt)
 	memset(_outText, cNULL, outLen);
 	if (sender) {
 		//*_outText = SPACE;
-		if (senderLen)	strcat(_outText, sender);
-		strcat(_outText, SepCl);
+		if (senderLen)	StrCat(_outText, sender);
+		StrCat(_outText, SepCl);
 	}
-	strcat(_outText, txt);
+	StrCat(_outText, txt);
 	if (specTxt) {
-		if (*specTxt != ':')		strcat(_outText, sSPACE);
-		strcat(_outText, specTxt);
+		if (*specTxt != ':')		StrCat(_outText, sSPACE);
+		StrCat(_outText, specTxt);
 	}
 }
 
@@ -851,9 +859,9 @@ const string Err::MsgNoFiles (const string & fileName, const string ext)
 Err::Err(const Err & src)
 {
 	_code = src._code;
-	int size = strlen(src.what()) + 1;
+	auto size = strlen(src.what()) + 1;
 	_outText = new char[size];
-	strcpy(_outText, src._outText);
+	memcpy(_outText, src._outText, strlen(src._outText));	// instead of strcpy(_outText, src._outText)
 	//_specifyText = src._specifyText;
 }
 
@@ -893,7 +901,8 @@ void Err::Warning(bool eol, bool prefix)
 bool FS::IsExist(const char* name, int st_mode)
 {
 	struct_stat64 st;
-	int res, len = strlen(name) - 1;
+	const auto len = strlen(name) - 1;
+	int res;
 
 	if(name[len] == SLASH) {
 		string sname = string(name, len);
@@ -1121,20 +1130,20 @@ bool FS::GetFiles	(vector<string>& files, const string& dirName, const string& e
 #ifdef OS_Windows
 	int count = 0;
 	string fileTempl = FS::MakePath(dirName) + '*' + ext;
-	WIN32_FIND_DATA ffd;
+	WIN32_FIND_DATAA ffd;
 
-	HANDLE hFind = FindFirstFile( fileTempl.c_str(), &ffd );
+	HANDLE hFind = FindFirstFileA(LPCSTR(fileTempl.c_str()), LPWIN32_FIND_DATAA(&ffd));
 	if( hFind == INVALID_HANDLE_VALUE )
 		return false;
 	if( all ) {
 		// count files to reserve files capacity
 		do	count++;
-		while (FindNextFile(hFind, &ffd));
+		while (FindNextFileA(hFind, LPWIN32_FIND_DATAA(&ffd)));
 		files.reserve(count);
 		// fill files
-		hFind = FindFirstFile( fileTempl.c_str(), &ffd );
+		hFind = FindFirstFileA(LPCSTR(fileTempl.c_str()), LPWIN32_FIND_DATAA(&ffd));
 		do	files.emplace_back(ffd.cFileName);
-		while (FindNextFile(hFind, &ffd));
+		while (FindNextFileA(hFind, LPWIN32_FIND_DATAA(&ffd)));
 	}
 	else
 		files.emplace_back(ffd.cFileName);
@@ -1265,7 +1274,7 @@ mutex	Mutex::_mutexes[int(Mutex::eType::NONE)];
 /************************ class Chrom ************************/
 
 const char*		Chrom::Abbr = "chr";
-const BYTE		Chrom::MaxAbbrNameLength = BYTE(strlen(Abbr)) + MaxMarkLength;
+const BYTE		Chrom::MaxAbbrNameLength = 5;
 #ifndef _FQSTATN
 const char*		Chrom::Marks = "XYM";
 const string	Chrom::UndefName = "UNDEF";
@@ -1303,11 +1312,11 @@ chrid Chrom::CaseInsID	(const char* cMark)
 //	@str: C string to find in
 //	@templ: C string to be located
 //	@templLen: length of templ (extern because of avoiding recursive recalculate)
-const char* SubStr(const char* str, const char* templ, int templLen)
+const char* SubStr(const char* str, const char* templ, size_t templLen)
 {
 	str = strchr(str, *templ);
 	if(str)
-		for(short i=1; i<templLen; i++)
+		for(size_t i=1; i<templLen; i++)
 			if( *++str != templ[i] )
 				return SubStr(str, templ, templLen);
 	return str;
@@ -1325,7 +1334,7 @@ short Chrom::PrefixLength(const char* cName)
 	if( str )
 		for(; *str; str++)
 			if( isdigit(*str) || isupper(*str) )
-				return str - cName;
+				return short(str - cName);
 	return -1;
 }
 
@@ -1378,7 +1387,7 @@ void Chrom::SetCustomOption(int opt/*, bool absIDNumb*/)
 		cID = ValidateID(Options::GetSVal(opt));	// apply absolute numeration discipline
 }
 
-inline const string AutosomeToStr(chrid cid) {	return to_string(cid + 1); }
+const string AutosomeToStr(chrid cid) {	return to_string(cid + 1); }
 
 // Returns mark by ID
 const string Chrom::Mark(chrid cid)
@@ -1412,10 +1421,14 @@ string Chrom::AbbrName(chrid cid, bool numbSep)
 
 /************************ struct Region ************************/
 
-// Extends Region with chrom length control.
-// If extended Region starts from negative, or ends after chrom length, it is fitted.
-//	@extLen: extension length in both directions
-//	@cLen: chrom length; if 0 then no check
+Region::tExtStartEnd Region::fExtStartEnd[2] = { &Region::ExtEnd, &Region::ExtStart };
+
+Region::Region(const Region& r, fraglen extLen, bool reverse)
+{
+	memcpy(this, &r, sizeof(Region));
+	(this->*fExtStartEnd[reverse])(extLen);
+}
+
 void Region::Extend(chrlen extLen, chrlen cLen)
 {
 	Start -= extLen > Start ? Start : extLen;
@@ -1423,7 +1436,6 @@ void Region::Extend(chrlen extLen, chrlen cLen)
 	if (cLen && End > cLen)	End = cLen;
 }
 
-/************************ end of struct Region ************************/
 
 /************************ class Regions ************************/
 

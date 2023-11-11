@@ -9,9 +9,7 @@ Provides read|write text file functionality
 
 #include "TxtFile.h"
 #include <fstream>	// to write ChromDefRegions
-#ifndef _FILE_WRITE
-#include <fstream>
-#endif
+#include <assert.h>
 
 const BYTE TabFilePar::BGLnLen = Chrom::MaxAbbrNameLength + 2 * 9;	// 2*pos + correction
 const BYTE TabFilePar::WvsLnLen = 9 + 3 + 2 + 25;	// pos + val + TAB + LF + correction
@@ -101,13 +99,13 @@ bool TxtFile::SetBasic(const string& fName, eAction mode, void* fStream)
 	_fName = fName;
 	_currRecPos = _recCnt = 0;
 	_buffLen = BlockSize;	// by default; can be corrected
-#ifdef _NO_ZLIB
+#ifndef _ZLIB
 	if(IsZipped()) { SetError(Err::FZ_BUILD); return false; }
 #endif
 	// set file stream
 	if(fStream)	_stream = fStream;
 	else 
-#ifndef _NO_ZLIB
+#ifdef _ZLIB
 		if(IsZipped())
 			if(mode == eAction::READ_ANY)	SetError(Err::FZ_OPEN);
 			else {
@@ -128,7 +126,7 @@ bool TxtFile::SetBasic(const string& fName, eAction mode, void* fStream)
 bool TxtFile::CreateIOBuff()
 {
 	try { _buff = new char[_buffLen]; }
-	catch(const bad_alloc)	{ SetError(Err::F_MEM); }
+	catch (const bad_alloc) { SetError(Err::F_MEM); }
 	return IsGood();
 }
 
@@ -146,7 +144,7 @@ TxtFile::TxtFile (const string& fName, eAction mode, bool msgFName, bool abortIn
 	if( !SetBasic(fName, mode, NULL) )	return;
 	_fSize = FS::Size(fName.c_str());
 	if(_fSize == -1)	_fSize = 0;		// new file
-#ifndef _NO_ZLIB
+#ifdef _ZLIB
 	else if(IsZipped()) {				// existed file
 		LLONG size = FS::UncomressSize(fName.c_str());
 		if( size > 0 ) {
@@ -160,16 +158,16 @@ TxtFile::TxtFile (const string& fName, eAction mode, bool msgFName, bool abortIn
 							// 2x_buffLen for writing or 3x_buffLen for reading by gzip
 	}
 #endif
-	if( _fSize && _fSize < _buffLen )
+	if( _fSize && size_t(_fSize) < _buffLen )
 		if( mode != eAction::WRITE )
-			_buffLen = (ULONG)_fSize + 1;	// for reading
-		else if( _fSize * 2 < _buffLen )
-			_buffLen = (ULONG)_fSize * 2;	// for writing: increase small buffer for any case
+			_buffLen = size_t(_fSize + 1);	// for reading
+		else if(size_t(_fSize * 2) < _buffLen )
+			_buffLen = size_t(_fSize * 2);	// for writing: increase small buffer for any case
 	
 	if( !CreateIOBuff() )	return;
 
 #ifdef ZLIB_NEW
-	if( IsZipped() && gzbuffer((gzFile)_stream, _buffLen) == -1 )
+	if( IsZipped() && gzbuffer((gzFile)_stream, (unsigned int)_buffLen) == -1 )
 		SetError(Err::FZ_MEM);
 #endif
 }
@@ -197,7 +195,7 @@ TxtFile::~TxtFile()
 	//_stopwatch.Stop(_fName);
 	if(_buff)		delete [] _buff;
 	if(_stream &&
-#ifndef _NO_ZLIB
+#ifdef _ZLIB
 			IsZipped() ? gzclose( (gzFile)_stream) :
 #endif
 			fclose( (FILE*)_stream) )
@@ -237,9 +235,9 @@ int TxtInFile::ReadBlock(const size_t offset)
 {
 	size_t readLen;
 	//_stopwatch.Start();
-#ifndef _NO_ZLIB
+#ifdef _ZLIB
 	if( IsZipped() ) {
-		int len = gzread((gzFile)_stream, _buff + offset, _buffLen - offset);
+		int len = gzread((gzFile)_stream, _buff + offset, (unsigned int)(_buffLen - offset));
 		if(len < 0) { SetError(Err::F_READ); return -1; }
 		readLen = len;
 	}
@@ -260,7 +258,7 @@ int TxtInFile::ReadBlock(const size_t offset)
 	{ SetError(Err::F_READ); return -1; }
 	_currRecPos = 0;
 	//_stopwatch.Stop();
-	return _readedLen;
+	return int(_readedLen);
 }
 
 // Returns true if block is complete, move remainder to the top
@@ -351,7 +349,7 @@ lf:				_recLen += (_linesLen[rec] = ++i - currPos);
 				if (_readedLen != _buffLen && i > currPos)	// last record does not end with LF
 					goto lf;
 				if(CompleteBlock(currPos, blanklCnt))	return NULL;
-				cntN = currPos = blanklCnt = i = rec = 0;
+				currPos = blanklCnt = i = cntN = rec = 0;
 				buf = _buff;
 			}
 		}
@@ -454,7 +452,7 @@ bool TxtOutFile::CreateLineBuff(rowlen len)
 	return IsGood();
 }
 
-// Closes adding record to the IO buffer: set current rec position and increases rec counter
+// Closes adding record to the IO buffer: set current recording position and increases recording counter
 //	@len: length of added record
 void TxtOutFile::EndRecordToIOBuff(size_t len)
 {
@@ -504,13 +502,13 @@ void TxtOutFile::LineAddChar(char ch, bool addDelim)
 // Copies block of chars to the current position in the line write buffer,
 //	adds delimiter after string	and increases current position.
 //	@src: pointer to the block of chars
-//	@num: number of chars
+//	@len: number of chars
 //	@addDelim: if true then adds delimiter and increases current position
 //	return: new current position
-rowlen TxtOutFile::LineAddChars(const char* src, rowlen num, bool addDelim)
+rowlen TxtOutFile::LineAddChars(const char* src, rowlen len, bool addDelim)
 {
-	memcpy(_lineBuff + _lineBuffOffset, src, num);
-	_lineBuffOffset += num;
+	memcpy(_lineBuff + _lineBuffOffset, src, len);
+	_lineBuffOffset += len;
 	LineAddDelim(addDelim);
 	return _lineBuffOffset;
 }
@@ -521,7 +519,7 @@ rowlen TxtOutFile::LineAddChars(const char* src, rowlen num, bool addDelim)
 //	@addDelim: if true then adds delimiter and increases current position
 void TxtOutFile::LineAddInt(LLONG v, bool addDelim)
 {
-	_lineBuffOffset += sprintf(_lineBuff + _lineBuffOffset, "%d", v);
+	_lineBuffOffset += sprintf(_lineBuff + _lineBuffOffset, "%lld", v);
 	LineAddDelim(addDelim);
 	//LineAddStr(to_string(val), addDelim);
 }
@@ -535,9 +533,6 @@ void TxtOutFile::LineAddInts(ULONG v1, ULONG v2, bool addDelim)
 {
 	_lineBuffOffset += sprintf(_lineBuff + _lineBuffOffset, "%u%c%u", v1, _delim, v2);
 	LineAddDelim(addDelim);
-	//ostringstream ss;
-	//ss << v1 << _delim << v2;
-	//LineAddStr(ss.str(), addDelim);
 }
 
 // Adds three integral values separated by default delimiter to the current position 
@@ -568,6 +563,25 @@ void TxtOutFile::LineAddInts(ULONG v1, ULONG v2, ULONG v3, bool addDelim)
 //	LineAddDelim(addDelim);
 //}
 
+void TxtOutFile::SetFloatFractDigits(BYTE digitsCnt)
+{
+	assert(digitsCnt < 10);
+	_formatFloat[0][3] = std::to_string(digitsCnt)[0];	// "%4.2f"
+	_floatBuffLen = 4 + digitsCnt;
+}
+
+void TxtOutFile::LineAddFloat(float val, bool addDelim)
+{
+	_lineBuffOffset += std::snprintf(_lineBuff + _lineBuffOffset, _floatBuffLen, _formatFloat[val == 0].c_str(), val);
+	LineAddDelim(addDelim);
+}
+
+void TxtOutFile::LineAddSingleFloat(float val)
+{
+	LineAddFloat(val, false);
+	LineToIOBuff();
+}
+
 // Adds line to IO buffer (from 0 to the current position).
 //	@offset: start position for the next writing cycle
 void TxtOutFile::LineToIOBuff(rowlen offset)
@@ -588,7 +602,7 @@ void TxtOutFile::RecordToIOBuff(const char *src, size_t len)
 	EndRecordToIOBuff(len);
 }
 
-// Adds string to IO buffer without checking buffer exceeding.
+// Adds string direct to IO buffer
 void TxtOutFile::StrToIOBuff(const string&& str)
 {
 	memmove(_buff + _currRecPos, str.c_str(), str.length());
@@ -628,17 +642,20 @@ void TxtOutFile::SetLineBuff(rowlen len)
 // Writes thread-safely current block to file.
 void TxtOutFile::Write() const
 {
-	//_stopwatch.Start();
 #ifdef _MULTITHREAD
 	const bool lock = IsFlag(MTHREAD) && Mutex::IsReal(_mtype);
 	if(lock)	Mutex::Lock(_mtype);
 #endif
-	int res = 
-#ifndef _NO_ZLIB
+	size_t res = 
+#ifdef _ZLIB
 		IsZipped() ?
-		gzwrite((gzFile)_stream, _buff, _currRecPos) :
+		gzwrite((gzFile)_stream, _buff, (unsigned int)_currRecPos) :
 #endif
-		fwrite(_buff, 1, _currRecPos, (FILE*)_stream);
+		fwrite(
+			_buff,
+			1,
+			_currRecPos,
+			(FILE*)_stream);
 	if(res == _currRecPos)	_currRecPos = 0;
 	else { SetError(Err::F_WRITE); /*cout << "ERROR!\n";*/ }
 #ifdef _MULTITHREAD
@@ -650,7 +667,6 @@ void TxtOutFile::Write() const
 		Mutex::Unlock(_mtype);
 	}
 #endif
-	//_stopwatch.Stop();
 }
 
 //bool	TxtOutFile::AddFile(const string fName)
@@ -1004,14 +1020,14 @@ FaFile::FaFile(const string& fName, ChromDefRegions* rgns) : TxtInFile(fName, eA
 
 	chrlen len = chrlen(Length());
 	if(NextGetLine()[0] == FaComment) {		// is first line a header?
-		len -= RecordLength();
+		len -= chrlen(RecordLength());
 		if(_rgnMaker)	_rgnMaker->RemoveLineLen(LineLength());
 		NextGetLine();
 	}
 	// set chrom length
-	_cLen = len - LFSize() *
-		(len/RecordLength() +		// amount of LF markers for whole lines
-		bool(len%RecordLength()));	// LF for part line
+	_cLen = len - chrlen(LFSize() *
+		(len/ chrlen(RecordLength()) +		// amount of LF markers for whole lines
+		bool(len % chrlen(RecordLength())) ));	// LF for part line
 }
 
 /************************ end of class FaFile ************************/
@@ -1026,7 +1042,7 @@ FaFile::FaFile(const string& fName, ChromDefRegions* rgns) : TxtInFile(fName, eA
 readlen FqFile::ReadLength() const
 {
 	//CheckGettingRecord();
-	return LineLengthByInd(READ); 
+	return readlen(LineLengthByInd(READ));
 }
 
 // Gets checked Read from readed Sequence.

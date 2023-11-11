@@ -50,44 +50,46 @@ const char* Options::OptGroups[] = {
 };
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
+const BYTE Options::Option::IndentInTabs = 3;
+
 //	{ char,	str,	Signs,	type,	group,	defVal,	minVal,	maxVal,	strVal,	descr, addDescr }
 // field 7: vUNDEF if value is prohibited
 // field 6: vUNDEF if no default value should be printed
 Options::Option Options::List[] = {
-	{ 'a', "align",	fNone,	tENUM,	gINPUT,	FALSE,	vUNDEF, 2, NULL,
+	{ 'a', "align",	tOpt::NONE,	tENUM,	gINPUT,	FALSE,	vUNDEF, 2, NULL,
 	"input bed files are alignments. Ignored for bam and wig", NULL },
-	{ 'g', sGen,	fNone,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
+	{ 'g', sGen,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
 	"chromosome sizes file", NULL },
-	{ 'c', Chrom::Abbr,	fNone,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
-	{ HPH,"gap-len",fHidden,tINT,	gINPUT,	1000, 50, 1e5, NULL,
+	{ 'c', Chrom::Abbr,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
+	{ HPH,"gap-len",tOpt::HIDDEN,tINT,	gINPUT,	1000, 50, 1e5, NULL,
 	"minimal length of undefined nucleotide region in genome\nwhich is declared as a gap.\nIgnored for the chromosome sizes file and for the ordinary beds", NULL },
-	{ 'd', "dup",	fNone,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Options::Booleans, "allow duplicate reads.", ForAligns },
-	{ 'o', "overl",	fNone,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Options::Booleans,
+	{ 'd', "dup",	tOpt::NONE,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Options::Booleans, "allow duplicate reads.", ForAligns },
+	{ 'o', "overl",	tOpt::NONE,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Options::Booleans,
 	"allow (and merge) overlapping features. For the ordinary beds only", NULL },
-	{ 'l', "list",	fNone,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
+	{ 'l', "list",	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
 	"list of multiple input files.\nFirst (primary) file in list is comparing with others (secondary)", NULL },
-	{ 'f', "fbed",		fNone,	tNAME,	gTREAT, vUNDEF,	0, 0, NULL,
+	{ 'f', "fbed",	tOpt::NONE,	tNAME,	gTREAT, vUNDEF,	0, 0, NULL,
 	"'template' ordinary bed file which features define compared regions.\n", IgnoreBed},
-	{ 'e', "ext-len",	fNone,	tINT,	gTREAT,0, 0, 2e4, NULL,
+	{ 'e', "ext-len",	tOpt::NONE,	tINT,	gTREAT,0, 0, 2e4, NULL,
 	"length by which the features in primary file (for ordinary beds) or in\n'template' (for alignments and wigs) will be extended in both directions\nbefore treatment", NULL },
-	{ 's', "ext-step",	fNone,	tINT,	gTREAT,0, 0, 500, NULL,
+	{ 's', "ext-step",	tOpt::NONE,	tINT,	gTREAT,0, 0, 500, NULL,
 	"step of extending features in primary bed file;\nif 0 then no step calculation. For the ordinary beds only", NULL },
-	{ 'R',	"pr-cc",	fNone,	tCOMB,	gOUTPUT, PrintMngr::LOC, PrintMngr::LOC, PrintMngr::TOT, (char*)prCCs,
+	{ 'R',	"pr-cc",	tOpt::NONE,	tCOMB,	gOUTPUT, PrintMngr::LOC, PrintMngr::LOC, PrintMngr::TOT, (char*)prCCs,
 	"print coefficient, in any order:\n? - for each chromosome, ? - total", NULL },
-	{ 'B', "bin-width",	fNone,	tFLOAT,	gOUTPUT,0, 0, 1.0F, NULL,
+	{ 'B', "bin-width",	tOpt::NONE,	tFLOAT,	gOUTPUT,0, 0, 1.0F, NULL,
 	"print frequency histogram with given bin width", NULL },
 	//{ 'F', "fcc-sort ",	fOptnal,	tENUM,	gOUTPUT, rsOFF,	rsR, rsC, (char*)fsort,
-	{ 'F', "fcc-sort",	fNone,	tENUM,	gOUTPUT, eRS::rsOFF,	eRS::rsR, eRS::rsC, (char*)fsort,
+	{ 'F', "fcc-sort",	tOpt::NONE,	tENUM,	gOUTPUT, eRS::rsOFF,	eRS::rsR, eRS::rsC, (char*)fsort,
 	"print region coefficients, sorted by: ? - regions, ? - coefficients", NULL },
-	{ 'V', "verbose ",	fNone,	tENUM, gOUTPUT,	float(eOInfo::NM), float(eOInfo::LAC), float(eOInfo::STAT), (char*)infos,
+	{ 'V', "verbose ",	tOpt::NONE,	tENUM, gOUTPUT,	float(eOInfo::NM), float(eOInfo::LAC), float(eOInfo::STAT), (char*)infos,
 	"set verbose level:\n?  - laconic\n?   - file names\n? - file names and number of items\n? - file names and items statistics", NULL },
-	{ 'w', "write",	fHidden,tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL,
+	{ 'w', "write",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL,
 	"write each inner representation to file with '_out' suffix", NULL },
-	{ 'O', sOutput,	fNone,	tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL, HelpOutFile.c_str(), NULL },
-	{ 't', sTime,	fNone,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sPrTime, NULL },
-	{ HPH, sSumm,	fHidden,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrSummary, NULL },
-	{ 'v', sVers,	fNone,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
-	{ 'h', sHelp,	fNone,	tHELP,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrUsage, NULL }
+	{ 'O', sOutput,	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL, HelpOutFile.c_str(), NULL },
+	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sPrTime, NULL },
+	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrSummary, NULL },
+	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
+	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrUsage, NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 
@@ -148,19 +150,19 @@ int main(int argc, char* argv[])
 }
 
 /************************ class FileList ************************/
-#ifdef OS_Windows
-// Returns true if 'name' is file's pattern
-bool	IsFilePattern(const char* name)
-{
-	return strchr(name, '*') != NULL || strchr(name, '?') != NULL;
-}
-
-string GetPath(const LPCTSTR name)
-{
-	const char* pch = strrchr(name, '/');
-	return pch ? string(name, pch - name + 1) : strEmpty;
-}
-#endif	// OS_Windows
+//#ifdef OS_Windows
+//// Returns true if 'name' is file's pattern
+//bool	IsFilePattern(const char* name)
+//{
+//	return strchr(name, '*') != NULL || strchr(name, '?') != NULL;
+//}
+//
+//string GetPath(const LPCTSTR name)
+//{
+//	const char* pch = strrchr(name, '/');
+//	return pch ? string(name, pch - name + 1) : strEmpty;
+//}
+//#endif	// OS_Windows
 
 FileList::FileList(const char* fName)
 {

@@ -168,7 +168,7 @@ bool BamReader::GetNextAlignmentCore(BamAlignment& bAlignment) { return d->GetNe
 
 // access auxiliary data
 const string BamReader::GetHeaderText(void) const { return d->HeaderText; }
-int BamReader::GetReferenceCount(void) const { return d->References.size(); }
+int BamReader::GetReferenceCount(void) const { return int(d->References.size()); }
 const RefVector BamReader::GetReferenceData(void) const { return d->References; }
 int BamReader::GetReferenceID(const string& refName) const { return d->GetReferenceID(refName); }
 const std::string BamReader::GetFilename(void) const { return d->Filename; }
@@ -376,7 +376,7 @@ bool BamReader::BamReaderPrivate::BuildIndex(void) {
     Rewind();
 
     // get reference count, reserve index space
-    int numReferences = References.size();
+    int numReferences = int(References.size());
     for ( int i = 0; i < numReferences; ++i ) {
         Index.push_back(ReferenceIndex());
     }
@@ -633,7 +633,7 @@ int BamReader::BamReaderPrivate::GetReferenceID(const string& refName) const {
     }
 
     // return 'index-of' refName ( if not found, returns refNames.size() )
-    return distance(refNames.begin(), find(refNames.begin(), refNames.end(), refName));
+    return int(distance(refNames.begin(), find(refNames.begin(), refNames.end(), refName)));
 }
 
 // saves BAM bin entry for index
@@ -672,7 +672,7 @@ void BamReader::BamReaderPrivate::InsertLinearOffset(LinearOffsetVector& offsets
     int endOffset   = (bAlignment.GetEndPosition() - 1) >> BAM_LIDX_SHIFT;
 
     // resize vector if necessary
-    int oldSize = offsets.size();
+    int oldSize = int(offsets.size());
     int newSize = endOffset + 1;
     if ( oldSize < newSize ) { offsets.resize(newSize, 0); }
 
@@ -1129,12 +1129,12 @@ bool BamReader::BamReaderPrivate::Rewind(void) {
 
     // find first reference that has alignments in the BAM file
     int refID = 0;
-    int refCount = References.size();
+    int refCount = int(References.size());
     for ( ; refID < refCount; ++refID ) {
         if ( References.at(refID).RefHasAlignments ) { break; }
     }
 
-    // reset default region info
+    // reset default region oinfo
     Region.LeftRefID = refID;
     Region.LeftPosition = 0;
     Region.RightRefID = -1;
@@ -1178,7 +1178,7 @@ bool BamReader::BamReaderPrivate::WriteIndex(void) {
     fwrite("BAI\1", 1, 4, indexStream);
 
     // write number of reference sequences
-    int32_t numReferenceSeqs = Index.size();
+    int32_t numReferenceSeqs = int(Index.size());
     if ( IsBigEndian ) { SwapEndian_32(numReferenceSeqs); }
     fwrite(&numReferenceSeqs, 4, 1, indexStream);
 
@@ -1193,7 +1193,7 @@ bool BamReader::BamReaderPrivate::WriteIndex(void) {
         const LinearOffsetVector& offsets = refIndex.Offsets;
 
         // write number of bins
-        int32_t binCount = binMap.size();
+        int32_t binCount = int32_t(binMap.size());
         if ( IsBigEndian ) { SwapEndian_32(binCount); }
         fwrite(&binCount, 4, 1, indexStream);
 
@@ -1211,7 +1211,7 @@ bool BamReader::BamReaderPrivate::WriteIndex(void) {
             fwrite(&binKey, 4, 1, indexStream);
 
             // save chunk count
-            int32_t chunkCount = binChunks.size();
+            int32_t chunkCount = int32_t(binChunks.size());
             if ( IsBigEndian ) { SwapEndian_32(chunkCount); }
             fwrite(&chunkCount, 4, 1, indexStream);
 
@@ -1237,7 +1237,7 @@ bool BamReader::BamReaderPrivate::WriteIndex(void) {
         }
 
         // write linear offsets size
-        int32_t offsetSize = offsets.size();
+        int32_t offsetSize = int32_t(offsets.size());
         if ( IsBigEndian ) { SwapEndian_32(offsetSize); }
         fwrite(&offsetSize, 4, 1, indexStream);
 

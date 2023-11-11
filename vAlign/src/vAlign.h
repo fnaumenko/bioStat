@@ -119,7 +119,7 @@ class vAlign
 	void CloseChromStat(chrid cID, size_t cnt, size_t duplCnt)
 	{
 		if (_verb >= eVerb::LAC || _file->ReadedChromCount() == 1)
-			_chrStat.Print(cID, cnt, duplCnt, _verb == eVerb::DET);
+			_chrStat.Print(cID, ULONG(cnt), duplCnt, _verb == eVerb::DET);
 		if (_multy)		_totStat.Add(_chrStat, _file->ReadLength());
 	}
 

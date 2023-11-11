@@ -92,7 +92,7 @@ struct ValPos
 #endif	// _DEBUG
 };
 
-// 'PlainCover' represents coverage as a collection of ValPos. It's a base class for Cover and ReadDens
+// 'PlainCover' represents coverage as a collection of ValPos. Base class for Cover and ReadDens
 class PlainCover : public Items<ValPos>
 {
 	// PlainCover is represented by a set of ALL valued ranges, including zero valued.
@@ -173,7 +173,7 @@ public:
 	//	@abortInval: true if invalid instance should abort excecution
 	Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval);
 
-	// Adds item
+	// Adds cover's item
 	bool operator()()
 	{ AddPos(ValPos(_file->ItemStart(), _file->ItemValue()), _file->PrevItemEnd()); return true; }
 
@@ -182,14 +182,14 @@ public:
 	//	@cLen: current chrom length
 	//	@cnt: current chrom items count
 	//	@nextcID: next chrom ID
-	inline void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { AddChrom(cID, cLen); }
+	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { AddChrom(cID, cLen); }
 
 	// Closes last chrom
 	//	@cID: current chrom ID
 	//	@cLen: current chrom length
 	//	@cnt: current chrom items count
 	//	@nextcID: next chrom ID
-	inline void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { AddChrom(cID, cLen); }
+	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { AddChrom(cID, cLen); }
 };
 
 class ReadDens : public PlainCover
@@ -216,7 +216,7 @@ public:
 	//	@abortInval: true if invalid instance should abort excecution
 	ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval);
 
-	// Adds item
+	// Adds Read
 	bool operator()() {
 		(*_freq)[_file->ItemStrand() ? _file->ItemStart() : _file->ItemEnd()]++;
 		return true;
@@ -227,18 +227,18 @@ public:
 	//	@cLen: current chrom length
 	//	@cnt: current chrom items count
 	//	@nextcID: next chrom ID
-	inline void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { if(cnt) AddChrom(cID, cLen); }
+	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { if(cnt) AddChrom(cID, cLen); }
 
 	// Closes last chrom
 	//	@cID: last chrom ID
 	//	@cLen: current chrom length
 	//	@cnt: last chrom items count
 	//	@tCnt: total items count
-	inline void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { if (cnt) AddChrom(cID, cLen); }
+	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { if (cnt) AddChrom(cID, cLen); }
 };
 
 // 'ChromRanges' represented a set of chromosome's ranges.
-struct ChromRanges : public ItemIndexes
+struct ChromRanges : public ItemIndices
 	/*
 		To keep chromosome's number and first/last ranges indexes Features::ChromItemsInd is used;
 		FirstInd/LastInd are keeping first/last ranges indexes,
@@ -248,10 +248,10 @@ struct ChromRanges : public ItemIndexes
 	chrlen FeatrsLen1;		// length of all features of chromosome in fs1
 	chrlen FeatrsLen2;		// length of all features of chromosome in fs2
 
-	inline ChromRanges() : ItemIndexes(), FeatrsLen1(0), FeatrsLen2(0) {}
+	inline ChromRanges() : ItemIndices(), FeatrsLen1(0), FeatrsLen2(0) {}
 
 	inline ChromRanges(chrlen firstInd, chrlen lastInd, chrlen len1, chrlen len2) :
-		ItemIndexes(firstInd, lastInd), FeatrsLen1(len1), FeatrsLen2(len2) {}
+		ItemIndices(firstInd, lastInd), FeatrsLen1(len1), FeatrsLen2(len2) {}
 };
 
 // 'JointedBeds' represents two bed-files as a chromosomes collection and theirs joint features (ranges).

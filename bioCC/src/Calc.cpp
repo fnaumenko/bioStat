@@ -92,27 +92,24 @@ bool PlainCover::AddPos(const ValPos& vPos, chrlen prevEnd)
 	bool add;
 	// is it a gap between prev and current regions?
 	if (add = (vPos.Val && vPos.Pos != prevEnd))					// check for the unzero val to avoid duplicate zero items
-		_items.emplace_back(prevEnd, 0);	// add zero space after previous unzero region
+		_items.emplace_back(prevEnd);	// add zero space after previous unzero region
 	if (add = (!_items.size() || _items.back().Val != vPos.Val))	// check prev val for wiggle_0 with regular tiems with the same span (MACS output)
 		_items.push_back(vPos);				// add start of current unzero region
 	return add;
 }
 
-// Adds chrom to the instance
-//	@cID: chrom
-//	@cLen: current chrom length
-//	@prevEnd: end of previous entry
 void PlainCover::AddChrom(chrlen cID, chrlen cLen, chrlen prevEnd)
 {
-	if (!prevEnd)	return;				// skip first call with cID == Chrom::UnID
+	if (!prevEnd)	return;			// skip first call with cID == Chrom::UnID
 	// add 2 last items
-	_items.emplace_back(prevEnd, 0);	// add zero region after last unzero one
+	_items.emplace_back(prevEnd);	// add zero region after last unzero one
 	if(prevEnd < cLen)
-		_items.emplace_back(cLen, 0);	// add chrom boundary to finish iterating in CalcR correctly
+		_items.emplace_back(cLen);	// add chrom boundary to finish iterating in CalcR correctly
 
 	// add chrom
-	const chrlen lastInd = _items.size();
-	AddVal(cID, ItemIndexes(_lastInd, lastInd));	// minus added 1 first and 2 last zero intervals
+	const chrlen lastInd = chrlen(_items.size());
+	AddVal(cID, ItemIndices(chrlen(_lastInd), lastInd));	// minus added 1 first and 2 last zero intervals
+										// !!! replace AddVal by emplace
 	_lastInd = lastInd;
 }
 
@@ -225,7 +222,7 @@ bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Featu
 	public:
 		inline FeatureRs(chrlen cnt) { reserve(cnt); }
 
-		inline void AddVal(chrlen ind, double val) { emplace_back(ind + 1, val); }
+		inline void AddVal(chrlen ind, float val) { emplace_back(ind + 1, val); }
 
 		// Prints result and histogram
 		void Print(eRS printFRes, float binWidth)
@@ -258,7 +255,7 @@ bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Featu
 			auto itC = templ->GetIter(cID);
 			itF = templ->ItemsBegin(itC);
 			itFend = templ->ItemsEnd(itC);
-			fCnt = templ->ItemsCount(itC);
+			fCnt = chrlen(templ->ItemsCount(itC));
 		}
 
 		// local results
@@ -370,7 +367,7 @@ void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 	const char* line;
 	const bool fixedStep = file.Type() == FT::eType::WIG_FIX;
 	chrid	cID = Chrom::UnID, nextCID = cID;	// current, next chrom ID
-	size_t	cItemCnt = 0,	// count of total accepted intervals
+	ULONG	cItemCnt = 0,	// count of total accepted intervals
 			itemCnt = 0,	// count of accepted intervals of current chrom, total
 			recCnt = 0;		// count of total records
 	BYTE	offset = 0;		// offset to value delimiter (TAB or SPACE); for Variable Step, only increases
@@ -463,7 +460,7 @@ void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 Cover::Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval)
 	: PlainCover()
 {
-	UniBedInFile file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, abortInval);
+	UniBedInFile file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, true, abortInval);
 
 	ReserveItems(file.EstItemCount());	// EstItemCount() > 0 even for empty file, because of track line
 	if (file.Type() == FT::eType::BGRAPH)
@@ -539,8 +536,8 @@ JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 		if (!fs1.IsTreated(cit1))	continue;
 		auto cit2 = fs2.GetIter(CID(cit1));
 		if(cit2 == cit2end)			continue;		// no chrom
-		const chrlen fCnt1 = fs1.ItemsCount(cit1);	// count of features in fs1, fs2
-		const chrlen fCnt2 = fs2.ItemsCount(cit2);
+		const chrlen fCnt1 = chrlen(fs1.ItemsCount(cit1));	// count of features in fs1, fs2
+		const chrlen fCnt2 = chrlen(fs2.ItemsCount(cit2));
 		r1 = fs1.Regn(cit1);
 		r2 = fs2.Regn(cit2);
 		char val = 0;							// current joint range value

@@ -19,8 +19,8 @@ Provides common data functionality
 void Features::AddChrom(chrid cID, size_t cnt)
 {
 	if (!cnt)	return;
-	const chrlen lastInd = _items.size();
-	AddVal(cID, ItemIndexes(lastInd - cnt, lastInd));
+	const chrlen lastInd = chrlen(_items.size());
+	AddVal(cID, ItemIndices(lastInd - chrlen(cnt), lastInd));
 }
 
 // treats current item
@@ -36,7 +36,7 @@ bool Features::operator()()
 	if(_uniScore) _maxScore = score = 1;
 	else {
 		score = _file->ItemValue();
-		if (score < 0)	_uniScore = _maxScore = score = 1;		// score is undefined in input data
+		if (score < 0)	_maxScore = score = _uniScore = 1;		// score is undefined in input data
 		else if (score > _maxScore)	_maxScore = score;
 	}
 	_items.emplace_back(_file->ItemRegion(), score);
@@ -130,7 +130,7 @@ chrlen Features::GetMinDistance() const
 bool Features::Extend(chrlen extLen, const ChromSizes& cSizes, UniBedInFile::eAction action)
 {
 	if (!extLen)	return false;
-	size_t	cRmvCnt = 0, tRmvCnt = 0;	// counters of removed items in current chrom and total removed items
+	chrlen	cRmvCnt = 0, tRmvCnt = 0;	// counters of removed items in current chrom and total removed items
 
 	for (auto& c : Container()) {							// loop through chroms
 		const chrlen cLen = cSizes.IsFilled() ? cSizes[c.first] : 0;	// chrom length
@@ -165,7 +165,7 @@ bool Features::Extend(chrlen extLen, const ChromSizes& cSizes, UniBedInFile::eAc
 		newItems.reserve(_items.size() - tRmvCnt);
 		tRmvCnt = 0;
 		for (auto& c : Container()) {							// loop through chroms
-			ItemIndexes& data = c.second.Data;
+			ItemIndices& data = c.second.Data;
 			const auto itEnd = ItemsEnd(data);
 			cRmvCnt = 0;
 			for (auto it = ItemsBegin(data); it != itEnd; it++)
@@ -206,7 +206,7 @@ void Features::CheckFeaturesLength(chrlen len, const string& lenDef, const char*
 inline int	ChromSizes::CommonPrefixLength(const string & fName, BYTE extLen)
 {
 	// a short file name without extention
-	return Chrom::PrefixLength(	fName.substr(0, fName.length() - extLen).c_str());
+	return Chrom::PrefixLength(fName.substr(0, fName.length() - extLen).c_str());
 }
 
 // Initializes chrom sizes from file
@@ -282,6 +282,13 @@ void ChromSizes::SetPath(const string& gPath, const char* sPath, bool prMsg)
 		}
 }
 
+void  ChromSizes::SetTreatedChrom(chrid cID)
+{
+	if (cID == Chrom::UnID)	return;
+	for (auto& c : Chroms::Container())
+		c.second.Treated = c.first == cID;
+}
+
 // Creates and initializes an instance
 //	@gName: reference genome directory or chrom.sizes file
 //	@customChrOpt: id of 'custom chrom' option
@@ -298,24 +305,23 @@ ChromSizes::ChromSizes(const char* gName, BYTE customChrOpt, bool prMsg, const c
 			_ext = FT::Ext(FT::eType::FA);
 			SetPath(gName, sPath, prMsg);
 			const string cName = _sPath + FS::LastDirName(gName) + FT::Ext(FT::eType::CSIZE);
-			const bool csExist = FS::IsFileExist(cName.c_str());
+			const bool isExist = FS::IsFileExist(cName.c_str());
 			vector<chrid> cIDs;		// chrom's ID fill list
 
 			// fill list with inizialised chrom ID and set _ext
 			if (!GetChromIDs(cIDs, gName)) {				// fill list from *.fa
 				_ext += ZipFileExt;			// if chrom.sizes exists, get out - we don't need a list
-				if (!csExist && !GetChromIDs(cIDs, gName))	// fill list from *.fa.gz
+				if (!isExist && !GetChromIDs(cIDs, gName))	// fill list from *.fa.gz
 					Err(Err::MsgNoFiles("*", FT::Ext(FT::eType::FA)), gName).Throw();
 			}
 
-			if (csExist)	Read(cName);
+			if (isExist)	Read(cName);
 			else {							// generate chrom.sizes
 				for(chrid cid : cIDs)
 					AddValue(cid, ChromSize(FaFile(RefName(cid) + _ext).ChromLength()));
 				if (IsServAvail())	Write(cName);
 				if (prMsg)
-					dout << FS::ShortFileName(cName) << SPACE
-					<< (IsServAvail() ? "created" : "generated") << LF,
+					dout << FS::ShortFileName(cName) << SPACE << (IsServAvail() ? "created" : "generated") << LF,
 					fflush(stdout);			// std::endl is unacceptable
 			}
 		}
@@ -325,6 +331,8 @@ ChromSizes::ChromSizes(const char* gName, BYTE customChrOpt, bool prMsg, const c
 			_sPath = FS::DirName(gName, true);
 		}
 		Chrom::SetCustomID();
+
+		SetTreatedChrom(Chrom::CustomID());
 	}
 	else if(sPath)
 		_gPath = _sPath = FS::MakePath(sPath);	// initialized be service dir; _ext is empty!
@@ -351,26 +359,32 @@ void ChromSizes::Init(const string& headerSAM)
 genlen ChromSizes::GenSize() const
 {
 	if( !_gsize )
-		for(cIter it=cBegin(); it!=cEnd(); _gsize += Length(it++));
+		//for(cIter it=cBegin(); it!=cEnd(); _gsize += Length(it++));
+		for (const auto& c : *this)	_gsize += c.second.Data.Real;
 	return _gsize;
 }
 
 #ifdef _DEBUG
 void ChromSizes::Print() const
 {
-	cout << "ChromSizes: count: " << int(ChromCount()) << endl;
-	cout << "ID\tchrom\t";
-//#ifdef _ISCHIP
-//		cout << "autosome\t";
-//#endif
-		cout << "size\n";
-	for(cIter it=cBegin(); it!=cEnd(); it++) {
-		cout << int(CID(it)) << TAB << Chrom::AbbrName(CID(it)) << TAB;
-//#ifdef _ISCHIP
-//		cout << int(IsAutosome(CID(it))) << TAB;
-//#endif
-		cout << Length(it) << LF;
-	}
+//	cout << "ChromSizes: count: " << int(ChromCount()) << endl;
+//	cout << "ID\tchrom\t";
+////#ifdef _ISCHIP
+////		cout << "autosome\t";
+////#endif
+//		cout << "size\n";
+//	for(cIter it=cBegin(); it!=cEnd(); it++) {
+//		cout << int(CID(it)) << TAB << Chrom::AbbrName(CID(it)) << TAB;
+////#ifdef _ISCHIP
+////		cout << int(IsAutosome(CID(it))) << TAB;
+////#endif
+//		cout << Length(it) << TAB << LF;
+//	}
+
+	printf("ChromSizes: count: %d\n", ChromCount());
+	printf("ID  chrom   size      treated\n");
+	for (const auto& c : *this)
+		printf("%2d  %-8s%9d  %d\n", c.first, Chrom::AbbrName(c.first).c_str(), c.second.Data.Real, c.second.Treated);
 }
 #endif	// DEBUG
 
@@ -394,7 +408,7 @@ chrlen ChromSizesExt::DefEffLength(cIter it) const
 // Sets actually treated chromosomes according template and custom chrom
 //	@templ: template bed or NULL
 //	return: number of treated chromosomes
-chrid ChromSizesExt::SetTreated(bool statedAll, const Features* const templ)
+chrid ChromSizesExt::SetTreatedChroms(bool statedAll, const Features* const templ)
 {
 	_treatedCnt = 0;
 
@@ -404,8 +418,6 @@ chrid ChromSizesExt::SetTreated(bool statedAll, const Features* const templ)
 			&& (statedAll || !templ || templ->FindChrom(CID(it))));
 	return _treatedCnt;
 }
-
-inline void PrintChromID(char sep, chrid cID) { dout << sep << Chrom::Mark(cID); }
 
 // Prints threated chroms short names, starting with SPACE
 void ChromSizesExt::PrintTreatedChroms() const
@@ -422,42 +434,40 @@ void ChromSizesExt::PrintTreatedChroms() const
 	chrid unprintedCnt = 0;
 	bool prFirst = true;	// true if first chrom in range is printed
 	cIter itLast;
+	auto getSep = [&unprintedCnt](chrid cnt) { return unprintedCnt > cnt ? '-' : COMMA; };
+	auto printChrom = [](char sep, chrid cID) { dout << sep << Chrom::Mark(cID); };
+	auto printNextRange = [&](chrid lim, chrid nextcID) { 
+		if (cID != cIDlast) printChrom(getSep(lim), cID);
+		printChrom(COMMA, nextcID);
+	};
 
 	//== define last treated it
 	for (cIter it = cBegin(); it != cEnd(); it++)
 		if (IsTreated(it))	itLast = it;
 
 	//== print treated chrom
-	for(cIter it=cBegin(); it!=cEnd(); it++)
-		if(IsTreated(it)) {
-			if (it == itLast) {
-				char sep;
-				if (CID(it) - cID > 1) {
-					if (cID != cIDlast)
-						PrintChromID(unprintedCnt > 1 ? '-' : COMMA, cID);		// last chrom in the last range
-					sep = COMMA;
-				}
-				else 
-					sep = prFirst ? 
-						SPACE :								// single
-						(unprintedCnt >= 1 ? '-' : COMMA);	// last
-				PrintChromID(sep, CID(it));
-				break;
-			}
-			if (prFirst)
-				PrintChromID(SPACE, cIDlast = CID(it));
-			else 
-				if (CID(it) - cID > 1) {
-					if (cID != cIDlast)
-						PrintChromID(unprintedCnt > 1 ? '-' : COMMA, cID);
-					PrintChromID(COMMA, cIDlast = CID(it));
-					unprintedCnt = 0;
-				}
-				else
-					unprintedCnt++;
-			cID = CID(it);
+	for (cIter it = cBegin(); it != itLast; it++) {
+		if (!IsTreated(it))		continue;
+		if (prFirst)
+			printChrom(SPACE, cIDlast = CID(it)),
 			prFirst = false;
-		}
+		else
+			if (CID(it) - cID > 1) {
+				printNextRange(1, CID(it));
+				cIDlast = CID(it);
+				unprintedCnt = 0;
+			}
+			else
+				unprintedCnt++;
+		cID = CID(it);
+	}
+
+	// print last treated chrom
+	cIDlast = CID(itLast);
+	if (!prFirst && cIDlast - cID > 1)
+		printNextRange(0, cIDlast);
+	else
+		printChrom(prFirst ? SPACE : getSep(0), cIDlast);
 }
 
 /************************  end of ChromSizesExt ************************/
@@ -611,27 +621,8 @@ void DefRegions::Print() const
 /************************ DefRegions: end ************************/
 #endif	// _READDENS || _BIOCC
 
-
 #if defined _ISCHIP || defined _CALLDIST
 /************************ LenFreq ************************/
-
-const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
-
-const float LenFreq::DParams::UndefPCC = -1;
-const float LenFreq::lghRatio = float(log(LenFreq::hRatio));	// log of ratio of the summit height to height of the measuring point
-const string LenFreq::sParams = "parameters";
-const string LenFreq::sInaccurate = " may be inaccurate";
-const char* LenFreq::sTitle[] = { "Norm", "Lognorm", "Gamma" };
-const string LenFreq::sSpec[] = {
-	"is degenerate",
-	"is smooth",
-	"is modulated",
-	"is even",
-	"is cropped to the left",
-	"is heavily cropped to the left",
-	"looks slightly defective on the left",
-	"looks defective on the left"
-};
 
 // Add last value and pop the first one (QUEUE functionality)
 void LenFreq::MW::PushVal(ULONG x)
@@ -666,12 +657,31 @@ LenFreq::MM::MM(fraglen base) : MW(base)
 	else		_push = &MM::GetMedianStub;
 }
 
+const float SDPI = float(sqrt(3.1415926 * 2));		// square of doubled Pi
+
+const float LenFreq::DParams::UndefPCC = -1;
+const float LenFreq::lghRatio = float(log(LenFreq::hRatio));	// log of ratio of the summit height to height of the measuring point
+const string LenFreq::sParams = "parameters";
+const string LenFreq::sInaccurate = " may be inaccurate";
+const char* LenFreq::sTitle[] = { "Norm", "Lognorm", "Gamma" };
+const string LenFreq::sSpec[] = {
+	"is degenerate",
+	"is smooth",
+	"is modulated",
+	"is even",
+	"is cropped to the left",
+	"is heavily cropped to the left",
+	"looks slightly defective on the left",
+	"looks defective on the left"
+};
+
+
 // Returns two constant terms of the distrib equation of type, supplied as an index
 //	@p: distrib params: mean/alpha and sigma/beta
 //	@return: two initialized constant terms of the distrib equation
 //	Implemeted as an array of lambdas treated like a regular function and assigned to a function pointer.
 fpair (*InitEqTerms[])(const fpair& p) = {
-	[](const fpair& p) -> fpair { return { p.second * SDPI, 0}; },							// normal
+	[](const fpair& p) -> fpair { return { p.second * SDPI, 0.f}; },						// normal
 	[](const fpair& p) -> fpair { return { p.second * SDPI, 2 * p.second * p.second}; },	// lognormal
 	[](const fpair& p) -> fpair { return { p.first - 1, float(pow(p.second, p.first)) }; }	// gamma
 };
@@ -939,7 +949,9 @@ fraglen LenFreq::GetBase()
 fpair LenFreq::GetKeyPoints(fraglen base, point& summit) const
 {
 	const fraglen baseSMM = base <= smoothBase ? 0 : base;
-	point p0(*begin()), p(0, 0);			// previous, current point
+	//point p0(*begin());	// previous point
+	point p0 = make_pair(begin()->first, float(begin()->second));	// previous point
+	point p{};					// current point
 	MA ma(base);
 	MM mm(baseSMM);
 
@@ -1188,47 +1200,3 @@ void LenFreq::Print(dostream& s, eCType ctype, bool prDistr)
 
 /************************ LenFreq: end ************************/
 #endif	// _ISCHIP & _CALLDIST
-
-#if defined _ISCHIP || defined _BSDEC
-/************************ class AccumCover ************************/
-
-// Adds fragment to accumulate the coverage
-void AccumCover::AddRegion(const Region& frag)
-{
-	covmap::iterator it1 = find(frag.Start), it2;	// 'start', 'end' entries iterator
-
-	// *** set up 'start' entry
-	if (it1 == end()) {							// 'start' entry doesn't exist
-		it2 = it1 = emplace(frag.Start, 1).first;
-		if (it1 != begin())						// 'start' point is not the first one at all
-			it1->second += (--it2)->second;		// correct val by prev point; keep it1 unchanged
-	}
-	else {
-		it1->second++;							// incr val at existed 'start' entry
-		if (--(it2 = it1) != end()				// decr it2; previous entry exists
-			&& it2->second == it1->second)		// previous and current entries have the same value
-			erase(it1), it1 = it2;				// remove current entry as duplicated
-	}
-
-	// *** set up 'end' entry
-	it2 = find(frag.End);
-	fraglen val = 0;							// 'end' entry value
-	const bool newEnd = it2 == end();			// true if 'end' entry is new 
-
-	if (newEnd) {								// 'end' entry is new
-		it2 = emplace(frag.End, 0).first;
-		val = next(it2) == end() ? 1 :			// 'end' entry is the last one at all
-			prev(it2)->second;					// grab val by prev entry
-	}
-
-	// *** correct range between 'start' and 'end', set 'end' entry value
-	for (it1++; /*it1 != end() &&*/ it1 != it2; it1++)		// correct values within range
-		val = ++it1->second;					// increase value
-	if ((--it1)->second == it2->second)			// is the last added entry a duplicate?
-		erase(it2);								// remove duplicated entry
-	else if (newEnd)
-		it2->second = --val;					// set new 'end' entry value
-}
-
-/************************ class AccumCover: end ************************/
-#endif	// _ISCHIP || _BSDEC

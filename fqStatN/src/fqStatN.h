@@ -15,12 +15,13 @@ private:
 	struct TemplN {
 		ULONG Count;		// 'N' count 
 		ULONG CountRead;	// Reads count
-		Array<char> Pos;	// template with marked N positions; Array to ensure destructor
-		//vector<char> Pos;	// template with marked N positions; Array to ensure destructor
+		vector<char> Pos;	// template with marked N positions; Array to ensure destructor
+		//Array<char> Pos;	// template with marked N positions; Array to ensure destructor
 
 		inline TemplN() : Count(0), CountRead(0) {}
 
-		inline TemplN(ULONG cnt, const Array<char>& pos)
+		//inline TemplN(ULONG cnt, const Array<char>& pos)
+		inline TemplN(ULONG cnt, const vector<char>& pos)
 			: Count(cnt), CountRead(1) { Pos = pos;	}
 
 		TemplN(const TemplN& t) { 

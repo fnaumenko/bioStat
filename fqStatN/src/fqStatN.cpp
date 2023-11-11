@@ -47,19 +47,21 @@ const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sF
 
 // *** Options definition
 
-enum eOptGroup { oOPTION };	// oOTHER should be the last
+enum tOptGroup { oOPTION };	// oOTHER should be the last
 const char* Options::OptGroups[] = { NULL };
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
+
+const BYTE Options::Option::IndentInTabs = 3;
 
 // { char, str, Signs (8: hidden), type, group, 
 //	defVal (if NO_DEF then no default value printed),
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
-	{ 'o', sOutput,	fOptnal,tNAME,	oOPTION, NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
-	{ 't', sTime,	fNone,	tENUM,	oOPTION, FALSE,	vUNDEF,	2, NULL, sPrTime, NULL },
-	{ HPH,	sSumm,	fHidden,tSUMM,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrSummary, NULL },
-	{ 'v',	sVers,	fNone,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sPrVersion, NULL },
-	{ 'h',	sHelp,	fNone,	tHELP,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrUsage, NULL }
+	{ 'o', sOutput,	tOpt::FACULT,tNAME,	oOPTION, NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 't', sTime,	tOpt::NONE,	tENUM,	oOPTION, FALSE,	vUNDEF,	2, NULL, sPrTime, NULL },
+	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrSummary, NULL },
+	{ 'v',	sVers,	tOpt::NONE,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sPrVersion, NULL },
+	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrUsage, NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 
@@ -103,21 +105,21 @@ void StatN::Scan(FqFile& fq)
 	readlen k;
 	bool insert;
 	const char* read;
-	vector<TemplN> templs;
+	vector<TemplN> templs(20);
 
-	templs.reserve(20);
 	fq.GetSequence();
 	readlen rLen = fq.ReadLength();
-	Array<char>	buf(rLen + 1);
-	Array<ULONG> distr(rLen);	// array of 'N' frequencies
-	//vector<char>	buf(rLen+1);
-	//vector<ULONG> distr(rLen);	// array of 'N' frequencies
+	//Array<char>	buf(rLen + 1);
+	//Array<ULONG> distr(rLen);	// array of 'N' frequencies
+	vector<char>	buf(rLen+1);
+	vector<ULONG>	distr(rLen, 0);	// array of 'N' frequencies
 
 	ULONG cnt = 0;
 	// GET OCCURENCES
 	do {
 		read = fq.GetCurrRead();
-		buf.Clear();
+		//buf.Clear();
+		fill(buf.begin(), buf.end(), 0);
 		for (n = 0, i = 0; i < rLen; i++)
 			if (read[i] == cN) {
 				buf[n++] = i;
@@ -128,20 +130,21 @@ void StatN::Scan(FqFile& fq)
 			insert = false;
 			for (i = 0; i < templs.size(); i++)
 				if (templs[i].Count == n
-					&& !strcmp(buf.Data(), templs[i].Pos.Data())) {
+					//&& !strcmp(buf.Data(), templs[i].Pos.Data())) {
+					&& !strcmp(buf.data(), templs[i].Pos.data())) {
 					templs[i].CountRead++;
 					cntTotalReads++;
 					insert = true;
 					break;
 				}
 			if (!insert)
-				templs.push_back(TemplN(n, buf));
+				templs.emplace_back(n, buf);
 			cntTotalN += n;
 		}
 	} while (fq.GetSequence());
 
 	// OUTPUT RESULT
-	dout << "total " << fq.Count() << " reads length of " << rLen << LF;;
+	dout << "total " << fq.Count() << " reads length of " << rLen << LF;
 	if (templs.size()) {
 		dout << "'N' POSITION STATISTICS\n"
 			<< "pos\tcount\t% of total 'N'\n"
@@ -149,7 +152,7 @@ void StatN::Scan(FqFile& fq)
 		for (k = 0; k < rLen; k++)
 			if (distr[k])
 				dout << setw(2) << int(k) << TAB << distr[k] << TAB
-				<< sPercent(Percent(distr[k], cntTotalN), 3, 0, false) << LF;
+				<< PercentToStr(Percent(distr[k], cntTotalN), 3, 0, false) << LF;
 
 		dout << "\nREAD PATTERN STATISTICS\n";
 		//sort(templs.begin(), templs.end(), Compare);
@@ -179,13 +182,13 @@ void StatN::Scan(FqFile& fq)
 				if (templs[i].Pos[n] - 1 == k) { dout << cN; n++; }
 				else							dout << DOT;
 			dout << setw(9) << templs[i].CountRead;
-			dout << TAB << sPercent(Percent(templs[i].CountRead, fq.Count()), 3, 0, false) << LF;
+			dout << TAB << PercentToStr(Percent(templs[i].CountRead, fq.Count()), 3, 0, false) << LF;
 		}
 
 		dout << "\n'N' relative to the total number of nucleotides: "
-			<< sPercent(Percent(cntTotalN, fq.Count() * rLen), 3, 0, false) << LF;
+			<< PercentToStr(Percent(cntTotalN, fq.Count() * rLen), 3, 0, false) << LF;
 		dout << "Reads that include 'N' relative to the total number of reads: "
-			<< sPercent(Percent(cntTotalReads, fq.Count()), 3, 0, false) << LF;
+			<< PercentToStr(Percent(cntTotalReads, fq.Count()), 3, 0, false) << LF;
 	}
 	else
 		dout << "No reads included 'N'\n";

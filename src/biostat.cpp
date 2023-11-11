@@ -16,6 +16,8 @@ See the	GNU General Public License for more details.
 #include <iomanip>      // setw
 #ifdef _WIN32
 #include <windows.h>
+//#include <cstring>
+#include <algorithm>
 #else
 #include <string.h>
 #include <stdio.h>
@@ -23,12 +25,10 @@ See the	GNU General Public License for more details.
 #include <sys/stat.h>	// struct stat
 #include <unistd.h>		// getcwd() & realink
 #include <limits.h>		// PATH_MAX
-typedef unsigned char BYTE;
+//typedef unsigned char BYTE;
 #endif
 
-#ifdef _WIN32
-#define LPWSTR	LPSTR	// type of second param in CreateProcess() WINIP
-#endif
+typedef unsigned char BYTE;
 
 #define HPH		'-'
 #define SPACE	' '
@@ -36,34 +36,23 @@ typedef unsigned char BYTE;
 
 using namespace std;
 
-struct pairCommand { const char* first; const char* second; };
+using pairCommand = pair<const char*, const char*>;
 
-const pairCommand commands[] = {
+constexpr pairCommand commands[] = {
 	{ "cc",			"bioCC" },
 	{ "calldist",	"callDist" },
 	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
-const BYTE	commCnt = sizeof(commands) / sizeof(commands[0]);
+constexpr BYTE maxCommLen = sizeof(commands[1]);
+constexpr BYTE commCnt = sizeof(commands) / sizeof(commands[0]);
 
 const string appName = "biostat";
 const char* optSumm = "--summ";
 
 int PrintUsage(bool prTitle);
 int CallApp(BYTE ind, const char* argv[] = NULL, int paramsCnt = 3);
-
-//#ifdef _WIN32
-//#include <direct.h>
-//
-//string CurrDir()
-//{
-//	char* cwd = _getcwd(0, 0); // **** microsoft specific ****
-//	string working_dir(cwd);
-//	free(cwd);
-//	return working_dir + '\\';
-//}
-//#endif
 
 // Incapsulates command line to launch utility
 class CommLine
@@ -108,9 +97,11 @@ public:
 		_comm[commLen] = '\0';		// end string
 	}
 
-	inline const char* Get() const { return _comm; }
+	~CommLine() { delete[] _comm; }
 
-	inline ~CommLine() { delete[] _comm; }
+	const char* Get() const { return _comm; }
+
+	size_t Size() const { return strlen(_comm); }
 };
 
 #ifndef _WIN32
@@ -188,7 +179,9 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 	// start the program up
-	if (CreateProcess(NULL, (LPWSTR)cm.Get(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+	WCHAR target[maxCommLen];
+	MultiByteToWideChar(CP_ACP, 0, cm.Get(), -1, target, maxCommLen);
+	if (CreateProcess(NULL, LPWSTR(target), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 		WaitForSingleObject(pi.hProcess, INFINITE);	// Wait until child process exits.
 		// Close process and thread handles. 
 		CloseHandle(pi.hProcess);

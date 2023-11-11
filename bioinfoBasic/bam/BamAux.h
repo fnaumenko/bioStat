@@ -357,7 +357,7 @@ bool BamAlignment::GetEditDistance(uint8_t& editDistance) const {
 
     // localize the tag data
     char* pTagData = (char*)TagData.data();
-    const unsigned int tagDataLen = TagData.size();
+    const unsigned int tagDataLen = unsigned(TagData.size());
     unsigned int numBytesParsed = 0;
 
     bool foundEditDistanceTag = false;
@@ -396,7 +396,7 @@ bool BamAlignment::GetReadGroup(std::string& readGroup) const {
 
     // localize the tag data
     char* pTagData = (char*)TagData.data();
-    const unsigned int tagDataLen = TagData.size();
+    const unsigned int tagDataLen = unsigned(TagData.size());
     unsigned int numBytesParsed = 0;
 
     bool foundReadGroupTag = false;
@@ -423,7 +423,7 @@ bool BamAlignment::GetReadGroup(std::string& readGroup) const {
     if ( !foundReadGroupTag ) { return false; }
 
     // assign the read group
-    const unsigned int readGroupLen = std::strlen(pTagData);
+    const unsigned int readGroupLen = unsigned(std::strlen(pTagData));
     readGroup.resize(readGroupLen);
     std::memcpy( (char*)readGroup.data(), pTagData, readGroupLen );
     return true;
@@ -436,7 +436,7 @@ bool BamAlignment::GetTag(const std::string& tag, std::string& destination) {
 
     // localize the tag data
     char* pTagData = (char*)TagData.data();
-    const unsigned int tagDataLen = TagData.size();
+    const unsigned int tagDataLen = unsigned(TagData.size());
     unsigned int numBytesParsed = 0;
 
     bool foundReadGroupTag = false;
@@ -463,7 +463,7 @@ bool BamAlignment::GetTag(const std::string& tag, std::string& destination) {
     if ( !foundReadGroupTag ) { return false; }
 
     // assign the read group
-    const unsigned int dataLen = std::strlen(pTagData);
+    const unsigned int dataLen = unsigned(std::strlen(pTagData));
     destination.resize(dataLen);
     std::memcpy( (char*)destination.data(), pTagData, dataLen );
     return true;

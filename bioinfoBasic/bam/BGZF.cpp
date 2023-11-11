@@ -32,7 +32,7 @@ BgzfData::BgzfData(void)
     try {
         CompressedBlock   = new char[CompressedBlockSize];
         UncompressedBlock = new char[UncompressedBlockSize];
-    } catch( std::bad_alloc& ba ) {
+    } catch( std::bad_alloc& /*ba*/ ) {
         printf("BGZF ERROR: unable to allocate memory for our BGZF object.\n");
         exit(1);
     }
@@ -170,7 +170,7 @@ void BgzfData::FlushBlock(void) {
         int blockLength = DeflateBlock();
 
         // flush the data to our output stream
-        int numBytesWritten = fwrite(CompressedBlock, 1, blockLength, Stream);
+        int numBytesWritten = int(fwrite(CompressedBlock, 1, blockLength, Stream));
 
         if(numBytesWritten != blockLength) {
           printf("BGZF ERROR: expected to write %u bytes during flushing, but wrote %u bytes.\n", blockLength, numBytesWritten);
@@ -293,7 +293,7 @@ bool BgzfData::ReadBlock(void) {
     char    header[BLOCK_HEADER_LENGTH];
     int64_t blockAddress = ftell(Stream);
 
-    int count = fread(header, 1, sizeof(header), Stream);
+    int count = int(fread(header, 1, sizeof(header), Stream));
     if (count == 0) {
         BlockLength = 0;
         return true;
@@ -314,7 +314,7 @@ bool BgzfData::ReadBlock(void) {
     memcpy(compressedBlock, header, BLOCK_HEADER_LENGTH);
     int remaining = blockLength - BLOCK_HEADER_LENGTH;
 
-    count = fread(&compressedBlock[BLOCK_HEADER_LENGTH], 1, remaining, Stream);
+    count = int(fread(&compressedBlock[BLOCK_HEADER_LENGTH], 1, remaining, Stream));
     if (count != remaining) {
         printf("BGZF ERROR: read block failed - could not read data from block\n");
         return false;
@@ -340,7 +340,7 @@ bool BgzfData::Seek(int64_t position) {
     int     blockOffset  = (position & 0xFFFF);
     int64_t blockAddress = (position >> 16) & 0xFFFFFFFFFFFFLL;
 
-    if (fseek(Stream, blockAddress, SEEK_SET) != 0) {
+    if (fseek(Stream, long(blockAddress), SEEK_SET) != 0) {
         printf("BGZF ERROR: unable to seek in file\n");
         return false;
     }

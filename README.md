@@ -20,33 +20,36 @@ Compressed input files in gzip format are acceptable.
 ## Installation
 ### Executable file
 
-[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/v2.0/biostat-Linux-x64.tar.gz) 
+[Download Linux version](https://github.com/fnaumenko/biostat/releases/download/v2.1/biostat-Linux-x64.tar.gz) 
 and extract **biostat** folder typing `tar -xf biostat-Linux-x64.tar.gz`.<br>
-[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/v2.0/biostat-Windows-x64.zip) 
+[Download Windows version](https://github.com/fnaumenko/biostat/releases/download/v2.1/biostat-Windows-x64.zip) 
 and extract **biostat** folder using [WinRAR](https://www.win-rar.com/download.html?&L=0) or any other ZIP-archiver.
 
 Alternative download in Linux:<br>
-`wget https://github.com/fnaumenko/bioStat/releases/download/v2.0/biostat-Linux-x64.tar.gz`<br>
+`wget https://github.com/fnaumenko/bioStat/releases/download/v2.1/biostat-Linux-x64.tar.gz`<br>
 
 Add **biostat** to the PATH environment variable.
 
-### Compiling in Linux
-Required libraries:<br>
-g++<br>
-zlib
+### Compiling
+Required components:<br>
+g++ (Linux)<br>
+cmake<br>
+zlib (optionally)
 
 To compile from Git, type:
 ```
 git clone https://github.com/fnaumenko/bioStat
 cd bioStat
-make
+cmake .
+cmake --build . --target ALL_BUILD --config Release
 ```
 Alternative:
 ```
 wget -O biostat.tar.gz https://github.com/fnaumenko/bioStat/archive/v2.0.tar.gz
 tar -xf biostat.tar.gz
-cd bioStat-1.0
-make
+cd bioStat-2.1
+cmake src
+cmake --build . --target ALL_BUILD --config Release
 ```
 
 ---
