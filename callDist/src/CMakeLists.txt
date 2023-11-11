@@ -12,11 +12,13 @@ add_compile_definitions(
 	
 # Source groups
 
-if(SUB_PROJECT STREQUAL "true")
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../build)	# sub-project
-	# message(">> callDist is builded as a sub-project")
-else()
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)		# standalone project
+if(SUB_PROJECT STREQUAL "true")		# sub-project
+	# message(">> ${PROJECT_NAME} is builded as a sub-project")
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../build)
+else()								# standalone project
+	message(">> ${PROJECT_NAME} is builded as a standalone project")
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
+	set(BASIC_DIR ../../bioinfoBasic)
 	# a standalone project is supported for development purposes 
 	# and assumes a manual copying of the ZLIB.dll
 	if(MSVC)
@@ -33,9 +35,6 @@ if(ZLIB_FOUND)		# find_package() is called in main project CMakeList
     add_compile_definitions(_ZLIB _BAM)
     include_directories(${ZLIB_INCLUDE_DIR})
 endif()
-
-# set(BASIC_DIR ../../../bioinfoBasic)
-set(BASIC_DIR ../../bioinfoBasic)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${BASIC_DIR})
 

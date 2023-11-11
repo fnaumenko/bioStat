@@ -67,6 +67,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Sub-projects
 unset(SUB_PROJECT CACHE)
 set(SUB_PROJECT "true" CACHE STRING "set when projects below are biuld as a subprojects")
+unset(BASIC_DIR CACHE)
+set(BASIC_DIR ../../bioinfoBasic CACHE STRING "set common basic folder")
 
 # ZLIB for sub-projects
 if(MSVC)
@@ -84,8 +86,9 @@ endif()
 add_subdirectory(src ${CMAKE_BINARY_DIR}/build)
 add_subdirectory(bioCC/src ${CMAKE_BINARY_DIR}/bioCC)
 add_subdirectory(callDist/src ${CMAKE_BINARY_DIR}/callDist)
-# add_subdirectory(../callDistTest/src ${CMAKE_BINARY_DIR}/callDistTest)
 add_subdirectory(fqStatN/src ${CMAKE_BINARY_DIR}/fqStatN)
 add_subdirectory(vAlign/src ${CMAKE_BINARY_DIR}/vAlign)
+
+# add_subdirectory(../callDistTest/src ${CMAKE_BINARY_DIR}/callDistTest)
 
 
