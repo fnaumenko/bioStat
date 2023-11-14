@@ -40,6 +40,8 @@ To compile from Git, type:
 ```
 git clone https://github.com/fnaumenko/bioStat
 cd bioStat
+git submodule init
+git submodule update
 cmake .
 cmake --build . --target ALL_BUILD --config Release
 ```
@@ -48,8 +50,14 @@ Alternative:
 wget -O biostat.tar.gz https://github.com/fnaumenko/bioStat/archive/v2.0.tar.gz
 tar -xf biostat.tar.gz
 cd bioStat-2.1
+git submodule init
+git submodule update
 cmake src
 cmake --build . --target ALL_BUILD --config Release
+```
+Quick check the build:
+```
+build/release/biocc -v
 ```
 
 ---
