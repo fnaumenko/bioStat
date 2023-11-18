@@ -44,7 +44,7 @@ set(Header_Files
     ${BASIC_DIR}/DataInFile.h
 	${BASIC_DIR}/Distrib.h
     ${BASIC_DIR}/TxtFile.h
-    ${BASIC_DIR}/Spline.h
+    ${BASIC_DIR}/spline.h
     callDist.h
 )
 source_group("Header Files" FILES ${Header_Files})
