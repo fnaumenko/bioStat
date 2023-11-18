@@ -10,6 +10,7 @@ Provides main functionality
 #pragma once
 
 #include "Data.h"
+#include "Distrib.h"
 #include <unordered_map>
 
 enum optValue {		// options id
