@@ -46,7 +46,7 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	{ 'i', "inp",	tOpt::NONE,	tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs),
 	 (char*)inputs, "input data to call distribution: ? - fragments, ? - reads", NULL },
-	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, float(LenFreq::LNORM), float(LenFreq::NORM),
+	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, float(Distrib::LNORM), float(Distrib::NORM),
 	ArrCnt(dTypes), (char*)dTypes,
 	"called distribution (in any order): ? - normal, ? - lognormal, ? - Gamma", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Options::Booleans, "allow duplicates", NULL },
@@ -70,8 +70,8 @@ const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 dostream dout;	// stream's duplicator
 
 // Returns explicitly defined by user combo type, otherwise default combo type
-LenFreq::eCType GetType(LenFreq::eCType defType) {
-	return Options::Assigned(oDTYPE) ? LenFreq::eCType(Options::GetIVal(oDTYPE)) : defType;
+Distrib::eCType GetType(Distrib::eCType defType) {
+	return Options::Assigned(oDTYPE) ? Distrib::eCType(Options::GetIVal(oDTYPE)) : defType;
 }
 
 void pr(float v) {
@@ -115,18 +115,18 @@ int main(int argc, char* argv[])
 		case FT::eType::BED:
 		case FT::eType::BAM:
 			if (fragType)
-				FragDist(iName, prStat).Print(GetType(LenFreq::eCType::LNORM), prDist);
+				FragDist(iName, prStat).Print(GetType(Distrib::eCType::LNORM), prDist);
 			else
-				ReadDist(iName, prStat).Print(GetType(LenFreq::eCType::NORM), prDist);
+				ReadDist(iName, prStat).Print(GetType(Distrib::eCType::NORM), prDist);
 			break;
 		case FT::eType::FQ:
 			if (fragType && Options::Assigned(oINPUT))
 				Err(sWFormat + " for fragment distribution; " + sRExt).Throw();
-			FqReadDist(iName).Print(GetType(LenFreq::eCType::NORM), prDist);
+			FqReadDist(iName).Print(GetType(Distrib::eCType::NORM), prDist);
 			break;
 		case FT::eType::DIST:
 			dout << LF;
-			LenFreq(iName).Print(dout, LenFreq::eCType(Options::GetIVal(oDTYPE)), prDist);
+			Distrib(iName).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), prDist);
 			break;
 		default:
 			Err(sWFormat + SepSCl + sRExt + " or FQ").Throw();

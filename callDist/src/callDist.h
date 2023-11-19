@@ -32,7 +32,7 @@ enum class InpType { FRAG, READ };
 // Base length distribution class 
 class LenDist
 {
-	LenFreq	_freq;					// length frequency statistics
+	Distrib	_freq;					// length frequency statistics
 	RBedInFile* _file = nullptr;	// valid in constructor only!
 
 protected:
@@ -48,13 +48,13 @@ protected:
 	inline const RBedInFile& File() { return *_file; }
 
 	// Adds frag length to the frequency distribution
-	inline void AddLen(fraglen len) { _freq.AddLen(len); }
+	inline void AddLen(fraglen len) { _freq.AddVal(len); }
 
 public:
 	// Print actual frequency distribution
 	//	@ctype: combined type of distribution
 	//	@prDistr: if true then print distribution additionally
-	inline void Print(LenFreq::eCType ctype, bool prDistr) { _freq.Print(dout, ctype, prDistr); }
+	inline void Print(Distrib::eCType ctype, bool prDistr) { _freq.Print(dout, ctype, prDistr); }
 };
 
 // 'FragDist' represents fragment's length frequency statistics ('fragment distribution')
