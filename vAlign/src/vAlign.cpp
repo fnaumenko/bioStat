@@ -191,7 +191,7 @@ void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) 
 //	@seq: chromosome sequence
 //	@r: tested Read 
 //	return: count of testet Read's mismatches in comparison with template pattern
-readlen vAlign::VerifyRead(const RefSeq& seq, const Read& r)
+readlen vAlign::VerifyRead(const ChromSeq& seq, const Read& r)
 {
 	const char* pos1 = seq.Seq(r.RecPos) - 1;
 	const char* pos2 = seq.Seq(r.Pos) - 1;
@@ -232,7 +232,7 @@ void vAlign::operator()(chrid cID, chrlen, size_t cnt, chrid nextcID)
 	if (cID != Chrom::UnID)	// not pre-first chrom
 		CloseChromStat(cID, cnt, _file->DuplCount());
 	if (_verb >= eVerb::LAC) { dout << Chrom::ShortName(nextcID) << LF;	fflush(stdout); }
-	_seq.reset(new RefSeq(_cID = nextcID, _cs));
+	_seq.reset(new ChromSeq(_cID = nextcID, _cs));
 	_chrStat.Clear();
 }
 

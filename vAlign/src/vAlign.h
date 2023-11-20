@@ -103,8 +103,8 @@ class vAlign
 	const eVerb	_verb;
 	const float _minScore;		// min possible score
 	chrid	_cID;				// current chrom ID
-	unique_ptr<RefSeq>	_seq;	// ref sequence
-	const ChromSizes& _cs;
+	unique_ptr<ChromSeq> _seq;	// ref sequence
+	const ChromSizes&	 _cs;
 	RBedInFile* _file;			// valid in constructor only!
 	Stat	_chrStat;			// current chrom statistics
 	Stat	_totStat;			// total statistics
@@ -114,7 +114,7 @@ class vAlign
 	//	@r: tested Read
 	//	@duplCnt: number of duplicates
 	//	return: count of testet Read's mismatches in comparison with template pattern
-	readlen VerifyRead(const RefSeq& seq, const Read& r);
+	readlen VerifyRead(const ChromSeq& seq, const Read& r);
 
 	void CloseChromStat(chrid cID, size_t cnt, size_t duplCnt)
 	{
