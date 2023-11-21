@@ -8,7 +8,7 @@ Provides classes for calculating CC
 ***********************************************************/
 
 #include "Calc.h"
-#include "Data.h"
+#include "ChromData.h"
 
 const string sFormat = " format";
 const char* sUNDEF = "UNDEF";

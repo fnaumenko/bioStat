@@ -9,7 +9,7 @@ Provides main functionality
 
 #pragma once
 
-#include "Data.h"
+#include "ChromData.h"
 #include "Distrib.h"
 #include <unordered_map>
 

@@ -15,7 +15,7 @@ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 See the	GNU General Public License for more details.
 ************************************************************************************/
 
-#include "Data.h"
+#include "ChromData.h"
 #include "vAlign.h"
 
 using namespace std;

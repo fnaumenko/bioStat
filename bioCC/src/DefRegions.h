@@ -6,7 +6,7 @@ Last modified: 11/21/2023
 ***********************************************************/
 #pragma once
 
-#include "Data.h"
+#include "ChromData.h"
 
 // 'DefRegions' represents chrom's defined regions,
 // initialized from ChromSizes (statically, at once)
