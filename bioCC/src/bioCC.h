@@ -40,8 +40,8 @@ class FileList
  */
 {
 private:
-	char **_files = NULL;	// file names
-	short _count = 0;		// count of file names
+	char **_files = nullptr;	// file names
+	short _count = 0;			// count of file names
 
 public:
 	// Constructor for list from input file.

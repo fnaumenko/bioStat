@@ -1,12 +1,14 @@
 /**********************************************************
-vAlign.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-All rights reserved.
+vAlign.h 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 11.12.2021
+Last modified: 11.21.2023
 -------------------------
 Provides option emum and main functionality
 ***********************************************************/
 #pragma once
+
+#include "ChromSeq.h"
+#include "DataInFile.h"
 
 enum optValue {
 	oGEN,

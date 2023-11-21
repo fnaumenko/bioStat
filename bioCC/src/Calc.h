@@ -1,15 +1,16 @@
 /**********************************************************
-Calc.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-All rights reserved.
+Calc.h  2014 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 26.12.2021
+Last modified: 11.21.2023
 -------------------------
 Provides classes for calculating CC
 ***********************************************************/
 #pragma once
 
-#include "Data.h"
 #include "bioCC.h"
+#include "DefRegions.h"
+#include "Feature.h"
+
 
 typedef pair<double, double> pairDbl;
 typedef pair<Regions::Iter, Regions::Iter> RegionsRange;

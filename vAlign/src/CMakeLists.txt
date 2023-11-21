@@ -39,6 +39,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${BASIC_DIR})
 
 set(Header_Files
     ${BASIC_DIR}/common.h
+	${BASIC_DIR}/ChromSeq.h
     ${BASIC_DIR}/Data.h
     ${BASIC_DIR}/DataInFile.h
     ${BASIC_DIR}/TxtFile.h
@@ -48,6 +49,7 @@ source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
     ${BASIC_DIR}/common.cpp
+	${BASIC_DIR}/ChromSeq.cpp
     ${BASIC_DIR}/Data.cpp
     ${BASIC_DIR}/DataInFile.cpp
     ${BASIC_DIR}/TxtFile.cpp
