@@ -1,9 +1,8 @@
 /**********************************************************
-Calc.h  2014 Fedor Naumenko (fedor.naumenko@gmail.com)
--------------------------
-Last modified: 11.21.2023
--------------------------
+Calc.h
 Provides classes for calculating CC
+2014 Fedor Naumenko (fedor.naumenko@gmail.com)
+Last modified: 11.22.2023
 ***********************************************************/
 #pragma once
 
@@ -104,7 +103,7 @@ class PlainCover : public Items<ValPos>
 	const eRS	 _printFRes;	// sign to print results for each feature from 'template' and how to sort it
 
 protected:
-	UniBedInFile* _file = nullptr;	// for child constructor only
+	UniBedReader* _file = nullptr;	// for child constructor only
 	size_t	_lastInd = 0;			// last index of recorded item; for child constructor only
 
 	PlainCover() :
@@ -114,7 +113,7 @@ protected:
 
 	// pass through file records
 	template<typename T>
-	void Pass(T* obj, UniBedInFile& file) {
+	void Pass(T* obj, UniBedReader& file) {
 		_file = &file;
 		file.Pass(*obj);
 		_file = nullptr;
@@ -163,7 +162,7 @@ class Cover : public PlainCover
 
 	// Initializes instance from wig file
 	//	return: numbers of all and initialied items for given chrom
-	void InitWiggle(BedInFile& file, const ChromSizes& cSizes);
+	void InitWiggle(BedReader& file, const ChromSizes& cSizes);
 
 public:
 	// Creates new instance by wig-file name

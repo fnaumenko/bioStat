@@ -33,19 +33,19 @@ enum class InpType { FRAG, READ };
 class LenDist
 {
 	Distrib	_freq;					// length frequency statistics
-	RBedInFile* _file = nullptr;	// valid in constructor only!
+	RBedReader* _file = nullptr;	// valid in constructor only!
 
 protected:
 	// pass through file records
 	template<typename T>
-	void Pass(T* obj, RBedInFile& file) {
+	void Pass(T* obj, RBedReader& file) {
 		_file = &file;
 		file.Pass(*obj);
 		_file = nullptr;
 	}
 
 	// Gets the file being read
-	inline const RBedInFile& File() { return *_file; }
+	inline const RBedReader& File() { return *_file; }
 
 	// Adds frag length to the frequency distribution
 	inline void AddLen(fraglen len) { _freq.AddVal(len); }
@@ -61,7 +61,7 @@ public:
 class FragDist : public LenDist
 {
 	unordered_map<ULONG, Read> _waits;	// 'waiting list' - pair mate candidate's collection
-	vector<UniBedInFile::Issue> _issues = { "duplicates" };
+	vector<UniBedReader::Issue> _issues = { "duplicates" };
 	ULONG	_cnt = 0;					// count of items
 	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg, [1] - pos)
 	bool	_dupl;						// if TRUE then duplicate frags are allowed
@@ -75,13 +75,13 @@ class FragDist : public LenDist
 public:
 	FragDist(const char* fname, bool prStats) : _dupl(Options::GetBVal(oDUPL))
 	{
-		RBedInFile file(fname, nullptr, vUNDEF, eOInfo::NONE, false);
+		RBedReader file(fname, nullptr, vUNDEF, eOInfo::NONE, false);
 		Pass(this, file);
 
-		UniBedInFile::PrintItemCount(_cnt, "fragments");
+		UniBedReader::PrintItemCount(_cnt, "fragments");
 		if (_issues[0].Cnt) {
-			if (_dupl)	_issues[0].Action = UniBedInFile::eAction::ACCEPT;
-			UniBedInFile::PrintStats(_cnt, _issues[0].Cnt, _issues, prStats);
+			if (_dupl)	_issues[0].Action = UniBedReader::eAction::ACCEPT;
+			UniBedReader::PrintStats(_cnt, _issues[0].Cnt, _issues, prStats);
 		}
 	}
 
@@ -101,7 +101,7 @@ class ReadDist : public LenDist
 public:
 	// Constructor by BAM/BED file
 	ReadDist(const char* fname, bool prStats) {
-		RBedInFile file(fname, nullptr,
+		RBedReader file(fname, nullptr,
 			Options::GetRDuplLevel(oDUPL),
 			prStats ? eOInfo::STAT : eOInfo::STD,
 			false);
@@ -129,7 +129,7 @@ public:
 
 		for (FqFile file(fname); file.GetSequence(); cnt++)
 			AddLen(file.ReadLength());
-		UniBedInFile::PrintItemCount(cnt, FT::ItemTitle(FT::eType::FQ, cnt > 1));
+		UniBedReader::PrintItemCount(cnt, FT::ItemTitle(FT::eType::FQ, cnt > 1));
 		dout << LF;
 	}
 };

@@ -1,14 +1,13 @@
 /**********************************************************
-Calc.ccp (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-All rights reserved.
--------------------------
-Last modified: 26.12.2021
--------------------------
+Calc.ccp
 Provides classes for calculating CC
+2014 Fedor Naumenko (fedor.naumenko@gmail.com)
+Last modified: 11.22.2023
 ***********************************************************/
 
 #include "Calc.h"
 #include "ChromData.h"
+#include <algorithm>    // std::sort
 
 const string sFormat = " format";
 const char* sUNDEF = "UNDEF";
@@ -354,7 +353,7 @@ void PlainCover::Write(const string& fName) const
 
 // Initializes instance from wig file
 //	return: numbers of all and initialied items for given chrom
-void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
+void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 {
 	static const string keyChrom = "chrom";
 	static const string keyStart = "start";
@@ -373,7 +372,7 @@ void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 	BYTE	offset = 0;		// offset to value delimiter (TAB or SPACE); for Variable Step, only increases
 	ValPos	vPos;			// region start position & value
 	char	firstC;
-	Timer timer(UniBedInFile::IsTimer);
+	Timer timer(UniBedReader::IsTimer);
 	// pointer to initialise position & value function
 	void (*setValPos)(ValPos & vPos, chrlen step, BYTE & offset, const char* s);
 
@@ -443,10 +442,10 @@ void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 	// print stats
 	if (PrintMngr::OutInfo() >= eOInfo::STD) {
 		if (itemCnt == 1)	itemCnt = 0;	// single interval is equal to an empty coverage
-		UniBedInFile::PrintItemCount(itemCnt, FT::ItemTitle(FT::eType::WIG_FIX, itemCnt != 1));
+		UniBedReader::PrintItemCount(itemCnt, FT::ItemTitle(FT::eType::WIG_FIX, itemCnt != 1));
 		if (PrintMngr::OutInfo() == eOInfo::STAT)
 			dout << " (" << recCnt << " data lines)";
-		if (!(Timer::Enabled && UniBedInFile::IsTimer))	dout << LF;
+		if (!(Timer::Enabled && UniBedReader::IsTimer))	dout << LF;
 	}
 	timer.Stop(1, true, PrintMngr::OutInfo() > eOInfo::NM);
 }
@@ -460,13 +459,13 @@ void Cover::InitWiggle(BedInFile& file, const ChromSizes& cSizes)
 Cover::Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval)
 	: PlainCover()
 {
-	UniBedInFile file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, true, abortInval);
+	UniBedReader file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, true, abortInval);
 
 	ReserveItems(file.EstItemCount());	// EstItemCount() > 0 even for empty file, because of track line
 	if (file.Type() == FT::eType::BGRAPH)
 		Pass(this, file);
 	else
-		InitWiggle((BedInFile&)file.BaseFile(), cSizes);
+		InitWiggle((BedReader&)file.BaseFile(), cSizes);
 	
 	if (Options::GetBVal(oWRITE)) {
 		const string ext = FS::GetExt(fName);
@@ -504,7 +503,7 @@ void ReadDens::AddChrom(chrid cID, chrlen cLen)
 ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval)
 	: PlainCover()
 {
-	RBedInFile file(fName, &cSizes, Options::GetRDuplLevel(oDUPL), oinfo, printfName, abortInval);
+	RBedReader file(fName, &cSizes, Options::GetRDuplLevel(oDUPL), oinfo, printfName, abortInval);
 	rfreq freq;
 	_freq = &freq;
 
@@ -702,7 +701,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 	_typeInd(CheckFileExt(primefName, true))
 {
 	PrintMngr::Init(Options::GetIVal(oPRCC), eOInfo(Options::GetIVal(oVERB)), multiFiles);
-	UniBedInFile::IsTimer = PrintMngr::OutInfo() > eOInfo::LAC;
+	UniBedReader::IsTimer = PrintMngr::OutInfo() > eOInfo::LAC;
 	if (tfName)
 		if (IsBedF()) {
 			if (PrintMngr::IsNotLac()) {
@@ -727,7 +726,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 						<< extLen;
 					Err(ss.str(), PrintMngr::EchoName(tfName)).Warning();
 				}
-				_templ->Extend(extLen, rgns.ChrSizes(), UniBedInFile::eAction::ABORT);
+				_templ->Extend(extLen, rgns.ChrSizes(), UniBedReader::eAction::ABORT);
 			}
 		}
 	if (PrintMngr::IsNotLac()) 	dout << "Pearson CC between\n";
@@ -778,7 +777,7 @@ void CorrPair::CalcCC(const char* fName)
 					Features bedF(*((Features*)_firstObj));
 					for (int i = extStep; i <= extLen; i += extStep) {
 						dout << "primer extended by " << i << ":\n";
-						if (!bedF.Extend(extStep, _gRgns.ChrSizes(), UniBedInFile::eAction::ABORT))
+						if (!bedF.Extend(extStep, _gRgns.ChrSizes(), UniBedReader::eAction::ABORT))
 							break;
 						CalcCCBedF(bedF);
 					}

@@ -1,10 +1,10 @@
 /**********************************************************
-vAlign.h 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
--------------------------
-Last modified: 11.21.2023
--------------------------
+vAlign.h
 Provides option emum and main functionality
+2014 Fedor Naumenko (fedor.naumenko@gmail.com)
+Last modified: 11.22.2023
 ***********************************************************/
+
 #pragma once
 
 #include "ChromSeq.h"
@@ -107,7 +107,7 @@ class vAlign
 	chrid	_cID;				// current chrom ID
 	unique_ptr<ChromSeq> _seq;	// ref sequence
 	const ChromSizes&	 _cs;
-	RBedInFile* _file;			// valid in constructor only!
+	RBedReader* _file;			// valid in constructor only!
 	Stat	_chrStat;			// current chrom statistics
 	Stat	_totStat;			// total statistics
 
@@ -133,7 +133,7 @@ public:
 		_minScore(Options::GetFVal(oMINSCR)),
 		_cs(cs)
 	{
-		RBedInFile file(fname, &cs, vUNDEF, eOInfo::LAC, false);
+		RBedReader file(fname, &cs, vUNDEF, eOInfo::LAC, false);
 		_file = &file;
 		file.Pass(*this);
 		_file = nullptr;

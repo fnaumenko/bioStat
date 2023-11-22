@@ -4,15 +4,8 @@ recalled from initial artificial FastQ sequence.
 It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
-Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
--------------------------
-Last modified: 11.12.2021
--------------------------
-
-This program is free software. It is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY;
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the	GNU General Public License for more details.
+2017 Fedor Naumenko (fedor.naumenko@gmail.com)
+Last modified: 11.22.2023
 ************************************************************************************/
 
 #include "ChromData.h"
