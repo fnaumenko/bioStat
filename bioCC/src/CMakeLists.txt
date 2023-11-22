@@ -43,7 +43,7 @@ set(Header_Files
     ${BASIC_DIR}/common.h
 	${BASIC_DIR}/ChromSeq.h
     ${BASIC_DIR}/ChromData.h
-    ${BASIC_DIR}/DataInFile.h
+    ${BASIC_DIR}/DataReader.h
 	${BASIC_DIR}/Feature.h
     ${BASIC_DIR}/TxtFile.h
     bioCC.h
@@ -56,7 +56,7 @@ set(Source_Files
     ${BASIC_DIR}/common.cpp
 	${BASIC_DIR}/ChromSeq.cpp
     ${BASIC_DIR}/ChromData.cpp
-    ${BASIC_DIR}/DataInFile.cpp
+    ${BASIC_DIR}/DataReader.cpp
 	${BASIC_DIR}/Feature.cpp
     ${BASIC_DIR}/TxtFile.cpp
     bioCC.cpp

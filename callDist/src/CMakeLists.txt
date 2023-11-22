@@ -41,7 +41,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${BASIC_DIR})
 set(Header_Files
     ${BASIC_DIR}/common.h
     ${BASIC_DIR}/ChromData.h
-    ${BASIC_DIR}/DataInFile.h
+    ${BASIC_DIR}/DataReader.h
 	${BASIC_DIR}/Distrib.h
     ${BASIC_DIR}/TxtFile.h
     ${BASIC_DIR}/spline.h
@@ -52,7 +52,7 @@ source_group("Header Files" FILES ${Header_Files})
 set(Source_Files
     ${BASIC_DIR}/common.cpp
     ${BASIC_DIR}/ChromData.cpp
-    ${BASIC_DIR}/DataInFile.cpp
+    ${BASIC_DIR}/DataReader.cpp
 	${BASIC_DIR}/Distrib.cpp
     ${BASIC_DIR}/TxtFile.cpp
     callDist.cpp
