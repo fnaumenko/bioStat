@@ -35,6 +35,6 @@ private:
 	{ return el1.CountRead > el2.CountRead; }
 
 public:
-	static void Scan (FqFile& fqFile);
+	static void Scan (FqReader& fqFile);
 
 } statN;

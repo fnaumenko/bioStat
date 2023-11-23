@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 
 FileList::FileList(const char* fName)
 {
-	TabFile file(fName);
+	TabReader file(fName);
 	vector<char*> tmpFiles;	// we don't know the proof capacity
 
 	//== fill tmpFiles

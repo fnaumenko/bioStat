@@ -407,7 +407,7 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 				vPos.Pos -= step;							// shift 'back' before the first pass, where pos+=step will be invoke
 				line1 += keyStep.length() + 1;			// shift to scan the rest of the line faster
 			}
-			line1 = TabFile::KeyStr(line1, keySpan);
+			line1 = TabReader::KeyStr(line1, keySpan);
 			span = line1 ? atoi(line1 + 1) : 1;			// initial span: both for fixed- and variableStep
 			// * check chrom
 			if (file.GetNextChrom(nextCID, line)) {

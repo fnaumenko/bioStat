@@ -127,7 +127,7 @@ public:
 	FqReadDist(const char* fname)  {
 		ULONG	cnt = 0;		// count of reads
 
-		for (FqFile file(fname); file.GetSequence(); cnt++)
+		for (FqReader file(fname); file.GetSequence(); cnt++)
 			AddLen(file.ReadLength());
 		UniBedReader::PrintItemCount(cnt, FT::ItemTitle(FT::eType::FQ, cnt > 1));
 		dout << LF;

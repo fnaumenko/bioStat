@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 			Err(Err::FailOpenOFile).Throw();
 		dout << iName << SepCl;	fflush(stdout);
 		if (!FS::HasExt(iName, FT::Ext(FT::eType::FQ))) Err("wrong format").Throw();
-		FqFile fq(iName);
+		FqReader fq(iName);
 
 		StatN::Scan(fq);
 	}
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 
 /************************  class StatN ************************/
 
-void StatN::Scan(FqFile& fq)
+void StatN::Scan(FqReader& fq)
 {
 	UINT i, n;	// n used as N counter in Read in 1st part (counting), and as counter in 2th (output)
 	ULONG cntTotalN = 0, cntTotalReads = 0;
