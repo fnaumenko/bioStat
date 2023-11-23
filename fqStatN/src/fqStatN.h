@@ -1,5 +1,5 @@
 #pragma once
-#include "TxtFile.h"
+#include "FqReader.h"
 
 enum optValue {
 	oOUTFILE,

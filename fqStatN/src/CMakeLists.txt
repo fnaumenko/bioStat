@@ -35,13 +35,13 @@ if(ZLIB_FOUND)		# find_package() is called in main project CMakeList
 endif()
 
 set(BASIC_DIR ../../bioinfoBasic)
-# set(BASIC_DIR ../../../bioinfoBasic)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${BASIC_DIR})
 
 set(Header_Files
     ${BASIC_DIR}/common.h
     ${BASIC_DIR}/TxtFile.h
+    ${BASIC_DIR}/FqReader.h
     fqStatN.h
 )
 source_group("Header Files" FILES ${Header_Files})
@@ -49,6 +49,7 @@ source_group("Header Files" FILES ${Header_Files})
 set(Source_Files
     ${BASIC_DIR}/common.cpp
     ${BASIC_DIR}/TxtFile.cpp
+    ${BASIC_DIR}/FqReader.cpp
     fqStatN.cpp
 )
 

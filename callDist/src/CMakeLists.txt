@@ -45,6 +45,7 @@ set(Header_Files
 	${BASIC_DIR}/Distrib.h
     ${BASIC_DIR}/TxtFile.h
     ${BASIC_DIR}/spline.h
+    ${BASIC_DIR}/FqReader.h
     callDist.h
 )
 source_group("Header Files" FILES ${Header_Files})
@@ -55,6 +56,7 @@ set(Source_Files
     ${BASIC_DIR}/DataReader.cpp
 	${BASIC_DIR}/Distrib.cpp
     ${BASIC_DIR}/TxtFile.cpp
+    ${BASIC_DIR}/FqReader.cpp
     callDist.cpp
 )
 if(ZLIB_FOUND)

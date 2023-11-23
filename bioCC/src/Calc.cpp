@@ -643,7 +643,7 @@ bool JointedBeds::CalcR(const ChromSizes& cSizes)
 
 		chrlen start = 0, stop = 0, len;	// range's boundary positions, length of range
 		char val = 0;						// value of current range
-		for (chrlen ri = cRanges.FirstInd; ri <= cRanges.LastInd; ri++) {
+		for (auto ri = cRanges.FirstInd; ri <= cRanges.LastInd; ri++) {
 			stop = _ranges[ri].Start;
 			len = stop - start;
 			if (isPrLocal)	chrR.Increment(len, val);

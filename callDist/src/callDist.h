@@ -11,6 +11,7 @@ Provides main functionality
 
 #include "ChromData.h"
 #include "Distrib.h"
+#include "FqReader.h"
 #include <unordered_map>
 
 enum optValue {		// options id
