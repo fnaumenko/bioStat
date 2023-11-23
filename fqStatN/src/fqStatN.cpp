@@ -100,41 +100,32 @@ int main(int argc, char* argv[])
 
 void StatN::Scan(FqReader& fq)
 {
-	UINT i, n;	// n used as N counter in Read in 1st part (counting), and as counter in 2th (output)
-	ULONG cntTotalN = 0, cntTotalReads = 0;
-	readlen k;
-	bool insert;
-	const char* read;
-	vector<TemplN> templs(20);
+	size_t cntTotalN = 0, cntTotalReads = 0;
+	vector<TemplN> templs;	templs.reserve(20);
 
 	fq.GetSequence();
-	readlen rLen = fq.ReadLength();
-	//Array<char>	buf(rLen + 1);
-	//Array<ULONG> distr(rLen);	// array of 'N' frequencies
+	const readlen rLen = fq.ReadLength();
 	vector<char>	buf(rLen+1);
-	vector<ULONG>	distr(rLen, 0);	// array of 'N' frequencies
+	vector<readlen>	distr(rLen, 0);	// array of 'N' frequencies
 
-	ULONG cnt = 0;
 	// GET OCCURENCES
 	do {
-		read = fq.GetCurrRead();
-		//buf.Clear();
+		readlen n = 0;
+		auto read = fq.GetCurrRead();
 		fill(buf.begin(), buf.end(), 0);
-		for (n = 0, i = 0; i < rLen; i++)
+		for (readlen i = 0; i < rLen; i++)
 			if (read[i] == cN) {
 				buf[n++] = i;
 				distr[i]++;
 			}
 		// insert new line in statistic
 		if (n > 0) {
-			insert = false;
-			for (i = 0; i < templs.size(); i++)
+			bool insert = false;
+			for (readlen i = 0; i < templs.size(); i++)
 				if (templs[i].Count == n
-					//&& !strcmp(buf.Data(), templs[i].Pos.Data())) {
-					&& !strcmp(buf.data(), templs[i].Pos.data())) {
+				&& !strcmp(buf.data(), templs[i].Pos.data())) {
 					templs[i].CountRead++;
-					cntTotalReads++;
-					insert = true;
+					insert = ++cntTotalReads;
 					break;
 				}
 			if (!insert)
@@ -146,6 +137,8 @@ void StatN::Scan(FqReader& fq)
 	// OUTPUT RESULT
 	dout << "total " << fq.Count() << " reads length of " << rLen << LF;
 	if (templs.size()) {
+		readlen k, n;
+
 		dout << "'N' POSITION STATISTICS\n"
 			<< "pos\tcount\t% of total 'N'\n"
 			<< "------------------------------\n";
@@ -155,7 +148,6 @@ void StatN::Scan(FqReader& fq)
 				<< PercentToStr(Percent(distr[k], cntTotalN), 3, 0, false) << LF;
 
 		dout << "\nREAD PATTERN STATISTICS\n";
-		//sort(templs.begin(), templs.end(), Compare);
 		// OUTPUT HEADER
 		dout << "position";
 		// output tens
@@ -166,18 +158,18 @@ void StatN::Scan(FqReader& fq)
 		dout << setfill(SPACE) << "\tcount\n";
 		// output units
 		for (k = 0; k < rLen / 10; k++) {
-			for (n = 1; n < 10; n++)		dout << n;	// !!!
+			for (n = 1; n < 10; dout << n++);
 			dout << 0;
 		}
 		// output rest of units
 		k = rLen % 10;
-		for (n = 0; n < k; n++)		dout << n;
+		for (n = 0; n < k; dout << n++);
 		dout << LF;
 		for (k = 0; k < rLen + 2 * 8 + 4; k++)	dout << HPH;
 		dout << LF;
 
 		// OUTPUT ENTRIES
-		for (i = 0; i < templs.size(); i++) {
+		for (readlen i = 0; i < templs.size(); i++) {
 			for (n = k = 0; k < rLen; k++)
 				if (templs[i].Pos[n] - 1 == k) { dout << cN; n++; }
 				else							dout << DOT;

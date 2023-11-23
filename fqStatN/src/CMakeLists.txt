@@ -16,7 +16,6 @@ if(SUB_PROJECT STREQUAL "true")		# sub-project
 else()								# standalone project
 	message(">> ${PROJECT_NAME} is builded as a standalone project")
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
-	set(BASIC_DIR ../../../bioinfoBasic)
 	# a standalone project is supported for development purposes 
 	# and assumes a manual copying of the ZLIB.dll
 	if(MSVC)

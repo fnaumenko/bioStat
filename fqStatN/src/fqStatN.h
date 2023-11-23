@@ -12,27 +12,16 @@ enum optValue {
 static class StatN
 {
 private:
-	struct TemplN {
-		ULONG Count;		// 'N' count 
-		ULONG CountRead;	// Reads count
-		vector<char> Pos;	// template with marked N positions; Array to ensure destructor
-		//Array<char> Pos;	// template with marked N positions; Array to ensure destructor
+	struct TemplN
+	{
+		size_t Count = 0;		// 'N' count 
+		size_t CountRead = 0;	// Reads count
+		vector<char> Pos;	// template with marked N positions
 
-		inline TemplN() : Count(0), CountRead(0) {}
-
-		//inline TemplN(ULONG cnt, const Array<char>& pos)
-		inline TemplN(ULONG cnt, const vector<char>& pos)
-			: Count(cnt), CountRead(1) { Pos = pos;	}
-
-		TemplN(const TemplN& t) { 
-			Count = t.Count;
-			CountRead = t.CountRead;
-			Pos = t.Pos;
-		}
+		TemplN(size_t cnt, const vector<char>& pos) : Count(cnt), CountRead(1), Pos(pos) {}
 	};
 
-	static inline bool Compare (TemplN& el1, TemplN& el2)
-	{ return el1.CountRead > el2.CountRead; }
+	static bool Compare (TemplN& el1, TemplN& el2) { return el1.CountRead > el2.CountRead; }
 
 public:
 	static void Scan (FqReader& fqFile);
