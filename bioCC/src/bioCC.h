@@ -1,10 +1,8 @@
 /**********************************************************
-bioCC.h (c) 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-All rights reserved.
--------------------------
-Last modified: 13.12.2021
--------------------------
+bioCC.h
 Provides option emum and FileList class
+2014 Fedor Naumenko (fedor.naumenko@gmail.com)
+Last modified: 11.23.2023
 ***********************************************************/
 #pragma once
 
@@ -31,7 +29,6 @@ enum optValue {
 	oHELP
 };
 
-
 // 'FileList' represents file's names incoming from argument list or from input list-file.
 class FileList
 /*
@@ -57,13 +54,7 @@ public:
 	
 	inline const char* operator[](int i) const { return _files[i]; }
 
-#ifdef _DEBUG
-	void Print() const {
-		if( _files )
-			for(short i=0; i<_count; i++)
-				cout << _files[i] << LF;
-		else
-			cout << "Empty\n";
-	}
+#ifdef MY_DEBUG
+	void Print() const;
 #endif
 };

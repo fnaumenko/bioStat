@@ -192,4 +192,15 @@ FileList::~FileList()
 	}
 }
 
+#ifdef MY_DEBUG
+void FileList::Print() const
+{
+	if (_files)
+		for (short i = 0; i < _count; i++)
+			cout << _files[i] << LF;
+	else
+		cout << "Empty\n";
+}
+#endif
+
 /************************ end of class FileList ************************/
