@@ -8,7 +8,7 @@ Last modified: 11.22.2023
 
 #include "bioCC.h"
 #include "DefRegions.h"
-#include "Feature.h"
+#include "Features.h"
 
 
 typedef pair<double, double> pairDbl;
