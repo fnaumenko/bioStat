@@ -186,15 +186,16 @@ void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) 
 //	return: count of testet Read's mismatches in comparison with template pattern
 readlen vAlign::VerifyRead(const ChromSeq& seq, const Read& r)
 {
-	const char* pos1 = seq.Seq(r.RecPos) - 1;
-	const char* pos2 = seq.Seq(r.Pos) - 1;
+	const char* pos1 = seq.Seq(r.RecStart) - 1;
+	const char* pos2 = seq.Seq(r.Start) - 1;
+	const readlen len = r.Length();
 	readlen cnt = 0;
 
 	if (_caseDiff)
-		for (readlen i = 0; i < r.Len; i++)
+		for (readlen i = 0; i < len; i++)
 			cnt += *++pos1 != *++pos2;
 	else
-		for (readlen i = 0; i < r.Len; i++)
+		for (readlen i = 0; i < len; i++)
 			cnt += toupper(*++pos1) != toupper(*++pos2);
 
 	return cnt;
@@ -208,7 +209,7 @@ bool vAlign::operator()()
 	else {
 		_chrStat.SetMaxScore(r.Score);
 		if (r.RecCID == _cID)			// mapped to the same chrom
-			if (r.Pos == r.RecPos)		// second number in PE Read name is the end of fragment
+			if (r.Start == r.RecStart)	// second number in PE Read name is the end of fragment
 				_chrStat.IncrPrecise(r.Score);
 			else
 				_chrStat.IncrMism(VerifyRead(*_seq, r), r.Score);

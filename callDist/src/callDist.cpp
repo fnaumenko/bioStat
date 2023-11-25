@@ -158,14 +158,14 @@ bool FragDist::operator()()
 		_waits.emplace(read.Numb, read);		// add read the waiting list
 	else {										// a mate
 		const Read& mate = itMate->second;
-		if (mate.Pos != _pos[mate.Strand] || read.Pos != _pos[read.Strand])	// not a duplicate
+		if (mate.Start != _pos[mate.Strand] || read.Start != _pos[read.Strand])	// not a duplicate
 			AddFrag(mate, read);				// add uniq fragment into statistics
 		else {
 			if (_dupl)	AddFrag(mate, read);	// add dupl fragment into statistics
 			_issues[0].Cnt++;
 		}
-		_pos[mate.Strand] = mate.Pos;
-		_pos[read.Strand] = read.Pos;
+		_pos[mate.Strand] = mate.Start;
+		_pos[read.Strand] = read.Start;
 		_waits.erase(itMate);					// remove read from the waiting list
 		_cnt++;
 	}
