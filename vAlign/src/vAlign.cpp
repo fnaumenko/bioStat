@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 
 		dout << iName << LF;	cout.flush();
 		ChromSizes cSizes(Options::GetSVal(oGEN), oCHROM, true);
-		vAlign(iName, cSizes);
+		vAlign align(iName, cSizes);
 	}
 	catch (Err & e) { ret = 1;	cerr << e.what() << LF; }
 	catch (exception & e) { ret = 1;	cerr << e.what() << LF; }
