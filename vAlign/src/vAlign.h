@@ -36,32 +36,26 @@ class vAlign
 	class Stat
 	{
 		// 'ReadAccum' - accumulator of Read's count and average score 
-		struct ReadAccum
+		class ReadAccum
 		{
-		private:
-			ULONG	_count = 0;		// count of Reads
+			size_t	_count = 0;		// count of Reads
 			double	_avrScore = 0;	// average score
 
 		public:
 			// Gets count of mismatches
-			inline ULONG Count() const { return _count; }
+			size_t Count() const { return _count; }
 
-			inline void	Clear() { _avrScore = _count = 0; }
+			void Clear() { _avrScore = _count = 0; }
 
 			// Add Read's score
-			//	@score: Read's score
-			void AddRead(float score) {
-				_count++;
-				_avrScore = (_avrScore * (_count - 1) + score) / _count;	// rolling average
-			}
+			//	@param score: Read's score
+			void AddRead(float score);
 
 			// Adds chrom read accum to total one
-			void Add(const ReadAccum& rAcc) {
-				_avrScore = (_avrScore * _count + rAcc._avrScore * rAcc._count) / (_count + rAcc._count);
-				_count += rAcc._count;
-			}
+			//	@param rAcc: added Read's accumulator
+			void Add(const ReadAccum& rAcc);
 
-			inline void Print(float maxScore) const {
+			void Print(float maxScore) const {
 				dout << _count /*<< TAB << (_avrScore / maxScore)*/ << LF;
 			}
 		};
@@ -73,19 +67,19 @@ class vAlign
 		map<readlen,ReadAccum>	_mismAccum;	// mismatches accumulator with count of mismatches as a key
 
 	public:
-		inline void SetMaxScore(float score) { if (score > _maxScore)	_maxScore = score; }
+		void SetMaxScore(float score) { if (score > _maxScore)	_maxScore = score; }
 
 		// Increments count of too low scored reads
-		inline void IncrLowScoreCnt() { _lowScoreCnt++; }
+		void IncrLowScoreCnt() { _lowScoreCnt++; }
 
 		// Increments count of precisely mapped reads
 		//	@score: read's score
-		inline void IncrPrecise(float score) { _preciseAccum.AddRead(score); }
+		void IncrPrecise(float score) { _preciseAccum.AddRead(score); }
 
 		// Increments count of with mismatches mapped reads
 		//	@mCnt: number of mismatches
 		//	@score: read's score
-		inline void IncrMism(readlen mCnt, float score) { _mismAccum[mCnt].AddRead(score); }
+		void IncrMism(readlen mCnt, float score) { _mismAccum[mCnt].AddRead(score); }
 
 		// Adds chrom statistisc to total one
 		void Add(const Stat& stat, readlen rLen);
@@ -93,10 +87,10 @@ class vAlign
 		void Clear() { _lowScoreCnt = 0; _preciseAccum.Clear(); _mismAccum.clear(); }
 
 		// Prints statistic for chrom
-		//	@cID: chrom ID
-		//	@rCnt: total count of Reads for given chrom
-		//	@prMismDist: if TRUE then print mismatches distribution
-		void Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) const;
+		//	@param cID: chrom ID
+		//	@param rCnt: total count of Reads for given chrom
+		//	@param prMismDist: if TRUE then print mismatches distribution
+		void Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist) const;
 	};
 
 	const bool _caseDiff;		// differ uppercase and lowercase characters

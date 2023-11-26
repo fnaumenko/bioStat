@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 11.22.2023
+Last modified: 11.26.2023
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -95,6 +95,18 @@ int main(int argc, char* argv[])
 
 /************************ class vAlign ************************/
 
+void vAlign::Stat::ReadAccum::AddRead(float score)
+{
+	_count++;
+	_avrScore = (_avrScore * (_count - 1) + score) / _count;	// rolling average
+}
+
+void vAlign::Stat::ReadAccum::Add(const ReadAccum& rAcc)
+{
+	_avrScore = (_avrScore * _count + rAcc._avrScore * rAcc._count) / (_count + rAcc._count);
+	_count += rAcc._count;
+}
+
 // Adds chrom statistisc to total one
 void vAlign::Stat::Add(const Stat& stat, readlen rLen)
 {
@@ -113,27 +125,22 @@ void vAlign::Stat::Add(const Stat& stat, readlen rLen)
 }
 
 // Prints count and percentage of total
-void PrintCount(const string& title, int sWidth, size_t cnt, ULONG totalCnt, int dWidth)
+void PrintCount(const string& title, int sWidth, size_t cnt, size_t totalCnt, int dWidth)
 {
 	if(cnt)
 		dout<< left << setw(sWidth) << title
-			<< right << setw(dWidth) << cnt << SPACE << SPACE << sPercent(ULONG(cnt), totalCnt, 4, 0, false) << LF;
+			<< right << setw(dWidth) << cnt << SPACE << SPACE << sPercent(cnt, totalCnt, 4, 0, false) << LF;
 }
 
-// Prints statistic for given chrom
-//	@cID: chrom ID
-//	@cnt: total count of Reads for given chrom
-//	@duplCnt: number of duplicates for given chrom
-//	@prMismDist: if TRUE then print mismatches distribution
-void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) const
+void vAlign::Stat::Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist) const
 {
 	const bool isTotal = cID == Chrom::UnID;
 
 	if (isTotal)		dout << "TOTAL\n";
 	int wd;			// wigth of digital field
 	// *** print mismathes distribution
-	ULONG rCnt = _preciseAccum.Count();
-	ULONG rPrecCnt = rCnt;
+	size_t rCnt = _preciseAccum.Count();
+	size_t rPrecCnt = rCnt;
 	if (prMismDist) {
 		//dout << "mismCnt\treadCnt\tAvrQual\n";
 		//wd = 3 * 8;		// wigth of digital field
@@ -164,7 +171,7 @@ void vAlign::Stat::Print(chrid cID, ULONG cnt, size_t duplCnt, bool prMismDist) 
 	dout << left << setw(ws) << (reads + "total" + (isTotal ? strEmpty : (" per chrom " + Chrom::Mark(cID))) + COLON);
 	dout << right << setw(wd) << cnt;
 	if (duplCnt)
-		dout << "  (including " << duplCnt << sPercent(ULONG(duplCnt), cnt, 3, 0, true) << " duplicates)";
+		dout << "  (including " << duplCnt << sPercent(duplCnt, cnt, 3, 0, true) << " duplicates)";
 	dout << LF;
 	// reads discarded due to low score
 	PrintCount(reads + "discarded due to low score:", ws, _lowScoreCnt, cnt, wd);
