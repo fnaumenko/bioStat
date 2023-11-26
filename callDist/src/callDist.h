@@ -76,7 +76,7 @@ class FragDist : public LenDist
 public:
 	FragDist(const char* fname, bool prStats) : _dupl(Options::GetBVal(oDUPL))
 	{
-		RBedReader file(fname, nullptr, vUNDEF, eOInfo::NONE, false);
+		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false);
 		Pass(this, file);
 
 		UniBedReader::PrintItemCount(_cnt, "fragments");
@@ -93,7 +93,7 @@ public:
 	inline void operator()(chrid, chrlen, size_t, chrid) {}
 
 	// Closes last chrom
-	inline void operator()(chrid, chrlen, size_t, ULONG) {}
+	inline void operator()(chrid, chrlen, size_t, size_t) {}
 };
 
 // 'ReadDist' represents Read's length frequency statistics ('Read distribution')
@@ -103,7 +103,7 @@ public:
 	// Constructor by BAM/BED file
 	ReadDist(const char* fname, bool prStats) {
 		RBedReader file(fname, nullptr,
-			Options::GetRDuplLevel(oDUPL),
+			BYTE(Options::GetRDuplLevel(oDUPL)),
 			prStats ? eOInfo::STAT : eOInfo::STD,
 			false);
 
@@ -117,7 +117,7 @@ public:
 	inline void operator()(chrid, chrlen, size_t, chrid) {}
 
 	// Closes last chrom
-	inline void operator()(chrid, chrlen, size_t, ULONG) {}
+	inline void operator()(chrid, chrlen, size_t, size_t) {}
 };
 
 // 'FqReadDist' represents 'row' (fastq) Read's length frequency statistics ('Read distribution')

@@ -2,7 +2,7 @@
 Calc.h
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 11.22.2023
+Last modified: 11.26.2023
 ***********************************************************/
 #pragma once
 
@@ -178,18 +178,18 @@ public:
 	{ AddPos(ValPos(_file->ItemStart(), _file->ItemValue()), _file->PrevItemEnd()); return true; }
 
 	// Closes current chrom, open next one
-	//	@cID: current chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: current chrom items count
-	//	@nextcID: next chrom ID
+	//	@param cID: current chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: current chrom items count
+	//	@param nextcID: next chrom ID
 	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { AddChrom(cID, cLen); }
 
 	// Closes last chrom
-	//	@cID: current chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: current chrom items count
-	//	@nextcID: next chrom ID
-	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { AddChrom(cID, cLen); }
+	//	@param cID: current chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: current chrom items count
+	//	@param nextcID: next chrom ID
+	void operator()(chrid cID, chrlen cLen, size_t cnt, size_t tCnt) { AddChrom(cID, cLen); }
 };
 
 class ReadDens : public PlainCover
@@ -223,18 +223,18 @@ public:
 	}
 
 	// Closes current chrom, open next one
-	//	@cID: current chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: current chrom items count
-	//	@nextcID: next chrom ID
+	//	@param cID: current chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: current chrom items count
+	//	@param nextcID: next chrom ID
 	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID) { if(cnt) AddChrom(cID, cLen); }
 
 	// Closes last chrom
-	//	@cID: last chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: last chrom items count
-	//	@tCnt: total items count
-	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt) { if (cnt) AddChrom(cID, cLen); }
+	//	@param cID: last chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: last chrom items count
+	//	@param tCnt: total items count
+	void operator()(chrid cID, chrlen cLen, size_t cnt, size_t tCnt) { if (cnt) AddChrom(cID, cLen); }
 };
 
 // 'ChromRanges' represented a set of chromosome's ranges.

@@ -217,10 +217,6 @@ bool vAlign::operator()()
 	return true;
 }
 
-// Closes current chrom, open next one
-//	@cID: current chrom ID
-//	@cnt: current chrom items count
-//	@nextcID: next chrom ID
 void vAlign::operator()(chrid cID, chrlen, size_t cnt, chrid nextcID)
 {
 	if (cID != Chrom::UnID)	// not pre-first chrom
@@ -230,11 +226,7 @@ void vAlign::operator()(chrid cID, chrlen, size_t cnt, chrid nextcID)
 	_chrStat.Clear();
 }
 
-// Closes last chrom
-//	@cID: last chrom ID
-//	@cnt: last chrom items count
-//	@tCnt: total items count
-void vAlign::operator()(chrid cID, chrlen, size_t cCnt, ULONG tCnt)
+void vAlign::operator()(chrid cID, chrlen, size_t cCnt, size_t tCnt)
 {
 	CloseChromStat(cID, cCnt, _file->DuplCount());
 	if (_file->ReadedChromCount() > 1)

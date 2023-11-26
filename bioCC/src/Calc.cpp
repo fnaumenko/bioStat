@@ -503,7 +503,7 @@ void ReadDens::AddChrom(chrid cID, chrlen cLen)
 ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval)
 	: PlainCover()
 {
-	RBedReader file(fName, &cSizes, Options::GetRDuplLevel(oDUPL), oinfo, printfName, abortInval);
+	RBedReader file(fName, &cSizes, BYTE(Options::GetRDuplLevel(oDUPL)), oinfo, printfName, abortInval);
 	rfreq freq;
 	_freq = &freq;
 

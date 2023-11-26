@@ -2,9 +2,8 @@
 vAlign.h
 Provides option emum and main functionality
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 11.22.2023
+Last modified: 11.26.2023
 ***********************************************************/
-
 #pragma once
 
 #include "ChromSeq.h"
@@ -133,7 +132,7 @@ public:
 		_minScore(Options::GetFVal(oMINSCR)),
 		_cs(cs)
 	{
-		RBedReader file(fname, &cs, vUNDEF, eOInfo::LAC, false);
+		RBedReader file(fname, &cs, BYTE_UNDEF, eOInfo::LAC, false);
 		_file = &file;
 		file.Pass(*this);
 		_file = nullptr;
@@ -143,16 +142,16 @@ public:
 	bool operator()();
 
 	// Closes current chrom, open next one
-	//	@cID: current chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: current chrom items count
-	//	@nextcID: next chrom ID
+	//	@param cID: current chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: current chrom items count
+	//	@param nextcID: next chrom ID
 	void operator()(chrid cID, chrlen cLen, size_t cnt, chrid nextcID);
 
 	// Closes last chrom
-	//	@cID: last chrom ID
-	//	@cLen: current chrom length
-	//	@cnt: last chrom items count
-	//	@tCnt: total items count
-	void operator()(chrid cID, chrlen cLen, size_t cnt, ULONG tCnt);
+	//	@param cID: last chrom ID
+	//	@param cLen: current chrom length
+	//	@param cnt: last chrom items count
+	//	@param tCnt: total items count
+	void operator()(chrid cID, chrlen cLen, size_t cnt, size_t tCnt);
 };
