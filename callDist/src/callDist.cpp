@@ -44,10 +44,9 @@ const BYTE Options::Option::IndentInTabs = 3;
 //	defVal (if NO_DEF then no default value printed),
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
-	{ 'i', "inp",	tOpt::NONE,	tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs),
-	 (char*)inputs, "input data to call distribution: ? - fragments, ? - reads", NULL },
-	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, float(Distrib::LNORM), float(Distrib::NORM),
-	ArrCnt(dTypes), (char*)dTypes,
+	{ 'i', "inp",	tOpt::NONE,	tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs), (char*)inputs,
+	"input data to call distribution: ? - fragments, ? - reads", NULL },
+	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, Distrib::LNORM, Distrib::NORM, ArrCnt(dTypes), (char*)dTypes,
 	"called distribution (in any order): ? - normal, ? - lognormal, ? - Gamma", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Options::Booleans, "allow duplicates", NULL },
 	{ 'p', "pr-dist",tOpt::NONE,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
