@@ -170,8 +170,8 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	int ret = 0;
 
 	CommLine cm(app, argv ? argv : helpParams, argc);
-	const BYTE maxCommLen = cm.Size() + 1;
-	//printf("%d\t%s\n", maxCommLen, cm.Get());	// control output
+	const BYTE ñommLen = BYTE(cm.Size() + 1);
+	//printf("%d\t%s\n", ñommLen, cm.Get());	// control output
 #ifdef _WIN32
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -181,8 +181,8 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	ZeroMemory(&pi, sizeof(pi));
 
 	// start the program up
-	vector<WCHAR> target(maxCommLen);
-	MultiByteToWideChar(CP_ACP, 0, cm.Get(), -1, target.data(), maxCommLen);
+	vector<WCHAR> target(ñommLen);
+	MultiByteToWideChar(CP_ACP, 0, cm.Get(), -1, target.data(), ñommLen);
 	if (CreateProcess(NULL, LPWSTR(target.data()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 		WaitForSingleObject(pi.hProcess, INFINITE);	// Wait until child process exits.
 		// Close process and thread handles. 
@@ -198,8 +198,10 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	if (IsFileExist(app)) {
 		FILE* fp = popen(cm.Get(), "r");
 		if (fp) {
-			char buff[256];
-			while (fgets(buff, sizeof(buff), fp)) cout << buff;
+			//char buff[256];
+			//while (fgets(buff, sizeof(buff), fp)) cout << buff;
+			vector<char> buff(ñommLen);
+			while (fgets(buff.data(), ñommLen, fp)) cout << buff;
 			pclose(fp);
 		}
 		else { cerr << app << " open error\n";	ret = 1; }
