@@ -45,7 +45,7 @@ class vAlign
 			// Gets count of mismatches
 			size_t Count() const { return _count; }
 
-			void Clear() { _avrScore = _count = 0; }
+			void Clear() { _avrScore = 0, _count = 0; }
 
 			// Add Read's score
 			//	@param score: Read's score

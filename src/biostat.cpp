@@ -14,6 +14,7 @@ See the	GNU General Public License for more details.
 
 #include <iostream>	
 #include <iomanip>      // setw
+#include <vector>
 #ifdef _WIN32
 #include <windows.h>
 //#include <cstring>
@@ -45,7 +46,6 @@ constexpr pairCommand commands[] = {
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
-constexpr BYTE maxCommLen = sizeof(commands[1]);
 constexpr BYTE commCnt = sizeof(commands) / sizeof(commands[0]);
 
 const string appName = "biostat";
@@ -170,7 +170,8 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	int ret = 0;
 
 	CommLine cm(app, argv ? argv : helpParams, argc);
-	//cout << cm.Get() << EOL;	return 0;	// control output
+	const BYTE maxCommLen = cm.Size() + 1;
+	//printf("%d\t%s\n", maxCommLen, cm.Get());	// control output
 #ifdef _WIN32
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -178,10 +179,11 @@ int CallApp(BYTE ind, const char* argv[], int argc)
 	ZeroMemory(&si, sizeof(si));		// set the size of the structures
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
+
 	// start the program up
-	WCHAR target[maxCommLen];
-	MultiByteToWideChar(CP_ACP, 0, cm.Get(), -1, target, maxCommLen);
-	if (CreateProcess(NULL, LPWSTR(target), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+	vector<WCHAR> target(maxCommLen);
+	MultiByteToWideChar(CP_ACP, 0, cm.Get(), -1, target.data(), maxCommLen);
+	if (CreateProcess(NULL, LPWSTR(target.data()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 		WaitForSingleObject(pi.hProcess, INFINITE);	// Wait until child process exits.
 		// Close process and thread handles. 
 		CloseHandle(pi.hProcess);
