@@ -12,7 +12,7 @@ add_compile_definitions(
 # Source groups
 
 if(SUB_PROJECT STREQUAL "true")		# sub-project
-	# message(">> ${PROJECT_NAME} is builded as a sub-project")
+	message(">> ${PROJECT_NAME} is builded as a sub-project")
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../build)
 else()								# standalone project
 	message(">> ${PROJECT_NAME} is builded as a standalone project")
