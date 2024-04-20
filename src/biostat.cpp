@@ -4,7 +4,7 @@ This is a command shell for calling statistical programs.
 
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 09.01.2022
+Last modified: 04/20/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
