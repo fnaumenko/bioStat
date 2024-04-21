@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 11.12.2021
+Last modified: 04.21.2024
 -------------------------
 Provides main functionality
 ***********************************************************/
