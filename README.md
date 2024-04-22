@@ -357,7 +357,7 @@ Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-c|--chr <name>`<br>
 treats specified chromosome only. `name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
-Specifying one first chromosome gives a difference from the distribution parameters of the entire genome 
+Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
 of less than 2% (with a reliable number of fragments, exceeding several thousand), 
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
