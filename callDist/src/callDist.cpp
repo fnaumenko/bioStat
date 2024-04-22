@@ -8,7 +8,7 @@ Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 11/10/2023
+Last modified: 04/22/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -46,6 +46,7 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	{ 'i', "inp",	tOpt::NONE,	tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs), (char*)inputs,
 	"input data to call distribution: ? - fragments, ? - reads", NULL },
+	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
 	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, Distrib::LNORM, Distrib::NORM, ArrCnt(dTypes), (char*)dTypes,
 	"called distribution (in any order): ? - normal, ? - lognormal, ? - Gamma", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Options::Booleans, "allow duplicates", NULL },
@@ -91,6 +92,7 @@ int main(int argc, char* argv[])
 		const char* oName = Options::GetSVal(oOUTFILE);				// output
 		const FT::eType ftype = FT::GetType(iName);
 
+		Chrom::SetCustomOption(oCHROM, true);
 		// while input file is distribution, add "_out" to output file name -
 		// only if isn't specified or the same as input
 		if (Options::Assigned(oOUTFILE)
