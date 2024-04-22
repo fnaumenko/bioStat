@@ -291,6 +291,7 @@ or<br>
 ```
 Input:
   -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
+  -c|--chr <name>       treat specified chromosome only
   -D|--dist <N,LN,G>    called distribution (in any order): N - normal, LN - lognormal, G - Gamma [LN]
   -d|--dup <OFF|ON>     allow duplicates [OFF]
 Processing:
@@ -353,6 +354,12 @@ WARNING: while trying to call fragment distribution with single-end BAM file,
 the Windows build can crash silently instead of printing the corresponding message. 
 This is due to an incorrectness in the BamTools library being used.<br>
 Default: `FRAG` for BAM/BED, `READ` for FASTQ
+
+`-c|--chr <name>`<br>
+treats specified chromosome only. `name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
+Specifying one first chromosome gives a difference from the distribution parameters of the entire genome 
+of less than 2% (with a sufficient number of fragments, exceeding several thousand), 
+but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
 `-D|--dist <N,LN,G>`<br>
 specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma. 

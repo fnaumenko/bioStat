@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
 
 	if (Options::GetBVal(oLOCALE))	cout.imbue(locale(LOCALE_ENG));
 
+	Chrom::SetUserChrom(oCHROM);
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
@@ -80,7 +81,7 @@ int main(int argc, char* argv[])
 			Err(Err::FailOpenOFile).Throw();
 
 		dout << iName << LF;	cout.flush();
-		ChromSizes cSizes(Options::GetSVal(oGEN), oCHROM, true);
+		ChromSizes cSizes(Options::GetSVal(oGEN), true);
 		vAlign align(iName, cSizes);
 	}
 	catch (Err & e) { ret = 1;	cerr << e.what() << LF; }

@@ -109,6 +109,7 @@ int main(int argc, char* argv[])
 	int ret = 0;						// main() return code
 
 	if (Options::GetBVal(oOUTFILE))	dout.OpenFile(OutFile);
+	Chrom::SetUserChrom(oCHROM);
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
@@ -137,7 +138,7 @@ int main(int argc, char* argv[])
 			Err(Options::OptionToStr(oGENOM) + " is required for all the file types except BAM",
 				inFiles[0]).Throw();
 
-		ChromSizes cSizes(gName, oCHROM, true);
+		ChromSizes cSizes(gName, true);
 		DefRegions gRgn(cSizes, Options::GetIVal(oGAPLEN));
 		CorrPair cPair(inFiles[0], gRgn, Options::GetSVal(oFBED), inFilesCnt > 2);
 		for (short i = 1; i < inFilesCnt; i++)

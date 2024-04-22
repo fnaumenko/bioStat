@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option or tip output
 	int ret = 0;						// main() return code
 
+	Chrom::SetUserChrom(oCHROM);
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
@@ -92,7 +93,6 @@ int main(int argc, char* argv[])
 		const char* oName = Options::GetSVal(oOUTFILE);				// output
 		const FT::eType ftype = FT::GetType(iName);
 
-		Chrom::SetCustomOption(oCHROM, true);
 		// while input file is distribution, add "_out" to output file name -
 		// only if isn't specified or the same as input
 		if (Options::Assigned(oOUTFILE)
