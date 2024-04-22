@@ -4,7 +4,7 @@ This is a command shell for calling statistical programs.
 
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/20/2024
+Last modified: 04/22/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -158,10 +158,10 @@ int PrintUsage(bool prTitle)
 }
 
 // Calls package
-//	@ind: index of package in commands[]
-//	@argv: program arguments
-//	@argc: number of program arguments
-//	return: exit code
+//	@param ind: index of package in commands[]
+//	@param argv: program arguments
+//	@param argc: number of program arguments
+//	@returns: exit code
 int CallApp(BYTE ind, const char* argv[], int argc)
 {
 	const char* missUtil = ":\t this utility is missing\n";
