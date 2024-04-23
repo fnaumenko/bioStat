@@ -121,7 +121,7 @@ class vAlign
 public:
 	vAlign(const char* fname, ChromSizes& cs) :
 		_caseDiff(Options::GetBVal(oCCASE)),
-		_multy(Chrom::CustomID() == Chrom::UnID),
+		_multy(Chrom::UserCID() == Chrom::UnID),
 		_verb(eVerb(Options::GetIVal(oVERBOSE))),
 		_minScore(Options::GetFVal(oMINSCR)),
 		_cs(cs)

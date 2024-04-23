@@ -62,7 +62,8 @@ void PrintMngr::CompleteEmpty(const char* fName, FT::eType type)
 	if (!_PrName)	ss << fName;
 	if (_OInfo <= eOInfo::NM)	ss << SepCl;
 	ss << "no " << FT::ItemTitle(type);
-	if (Chrom::CustomID() != Chrom::UnID)	ss << " for stated " << Chrom::ShortName(Chrom::CustomID());
+	if (Chrom::UserCID() != Chrom::UnID)
+		ss << " for stated " << Chrom::ShortName(Chrom::UserCID());
 	Err(ss.str()).Throw();
 }
 
@@ -411,7 +412,7 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 			span = line1 ? atoi(line1 + 1) : 1;			// initial span: both for fixed- and variableStep
 			// * check chrom
 			if (file.GetNextChrom(nextCID, line)) {
-				if (Chrom::IsCustom()) {				// are all chroms specified?
+				if (Chrom::IsSetByUser()) {				// are all chroms specified?
 					if (cID != Chrom::UnID)				// skip first pass, when curr chrom is still undefined
 						PlainCover::AddChrom(cID, cSizes[cID], prevEnd),
 						itemCnt += cItemCnt;
@@ -419,7 +420,7 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 				else {								// single chrom is specified
 					if (!fixedStep && vPos.Pos)		// region is initialized: items for the specified chrom are existed and saved
 						break;						// the chrom itself will be saved after loop
-					if (skipChrom = nextCID != Chrom::CustomID())
+					if (skipChrom = nextCID != Chrom::UserCID())
 						continue;
 				}
 				cID = nextCID;

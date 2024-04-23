@@ -13,11 +13,11 @@ void DefRegions::Init()
 	if (IsEmpty())
 		if (_cSizes.IsFilled()) {
 			// initialize instance from chrom sizes
-			if (Chrom::IsCustom())
+			if (Chrom::IsSetByUser())
 				for (ChromSizes::cIter it = _cSizes.cBegin(); it != _cSizes.cEnd(); it++)
 					AddElem(CID(it), Regions(0, _cSizes[CID(it)]));
 			else
-				AddElem(Chrom::CustomID(), Regions(0, _cSizes[Chrom::CustomID()]));
+				AddElem(Chrom::UserCID(), Regions(0, _cSizes[Chrom::UserCID()]));
 			//_isEmpty = false;
 		}
 }
