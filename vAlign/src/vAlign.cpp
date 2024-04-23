@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
 	if (Options::GetBVal(oLOCALE))	cout.imbue(locale(LOCALE_ENG));
 
-	Chrom::SetUserChrom(oCHROM);
+	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {

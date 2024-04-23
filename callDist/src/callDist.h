@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 04/22/2024
+Last modified: 04/23/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -53,10 +53,15 @@ protected:
 	inline void AddLen(fraglen len) { _freq.AddVal(len); }
 
 public:
-	// Print actual frequency distribution
-	//	@ctype: combined type of distribution
-	//	@prDistr: if true then print distribution additionally
-	inline void Print(Distrib::eCType ctype, bool prDistr) { _freq.Print(dout, ctype, prDistr); }
+	// Print actual frequency distribution on a new line
+	//	@param ctype: combined type of distribution
+	//	@param prDistr: if true then print distribution additionally
+	void Print(Distrib::eCType ctype, bool prDistr)
+	{
+		// empty input checked before
+		if (_freq.Size())
+			_freq.Print(dout, ctype, prDistr);
+	}
 };
 
 // 'FragDist' represents fragment's length frequency statistics ('fragment distribution')

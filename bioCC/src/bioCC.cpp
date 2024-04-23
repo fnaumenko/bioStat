@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 	int ret = 0;						// main() return code
 
 	if (Options::GetBVal(oOUTFILE))	dout.OpenFile(OutFile);
-	Chrom::SetUserChrom(oCHROM);
+	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {

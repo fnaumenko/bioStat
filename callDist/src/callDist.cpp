@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option or tip output
 	int ret = 0;						// main() return code
 
-	Chrom::SetUserChrom(oCHROM);
+	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
