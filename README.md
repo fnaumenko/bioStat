@@ -191,7 +191,8 @@ indicates that input bed files are *alignments*, so the read density correlation
 specifies chromosome sizes file. Required for BED and WIG files.
 
 `-c|--chr <name>`<br>
-treats specified chromosome only. `name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
+treats specified chromosome only.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
 Specifying one chromosome reduces processing time of multi-chromosomal data by 2-20  times.<br>
 *Ordinary* beds are treated quickly in any case.
 
@@ -356,7 +357,8 @@ This is due to an incorrectness in the BamTools library being used.<br>
 Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-c|--chr <name>`<br>
-treats specified chromosome only. `name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
+treats specified chromosome only.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
 Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
 of less than 2% (with a reliable number of fragments, exceeding several thousand), 
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
@@ -484,7 +486,8 @@ In the second case please copy genomic sequences with the same masked type only,
 This option is required.
 
 `-c|--chr <name>`<br>
-treats specified chromosome only. `name` identifies chromosome by number or character, e.g. `10` or `X`.
+treats specified chromosome only.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
 The indication of one chromosome reduces run time on 1.5-20 times but reduces statistical completeness.
 
 `--min-scr <int>`<br>
