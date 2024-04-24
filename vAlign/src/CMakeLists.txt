@@ -42,6 +42,7 @@ set(Header_Files
 	${BASIC_DIR}/ChromSeq.h
     ${BASIC_DIR}/ChromData.h
     ${BASIC_DIR}/DataReader.h
+    ${BASIC_DIR}/Options.h
     ${BASIC_DIR}/TxtFile.h
     vAlign.h
 )
@@ -52,6 +53,7 @@ set(Source_Files
 	${BASIC_DIR}/ChromSeq.cpp
     ${BASIC_DIR}/ChromData.cpp
     ${BASIC_DIR}/DataReader.cpp
+    ${BASIC_DIR}/Options.cpp
     ${BASIC_DIR}/TxtFile.cpp
     vAlign.cpp
 )

@@ -44,6 +44,7 @@ set(Header_Files
     ${BASIC_DIR}/ChromData.h
     ${BASIC_DIR}/DataReader.h
 	${BASIC_DIR}/Distrib.h
+    ${BASIC_DIR}/Options.h
     ${BASIC_DIR}/TxtFile.h
     ${BASIC_DIR}/spline.h
     ${BASIC_DIR}/FqReader.h
@@ -56,6 +57,7 @@ set(Source_Files
     ${BASIC_DIR}/ChromData.cpp
     ${BASIC_DIR}/DataReader.cpp
 	${BASIC_DIR}/Distrib.cpp
+    ${BASIC_DIR}/Options.cpp
     ${BASIC_DIR}/TxtFile.cpp
     ${BASIC_DIR}/FqReader.cpp
     callDist.cpp

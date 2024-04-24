@@ -2,13 +2,14 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 04/23/2024
+Last modified: 04/24/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
 
 #pragma once
 
+#include "Options.h"
 #include "ChromData.h"
 #include "Distrib.h"
 #include "FqReader.h"

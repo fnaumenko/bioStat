@@ -6,6 +6,7 @@ Last modified: 11.26.2023
 ***********************************************************/
 #pragma once
 
+#include "Options.h"
 #include "ChromSeq.h"
 #include "DataReader.h"
 

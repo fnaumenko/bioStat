@@ -3,7 +3,7 @@ fqStatN outputs statistic of ambiguous reference characters ‘N’ in fq-file.
 
 Copyright (C) 2018 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 15.03.2021
+Last modified: 04/24/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -33,6 +33,7 @@ Reads that include 'N' relative to the total number of reads: 0.211%
  */
 
 #include "fqStatN.h"
+#include "Options.h"
 #include <algorithm>    // std::sort
 
 using namespace std;

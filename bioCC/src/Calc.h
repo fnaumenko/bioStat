@@ -2,11 +2,12 @@
 Calc.h
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 11.26.2023
+Last modified: 04.24.2024
 ***********************************************************/
 #pragma once
 
 #include "bioCC.h"
+#include "Options.h"
 #include "DefRegions.h"
 #include "Features.h"
 

@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 24.12.2021
+Last modified:04/24/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -63,8 +63,8 @@ Options::Option Options::List[] = {
 	{ 'c', Chrom::Abbr,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
 	{ HPH,"gap-len",tOpt::HIDDEN,tINT,	gINPUT,	1000, 50, 1e5, NULL,
 	"minimal length of undefined nucleotide region in genome\nwhich is declared as a gap.\nIgnored for the chromosome sizes file and for the ordinary beds", NULL },
-	{ 'd', "dup",	tOpt::NONE,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Options::Booleans, "allow duplicate reads.", ForAligns },
-	{ 'o', "overl",	tOpt::NONE,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Options::Booleans,
+	{ 'd', "dup",	tOpt::NONE,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Booleans, "allow duplicate reads.", ForAligns },
+	{ 'o', "overl",	tOpt::NONE,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Booleans,
 	"allow (and merge) overlapping features. For the ordinary beds only", NULL },
 	{ 'l', "list",	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
 	"list of multiple input files.\nFirst (primary) file in list is comparing with others (secondary)", NULL },

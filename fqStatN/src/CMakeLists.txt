@@ -41,6 +41,7 @@ set(Header_Files
     ${BASIC_DIR}/common.h
     ${BASIC_DIR}/TxtFile.h
     ${BASIC_DIR}/FqReader.h
+    ${BASIC_DIR}/Options.h
     fqStatN.h
 )
 source_group("Header Files" FILES ${Header_Files})
@@ -49,6 +50,7 @@ set(Source_Files
     ${BASIC_DIR}/common.cpp
     ${BASIC_DIR}/TxtFile.cpp
     ${BASIC_DIR}/FqReader.cpp
+    ${BASIC_DIR}/Options.cpp
     fqStatN.cpp
 )
 
