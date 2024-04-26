@@ -139,11 +139,12 @@ int main(int argc, char* argv[])
 // treats current read
 bool FragDist::operator()()
 {
-	if (_uncheckedPE) {
+	//return true;
+	if (!_checkedPE) {
 		if (!File().IsPairedRead())
 			Err("only paired-end reads are acceptable to call fragments distribution",
 				File().CondFileName()).Throw();
-		_uncheckedPE = false;
+		_checkedPE = true;
 	}
 	const Read read(File());
 	const auto itMate = _waits.find(read.Numb);	// look for the read with given Numb
@@ -153,9 +154,9 @@ bool FragDist::operator()()
 	else {										// a mate
 		const Read& mate = itMate->second;
 		if (mate.Start != _pos[mate.Strand] || read.Start != _pos[read.Strand])	// not a duplicate
-			AddFrag(mate, read);				// add uniq fragment into statistics
+			AddFrag(mate, read);				// add uniq fragment into distribution
 		else {
-			if (_dupl)	AddFrag(mate, read);	// add dupl fragment into statistics
+			if (_dupl)	AddFrag(mate, read);	// add dupl fragment into distribution
 			_issues[0].Cnt++;
 		}
 		_pos[mate.Strand] = mate.Start;

@@ -4,7 +4,6 @@ set(PROJECT_NAME callDist)
 project(${PROJECT_NAME})
 
 add_compile_definitions(
-	_CALLDIST
 	_DUP_OUTPUT		# duplicated output
 	_READS
 	_PE_READ

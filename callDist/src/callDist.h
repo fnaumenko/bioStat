@@ -72,13 +72,13 @@ class FragDist : public LenDist
 	vector<UniBedReader::Issue> _issues = { "duplicates" };
 	ULONG	_cnt = 0;					// count of items
 	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg read, [1] - pos read)
-	bool	_dupl;						// if TRUE then duplicate frags are allowed
-	bool	_uncheckedPE = true;		// if TRUE then reads have not yet been checked for PE
+	bool	_dupl;						// if TRUE if duplicate frags are allowed
+	bool	_checkedPE = false;			// if TRUE if reads have been checked for PE
 
 	// Adds frag to the freq distribution
 	//	@r1: first read in a pair
 	//	@r2: second read in a pair
-	inline void AddFrag(const Read& r1, const Read& r2) { AddLen(r1.FragLen(r2)); }
+	void AddFrag(const Read& r1, const Read& r2) { AddLen(r1.FragLen(r2)); }
 
 public:
 	FragDist(const char* fname, bool prStats) : _dupl(Options::GetBVal(oDUPL))
