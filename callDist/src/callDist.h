@@ -59,7 +59,7 @@ public:
 	//	@param prDistr: if true then print distribution additionally
 	void Print(Distrib::eCType ctype, bool prDistr)
 	{
-		// empty input checked before
+		// empty input is checked already in the 'UniBedReader' constructor
 		if (_freq.Size())
 			_freq.Print(dout, ctype, prDistr);
 	}
@@ -71,7 +71,7 @@ class FragDist : public LenDist
 	unordered_map<ULONG, Read> _waits;	// 'waiting list' - pair mate candidate's collection
 	vector<UniBedReader::Issue> _issues = { "duplicates" };
 	ULONG	_cnt = 0;					// count of items
-	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg, [1] - pos)
+	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg read, [1] - pos read)
 	bool	_dupl;						// if TRUE then duplicate frags are allowed
 	bool	_uncheckedPE = true;		// if TRUE then reads have not yet been checked for PE
 
