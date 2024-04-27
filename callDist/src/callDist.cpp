@@ -8,7 +8,7 @@ Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/24/2024
+Last modified: 04/27/2024
 -------------------------
 ************************************************************************************/
 
@@ -150,7 +150,7 @@ bool FragDist::operator()()
 	const auto itMate = _waits.find(read.Numb);	// look for the read with given Numb
 
 	if (itMate == _waits.end())					// is read not on the waiting list?
-		_waits.emplace(read.Numb, read);		// add read the waiting list
+		_waits.emplace(read.Numb, std::move(read));		// add read to the waiting list
 	else {										// a mate
 		const Read& mate = itMate->second;
 		if (mate.Start != _pos[mate.Strand] || read.Start != _pos[read.Strand])	// not a duplicate
@@ -161,6 +161,9 @@ bool FragDist::operator()()
 		}
 		_pos[mate.Strand] = mate.Start;
 		_pos[read.Strand] = read.Start;
+#ifdef MY_DEBUG
+		if (_maxSize < _waits.size())	_maxSize = _waits.size();
+#endif
 		_waits.erase(itMate);					// remove read from the waiting list
 		_cnt++;
 	}

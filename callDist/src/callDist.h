@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 04/24/2024
+Last modified: 04/27/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -74,10 +74,13 @@ class FragDist : public LenDist
 	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg read, [1] - pos read)
 	bool	_dupl;						// if TRUE if duplicate frags are allowed
 	bool	_checkedPE = false;			// if TRUE if reads have been checked for PE
+#ifdef MY_DEBUG
+	int		_maxSize = 0;				// maximum waiting _waits size
+#endif
 
 	// Adds frag to the freq distribution
-	//	@r1: first read in a pair
-	//	@r2: second read in a pair
+	//	@param r1: first read in a pair
+	//	@param r2: second read in a pair
 	void AddFrag(const Read& r1, const Read& r2) { AddLen(r1.FragLen(r2)); }
 
 public:
@@ -100,7 +103,11 @@ public:
 	inline void operator()(chrid, chrlen, size_t, chrid) {}
 
 	// Closes last chrom
-	inline void operator()(chrid, chrlen, size_t, size_t) {}
+	inline void operator()(chrid, chrlen, size_t, size_t) {
+#ifdef MY_DEBUG
+		printf(">>max size: %d ", _maxSize);
+#endif
+	}
 };
 
 // 'ReadDist' represents Read's length frequency statistics ('Read distribution')
