@@ -293,7 +293,8 @@ or<br>
 Input:
   -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
   -c|--chr <name>       treat specified chromosome only
-  -D|--dist <N,LN,G>    called distribution (in any order): N - normal, LN - lognormal, G - Gamma [LN]
+  -D|--dist <N,LN,G>    called distribution (can be combined in any order):
+                        N - normal, LN - lognormal, G - Gamma [LN]
   -d|--dup <OFF|ON>     allow duplicates [OFF]
 Processing:
   -p|--pr-dist          print obtained frequency distribution
@@ -364,8 +365,8 @@ of less than 2% (with a reliable number of fragments, exceeding several thousand
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
 `-D|--dist <N,LN,G>`<br>
-specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma. 
-Can be combined in any order.<br>
+specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma.<br>
+Сan be assigned independently of each other in any order. Characters are case-insensitive.<br>
 For each specified type, the called distribution parameters are displayed, as well as the Pearson correlation coefficient 
 (PCC) with the original sequence. The coefficient is calculated on the basis from the beginning of the distribution 
 to the first point with an ordinate that is less than 0.1% of the maximum.<br>

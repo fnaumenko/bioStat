@@ -41,7 +41,7 @@ Options::Option Options::List[] = {
 	"input data to call distribution: ? - fragments, ? - reads", NULL },
 	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
 	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, Distrib::LNORM, Distrib::NORM, ArrCnt(dTypes), (char*)dTypes,
-	"called distribution (in any order): ? - normal, ? - lognormal, ? - Gamma", NULL },
+	"called distribution (can be combined in any order):\n? - normal, ? - lognormal, ? - Gamma", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Booleans, "allow duplicates", NULL },
 	{ 'p', "pr-dist",tOpt::NONE,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
 	{ 's', "stats",	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
