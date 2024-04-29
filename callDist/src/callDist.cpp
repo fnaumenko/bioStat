@@ -118,8 +118,7 @@ int main(int argc, char* argv[])
 			FqReadDist(iName).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::DIST:
-			dout << LF;
-			Distrib(iName).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), prDist);
+			Distrib(iName, dout).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), prDist);
 			break;
 		default:
 			Err(sWFormat + SepSCl + sRExt + " or FQ").Throw();
