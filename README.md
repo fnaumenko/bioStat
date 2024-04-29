@@ -385,7 +385,8 @@ Default: `OFF`
 
 `-p|--pr-dist`<br>
 prints original (actual) fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
-Printing is carried out only to a file that duplicates the standard output (See `-o|--out [<name>]` option). If option `-o|--out [<name>]` is not set, it is activated automatically.<br>
+Printing is performed only to a file that duplicates the standard output (see `-o|--out [<name>]` option).<br>
+If duplicating standard output is not set, it is activated automatically.<br>
 This allows to visualize the distribution using some suitable tool such as Excel, etc.
 
 `-s|--stats`<br>
