@@ -89,8 +89,8 @@ int main(int argc, char* argv[])
 
 		// while input file is distribution, add "_out" to output file name -
 		// - only if isn't specified or the same as input
-		if (prDist || Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName,
+		if ((prDist && ftype != FT::eType::DIST) || Options::Assigned(oOUTFILE))
+			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName, //OutFileExt)))
 				(ftype == FT::eType::DIST &&
 					(!oName || !strcmp(FS::FileNameWithoutExt(iName).c_str(), oName)) ?
 					"_out" : strEmpty)
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
 			FqReadDist(iName).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::DIST:
-			Distrib(iName, dout).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), prDist);
+			Distrib(iName, dout).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), false);
 			break;
 		default:
 			Err(sWFormat + SepSCl + sRExt + " or FQ").Throw();

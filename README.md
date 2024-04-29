@@ -131,7 +131,7 @@ To correlate the actual read coverages , translate alignments into WIG format us
 [deepTools bamCoverage](https://deeptools.readthedocs.io/en/develop/content/tools/bamCoverage.html), 
 [peakranger wigpe](http://ranger.sourceforge.net/manual1.18.html)).
 
-The program recognizes the file format automatically by their extension (case-insensitive).<br>
+The program recognizes the file format automatically by their extention (case-insensitive).<br>
 To distinguish an *alignment* in BED format from *ordinary* BED apply `-a|--align` option.<br>
 Datasets must be sorted.
 
@@ -316,12 +316,14 @@ or aligned sorted DNA sequence in BAM/BED format.<br>
 The number of mapped reads can be significantly less than the initial one, which can lead to distortion 
 of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
 in ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
-The program can also accept a file containing the finished distribution, in order to call its parameters. 
-This is a plain text file with *.dist* extension, each line of which corresponds to one distribution point, 
-i.e. a <frequency>-<size> pair. 
-A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.
+The program can also accept a file containing the finished distribution, in order to call its parameters.<br>
+This is a plain text file with *.dist* extention, each line of which corresponds to one distribution point, 
+i.e. a pair \<size\>-\<frequency\>. Both values should be integers.<br>
+The first lines of the file that do not contain such a pair are ignored.<br>
+A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.<br>
+Input file with *.dist* extention ignores `-p|--pr-dist` option (but not `-o|--out` one).
 
-The program recognizes the file format automatically by their extension (case-insensitive).
+The program recognizes the file format automatically by their extention (case-insensitive).
 
 #### Output
 Called distribution parameters and Pearson correlation coefficient (PCC) for the original and called distributions, 
@@ -384,19 +386,20 @@ This option is topical for BAM/BED files only.<br>
 Default: `OFF`
 
 `-p|--pr-dist`<br>
-prints original (actual) fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
+prints original (actual) fragment/read length frequency distribution as a set of \<size\>-\<frequency\> pairs.<br>
+This allows to visualize the distribution using some suitable tool such as Excel, etc.<br>
 Printing is performed only to a file that duplicates the standard output (see `-o|--out` option).<br>
 If duplicating standard output is not set, it is activated automatically.<br>
-This allows to visualize the distribution using some suitable tool such as Excel, etc.
+Input file with *.dist* extention ignores this option.
 
 `-s|--stats`<br>
-print input item issues statistics.
+prints input item issues statistics.
 
 `-o|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
 If file is not specified, duplicates output to file with name, 
-constructed as input file short name (without path and extension) with addition of the extension *.freq*.<br>
-If, in addition, the input file already has the *.freq* extension, then the "_out" suffix is added to the name.<br>
+constructed as input file short name (without path and extention) with addition of the extention *.freq*.<br>
+If, in addition, the input file already has the *.freq* extention, then the "_out" suffix is added to the name.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
@@ -441,7 +444,7 @@ Other:
 Aligned DNA single- or paired end sequence (with fixed read length) 
 in [BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm) 
 or [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
-The program recognizes the file format automatically by their extension (case-insensitive).<br>
+The program recognizes the file format automatically by their extention (case-insensitive).<br>
 The sequence must be sorted.
 
 #### Output
@@ -503,7 +506,7 @@ Default: `OFF`.
 
 `-o|--out`<br>
 duplicates standard output to specified file (except alarm messages). If file is not specified, duplicates output to file with name, 
-constructed as input alignment short name (without path and extension) with addition of the suffix “_valign.txt”.<br>
+constructed as input alignment short name (without path and extention) with addition of the suffix “_valign.txt”.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
