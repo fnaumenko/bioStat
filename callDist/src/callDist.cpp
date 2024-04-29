@@ -8,7 +8,7 @@ Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/28/2024
+Last modified: 04/29/2024
 -------------------------
 ************************************************************************************/
 
@@ -85,11 +85,12 @@ int main(int argc, char* argv[])
 		const char* iName = FS::CheckedFileName(argv[fileInd]);		// input
 		const char* oName = Options::GetSVal(oOUTFILE);				// output
 		const FT::eType ftype = FT::GetType(iName);
+		const bool prDist = Options::GetBVal(oPR_DIST);
 
 		// while input file is distribution, add "_out" to output file name -
-		// only if isn't specified or the same as input
-		if (Options::Assigned(oOUTFILE)
-			&& !dout.OpenFile(Options::GetFileName(oOUTFILE, iName,
+		// - only if isn't specified or the same as input
+		if (prDist || Options::Assigned(oOUTFILE))
+			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName,
 				(ftype == FT::eType::DIST &&
 					(!oName || !strcmp(FS::FileNameWithoutExt(iName).c_str(), oName)) ?
 					"_out" : strEmpty)
@@ -99,8 +100,6 @@ int main(int argc, char* argv[])
 
 		// take distribution
 		const bool fragType = InpType(Options::GetIVal(oINPUT)) == InpType::FRAG;
-		const bool prDist = Options::GetBVal(oPR_DIST);
-		const bool prStat = Options::GetBVal(oPR_STATS);
 		const string sWFormat = "wrong format";
 		const string sRExt = "should be BED or BAM";
 
@@ -109,14 +108,14 @@ int main(int argc, char* argv[])
 		case FT::eType::BED:
 		case FT::eType::BAM:
 			if (fragType)
-				FragDist(iName, prStat).Print(GetType(Distrib::eCType::LNORM), prDist);
+				FragDist(iName, Options::GetBVal(oPR_STATS)).Print(GetType(Distrib::LNORM), prDist);
 			else
-				ReadDist(iName, prStat).Print(GetType(Distrib::eCType::NORM), prDist);
+				ReadDist(iName, Options::GetBVal(oPR_STATS)).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::FQ:
 			if (fragType && Options::Assigned(oINPUT))
 				Err(sWFormat + " for fragment distribution; " + sRExt).Throw();
-			FqReadDist(iName).Print(GetType(Distrib::eCType::NORM), prDist);
+			FqReadDist(iName).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::DIST:
 			dout << LF;

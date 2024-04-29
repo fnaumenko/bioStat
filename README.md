@@ -297,7 +297,7 @@ Input:
                         N - normal, LN - lognormal, G - Gamma [LN]
   -d|--dup <OFF|ON>     allow duplicates [OFF]
 Processing:
-  -p|--pr-dist          print obtained frequency distribution
+  -p|--pr-dist          print obtained frequency distribution to file
   -s|--stats            print input item issues statistics
   -o|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.dist if file is not specified
@@ -385,7 +385,8 @@ Default: `OFF`
 
 `-p|--pr-dist`<br>
 prints original (actual) fragment/read length frequency distribution as a set of \<frequency\>-\<size\> pairs.<br>
-This allows to visualize the distribution using some suitable tool such as Excel.
+Printing is carried out only to a file that duplicates the standard output (See `-o|--out [<name>]` option). If option `-o|--out [<name>]` is not set, it is activated automatically.<br>
+This allows to visualize the distribution using some suitable tool such as Excel, etc.
 
 `-s|--stats`<br>
 print input item issues statistics.
