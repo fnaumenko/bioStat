@@ -318,7 +318,7 @@ of the read distribution parameters relative to the original one (see, for examp
 in ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
 The program can also accept a file containing the finished distribution, in order to call its parameters.<br>
 This is a plain text file with *.dist* extention, each line of which corresponds to one distribution point, 
-i.e. a pair <nobr>\<size\>-\<frequency\></nobr>. Both values should be integers.<br>
+i.e. a pair \<size\>&#160;\<frequency\>. Both values should be integers.<br>
 The first lines of the file that do not contain such a pair are ignored.<br>
 A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.<br>
 Input file with *.dist* extention ignores `-p|--pr-dist` option (but not `-o|--out` one).
