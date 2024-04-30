@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 04/24/2024
+Last modified: 04/30/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -87,10 +87,8 @@ int main(int argc, char* argv[])
 	catch (Err & e) { ret = 1;	cerr << e.what() << LF; }
 	catch (exception & e) { ret = 1;	cerr << e.what() << LF; }
 
-	timer.Stop(0, false, true);
-	//#ifdef OS_Windows
-	//	system("pause");
-	//#endif
+	//timer.Stop(0, false, true);
+	timer.Stop();
 	return ret;
 }
 

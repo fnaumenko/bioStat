@@ -8,7 +8,7 @@ Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/29/2024
+Last modified: 04/30/2024
 -------------------------
 ************************************************************************************/
 
@@ -84,19 +84,19 @@ int main(int argc, char* argv[])
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);		// input
 		const char* oName = Options::GetSVal(oOUTFILE);				// output
-		const FT::eType ftype = FT::GetType(iName);
 		const bool prDist = Options::GetBVal(oPR_DIST);
+		const FT::eType ftype = FT::GetType(iName);
 
 		// while input file is distribution, add "_out" to output file name -
 		// - only if isn't specified or the same as input
 		if ((prDist && ftype != FT::eType::DIST) || Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName, //OutFileExt)))
+			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName,
 				(ftype == FT::eType::DIST &&
 					(!oName || !strcmp(FS::FileNameWithoutExt(iName).c_str(), oName)) ?
 					"_out" : strEmpty)
 				+ OutFileExt))
-			)
-			Err(Err::FailOpenOFile).Throw();
+				)
+				Err(Err::FailOpenOFile).Throw();
 
 		// take distribution
 		const bool fragType = InpType(Options::GetIVal(oINPUT)) == InpType::FRAG;
