@@ -44,7 +44,7 @@ Options::Option Options::List[] = {
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Booleans, "allow duplicates", NULL },
 	{ 'p', "pr-dist",tOpt::NONE,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
 	{ 's', "stats",	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
-	{ 'o', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
 	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
 	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
 	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },

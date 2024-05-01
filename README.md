@@ -85,7 +85,7 @@ Input:
   -a|--align            input bed files are alignments. Ignored for bam and wig
   -g|--gen <name>       chromosome sizes file
   -c|--chr <name>       treat specified chromosome only
-  -O|--overl <OFF|ON>   allow (and merge) overlapping features. For the ordinary beds only [OFF]
+  -o|--overl <OFF|ON>   allow (and merge) overlapping features. For the ordinary beds only [OFF]
   -d|--dup <OFF|ON>     allow duplicate reads. For the alignments only [ON]
   -l|--list <name>      list of multiple input files.
                         First (primary) file in list is comparing with others (secondary)
@@ -110,7 +110,7 @@ Output:
                         NM   - file names
                         ITEM - file names and number of items
                         STAT - file names and items statistics [NM]
-  -o|--out [<name>]     duplicate standard output to specified file
+  -O|--out [<name>]     duplicate standard output to specified file
                         or to bioCC_out.txt if <name> is not specifiedOther:
   -t|--time             print run time
   -v|--version          print program's version and exit
@@ -196,7 +196,7 @@ treats specified chromosome only.<br>
 Specifying one chromosome reduces processing time of multi-chromosomal data by 2-20  times.<br>
 *Ordinary* beds are treated quickly in any case.
 
-`-O|--overl <OFF|ON>`<br>
+`-o|--overl <OFF|ON>`<br>
 rejects or accept overlapping features for processing.<br>
 In the first case, 'overlapping chains' break. 
 This means, for example, that if feature #2 overlaps feature #1 and feature #3 overlaps feature #2 but not #1, 
@@ -268,7 +268,7 @@ sets verbose level:<br>
 `STAT`: besides results prints input file names and item ambiguities statistics, if exist.<br>
 Default: `NM`
 
-`-o|--out [<name>]`<br>
+`-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
 If <name> is not specified, duplicates output to **bioCC_out.txt** file.<br>
 If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
@@ -301,7 +301,7 @@ Input:
 Processing:
   -p|--pr-dist          print obtained frequency distribution to file
   -s|--stats            print input item issues statistics
-  -o|--out [<name>]     duplicate standard output to specified file
+  -O|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.dist if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
@@ -323,7 +323,7 @@ This is a plain text file with *.dist* extention, each line of which corresponds
 i.e. a pair \<size\>&#x2011;\<frequency\>. Both values should be integers.<br>
 The first lines of the file that do not contain such a pair are ignored.<br>
 A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.<br>
-Input file with *.dist* extention ignores `-p|--pr-dist` option (but not `-o|--out` one).
+Input file with *.dist* extention ignores `-p|--pr-dist` option (but not `-O|--out` one).
 
 The program recognizes the file format automatically by their extention (case-insensitive).
 
@@ -387,14 +387,14 @@ Default: `OFF`
 `-p|--pr-dist`<br>
 prints original (actual) fragment/read length frequency distribution as a set of \<size\>-\<frequency\> pairs.<br>
 This allows to visualize the distribution using some suitable tool such as Excel, etc.<br>
-Printing is performed only to a file that duplicates the standard output (see `-o|--out` option).<br>
+Printing is performed only to a file that duplicates the standard output (see `-O|--out` option).<br>
 If duplicating output is not set, it is activated automatically.<br>
-Input file with *.dist* extention ignores this option, but not the explicit `-o|--out` option.
+Input file with *.dist* extention ignores this option, but not the explicit `-O|--out` option.
 
 `-s|--stats`<br>
 prints input item issues statistics
 
-`-o|--out [<name>]`<br>
+`-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
 If <name> is not specified, duplicates output to file with name, 
 constructed as input file short name with extention *.dist*.<br>
@@ -427,7 +427,7 @@ Treatment:
   --char-case <OFF|ON>  recognize uppercase and lowercase characters in template and test
                         as different [OFF]
 Output:
-  -o|--out [<name>]     duplicate standard output to specified file
+  -O|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>_valign.txt if <name> is not specified
   -T|--sep              use 1000 separator in output
   -V|--verbose <TOT|LAC|DET>
@@ -504,17 +504,11 @@ Default: all reads are accepted.
 turns off/on recognition of uppercase and lowercase characters in template and test as different.<br>
 Default: `OFF`.
 
-`-o|--out [<name>]`<br>
+`-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
 If <name> is not specified, duplicates output to file with name, 
 constructed as input file short name with addition of the suffix “_valign.txt”.<br>
 If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
-It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
-
-`-o|--out`<br>
-
-duplicates standard output to specified file (except alarm messages). If file is not specified, duplicates output to file with name, 
-constructed as input alignment short name (without path and extention) with addition of the suffix “_valign.txt”.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
@@ -532,7 +526,7 @@ or<br>
 
 ### Options:
 ```
-  -o|--out [<name>]     duplicate standard output to specified file
+  -O|--out [<name>]     duplicate standard output to specified file
                         or to <sequence>_statn.txt if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
