@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified:04/24/2024
+Last modified: 05/01/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -27,13 +27,13 @@ const string Product::Version = "2.0";
 const string Product::Descr = "advanced correlation calculator";
 
 const string OutFile = Product::Title + "_out.txt";
-const string HelpOutFile = "duplicate standard output to " + OutFile + " file";
+const string HelpOutFile = sFileDuplBegin + OutFile + sFileDuplEnd;
 const string InFiles = "input files";
 
 // --ext option
 //const Options::PairVals ext(0, 0, 0, 0, 1000, 10000);	// defStep, defLen, minStep, minLen, maxStep, maxLen
 // --total option: total coefficients notations
-const char* prCCs[] = { "LOC", "TOT" };	// corresponds to eTotal; totalOFF is hidden
+const char* prCCs[] = { "LOC", "TOT" };		// corresponds to eTotal; totalOFF is hidden
 // --sort option: sorting type notations
 const char* fsort[] = { "RGN", "CC" };		// corresponds to eRS; rsOFF is hidden
 // --oinfo option: types of oinfo notations
@@ -64,7 +64,7 @@ Options::Option Options::List[] = {
 	{ HPH,"gap-len",tOpt::HIDDEN,tINT,	gINPUT,	1000, 50, 1e5, NULL,
 	"minimal length of undefined nucleotide region in genome\nwhich is declared as a gap.\nIgnored for the chromosome sizes file and for the ordinary beds", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Booleans, "allow duplicate reads.", ForAligns },
-	{ 'o', "overl",	tOpt::NONE,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Booleans,
+	{ 'O', "overl",	tOpt::NONE,	tENUM,	gINPUT, FALSE,	0, 2, (char*)Booleans,
 	"allow (and merge) overlapping features. For the ordinary beds only", NULL },
 	{ 'l', "list",	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
 	"list of multiple input files.\nFirst (primary) file in list is comparing with others (secondary)", NULL },
@@ -85,7 +85,8 @@ Options::Option Options::List[] = {
 	"set verbose level:\n?  - laconic\n?   - file names\n? - file names and number of items\n? - file names and items statistics", NULL },
 	{ 'w', "write",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL,
 	"write each inner representation to file with '_out' suffix", NULL },
-	{ 'O', sOutput,	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL, HelpOutFile.c_str(), NULL },
+	//{ 'O', sOutput,	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL, HelpOutFile.c_str(), NULL },
+	{ 'o', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
 	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sPrTime, NULL },
 	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrSummary, NULL },
 	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
@@ -108,7 +109,6 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option or tip output
 	int ret = 0;						// main() return code
 
-	if (Options::GetBVal(oOUTFILE))	dout.OpenFile(OutFile);
 	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
@@ -133,10 +133,16 @@ int main(int argc, char* argv[])
 		if (inFilesCnt < 2)			// check input files
 			Err(Err::MISSED, NULL, inFilesCnt ? "secondary " + InFiles : InFiles).Throw();
 
+		// set genom
 		const char* gName = Options::GetSVal(oGENOM);
 		if (!gName && !FS::HasExt(inFiles[0], FT::Ext(FT::eType::BAM)))
 			Err(Options::OptionToStr(oGENOM) + " is required for all the file types except BAM",
 				inFiles[0]).Throw();
+
+		// set output file
+		if (Options::Assigned(oOUTFILE))
+			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), OutFile.c_str())))
+				Err(Err::FailOpenOFile).Throw();
 
 		ChromSizes cSizes(gName, true);
 		DefRegions gRgn(cSizes, Options::GetIVal(oGAPLEN));

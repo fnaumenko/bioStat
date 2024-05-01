@@ -1,7 +1,7 @@
 /**********************************************************
 DefRegions.cpp  2023 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 11/21/2023
+Last modified: 05/01/2024
 -------------------------
 ***********************************************************/
 
@@ -10,16 +10,15 @@ Last modified: 11/21/2023
 
 void DefRegions::Init()
 {
-	if (IsEmpty())
-		if (_cSizes.IsFilled()) {
+	if (IsEmpty() && _cSizes.IsFilled()) {
+		if (Chrom::IsSetByUser())
+			AddElem(Chrom::UserCID(), Regions(0, _cSizes[Chrom::UserCID()]));
+		else
 			// initialize instance from chrom sizes
-			if (Chrom::IsSetByUser())
-				for (ChromSizes::cIter it = _cSizes.cBegin(); it != _cSizes.cEnd(); it++)
-					AddElem(CID(it), Regions(0, _cSizes[CID(it)]));
-			else
-				AddElem(Chrom::UserCID(), Regions(0, _cSizes[Chrom::UserCID()]));
-			//_isEmpty = false;
-		}
+			for (ChromSizes::cIter it = _cSizes.cBegin(); it != _cSizes.cEnd(); it++)
+				AddElem(CID(it), Regions(0, _cSizes[CID(it)]));
+		//_isEmpty = false;
+	}
 }
 
 const Regions& DefRegions::operator[] (chrid cID)

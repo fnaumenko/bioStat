@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 04.24.2024
+Last modified: 05/01/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -405,23 +405,23 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 				vPos.Pos = file.GetIntKey(line1, keyStart);	// initial position
 				line1 += keyStart.length() + 1;			// shift to scan the rest of the line faster
 				step = file.GetIntKey(line1, keyStep);	// initial step
-				vPos.Pos -= step;							// shift 'back' before the first pass, where pos+=step will be invoke
+				vPos.Pos -= step;						// shift 'back' before the first pass, where pos+=step will be invoke
 				line1 += keyStep.length() + 1;			// shift to scan the rest of the line faster
 			}
 			line1 = TabReader::KeyStr(line1, keySpan);
-			span = line1 ? atoi(line1 + 1) : 1;			// initial span: both for fixed- and variableStep
+			span = line1 ? atoi(line1 + 1) : 1;		// initial span: both for fixed- and variableStep
 			// * check chrom
 			if (file.GetNextChrom(nextCID, line)) {
-				if (Chrom::IsSetByUser()) {				// are all chroms specified?
-					if (cID != Chrom::UnID)				// skip first pass, when curr chrom is still undefined
-						PlainCover::AddChrom(cID, cSizes[cID], prevEnd),
-						itemCnt += cItemCnt;
-				}
-				else {								// single chrom is specified
+				if (Chrom::IsSetByUser()) {			// is single chrom specified?
 					if (!fixedStep && vPos.Pos)		// region is initialized: items for the specified chrom are existed and saved
 						break;						// the chrom itself will be saved after loop
 					if (skipChrom = nextCID != Chrom::UserCID())
 						continue;
+				}
+				else {								// all chroms are specified
+					if (cID != Chrom::UnID)			// skip first pass, when curr chrom is still undefined
+						PlainCover::AddChrom(cID, cSizes[cID], prevEnd),
+						itemCnt += cItemCnt;
 				}
 				cID = nextCID;
 				cItemCnt = prevEnd = offset = 0;

@@ -4,11 +4,10 @@ paired-end fragments OR reads
 
 The frequency distribution is displayedin the form of lines,
 each of which contains one pair <fragment length><TAB><frequency>.
-Then this output is transferred to the Excel, which allows to plot it.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/30/2024
+Last modified: 05/01/2024
 -------------------------
 ************************************************************************************/
 
@@ -67,10 +66,6 @@ Distrib::eCType GetType(Distrib::eCType defType) {
 	return Options::Assigned(oDTYPE) ? Distrib::eCType(Options::GetIVal(oDTYPE)) : defType;
 }
 
-void pr(float v) {
-	if (v-int(v)!=0)	cout << fixed << setprecision(2);
-	cout << v << LF;
-}
 /*****************************************/
 int main(int argc, char* argv[])
 {
@@ -83,19 +78,11 @@ int main(int argc, char* argv[])
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);		// input
-		const char* oName = Options::GetSVal(oOUTFILE);				// output
 		const bool prDist = Options::GetBVal(oPR_DIST);
 		const FT::eType ftype = FT::GetType(iName);
 
-		// while input file is distribution, add "_out" to output file name -
-		// - only if isn't specified or the same as input
 		if ((prDist && ftype != FT::eType::DIST) || Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName,
-				(ftype == FT::eType::DIST &&
-					(!oName || !strcmp(FS::FileNameWithoutExt(iName).c_str(), oName)) ?
-					"_out" : strEmpty)
-				+ OutFileExt))
-				)
+			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileExt)))
 				Err(Err::FailOpenOFile).Throw();
 
 		// take distribution
@@ -137,7 +124,6 @@ int main(int argc, char* argv[])
 // treats current read
 bool FragDist::operator()()
 {
-	//return true;
 	if (!_checkedPE) {
 		if (!File().IsPairedRead())
 			Err("only paired-end reads are acceptable to call fragments distribution",

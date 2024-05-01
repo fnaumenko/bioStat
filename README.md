@@ -85,7 +85,7 @@ Input:
   -a|--align            input bed files are alignments. Ignored for bam and wig
   -g|--gen <name>       chromosome sizes file
   -c|--chr <name>       treat specified chromosome only
-  -o|--overl <OFF|ON>   allow (and merge) overlapping features. For the ordinary beds only [OFF]
+  -O|--overl <OFF|ON>   allow (and merge) overlapping features. For the ordinary beds only [OFF]
   -d|--dup <OFF|ON>     allow duplicate reads. For the alignments only [ON]
   -l|--list <name>      list of multiple input files.
                         First (primary) file in list is comparing with others (secondary)
@@ -104,14 +104,14 @@ Output:
                         print frequency histogram with given bin width [0]
   -F|--fcc-sort [<RGN|CC>]
                         print region coefficients, sorted by: RGN - regions, CC - coefficients [CC]
-  -V|--verbose  <LAC|NM|CNT|STAT>
+  -V|--verbose  <LAC|NM|CNT|STAT>s
                         set verbose level:
                         LAC  - laconic
                         NM   - file names
                         ITEM - file names and number of items
                         STAT - file names and items statistics [NM]
-  -o|--out              duplicate standard output to bioCC_out.txt file
-Other:
+  -o|--out [<name>]     duplicate standard output to specified file
+                        or to bioCC_out.txt if <name> is not specifiedOther:
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit
@@ -196,7 +196,7 @@ treats specified chromosome only.<br>
 Specifying one chromosome reduces processing time of multi-chromosomal data by 2-20  times.<br>
 *Ordinary* beds are treated quickly in any case.
 
-`-o|--overl <OFF|ON>`<br>
+`-O|--overl <OFF|ON>`<br>
 rejects or accept overlapping features for processing.<br>
 In the first case, 'overlapping chains' break. 
 This means, for example, that if feature #2 overlaps feature #1 and feature #3 overlaps feature #2 but not #1, 
@@ -268,9 +268,11 @@ sets verbose level:<br>
 `STAT`: besides results prints input file names and item ambiguities statistics, if exist.<br>
 Default: `NM`
 
-`-o|--out`<br>
-duplicates standard output to **bioCC_out.txt** file (except alarm messages).<br>
-It is analogue of **tee** Linux command and is rather useful by calling **bioCC** under Windows.
+`-o|--out [<name>]`<br>
+duplicates standard output to specified file (except alarm messages).<br>
+If <name> is not specified, duplicates output to **bioCC_out.txt** file.<br>
+If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
+It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
 ## callDist
@@ -300,7 +302,7 @@ Processing:
   -p|--pr-dist          print obtained frequency distribution to file
   -s|--stats            print input item issues statistics
   -o|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>.dist if file is not specified
+                        or to <in-file>.dist if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit
@@ -354,16 +356,13 @@ length	frequency
 `-i|--inp <FRAG|READ>`<br>
 sets the subject of distribution parameter calling: `FRAG` - fragments, `READ` - reads<br>
 This option is topical for BAM/BED files only.<br>
-WARNING: while trying to call fragment distribution with single-end BAM file, 
-the Windows build can crash silently instead of printing the corresponding message. 
-This is due to an incorrectness in the BamTools library being used.<br>
 Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
 `name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
 Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
-of less than 2% (with a reliable number of fragments, exceeding several thousand), 
+of less than 2% (for a reliable number of fragments, exceeding thousand), 
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
 `-D|--dist <N,LN,G>`<br>
@@ -381,7 +380,7 @@ This is done because for certain parameters these distribution may differ very s
 Default: `LN` for BAM/BED (assuming fragments), `N` for FASTQ (assuming reads)
 
 `-d|--dup <OFF|ON>`<br>
-rejects/allows duplicate fragments/reads. To identify duplicate fragments, all duplicate reads are accepted.<br>
+rejects/allows duplicate fragments/reads.<br>
 This option is topical for BAM/BED files only.<br>
 Default: `OFF`
 
@@ -389,17 +388,18 @@ Default: `OFF`
 prints original (actual) fragment/read length frequency distribution as a set of \<size\>-\<frequency\> pairs.<br>
 This allows to visualize the distribution using some suitable tool such as Excel, etc.<br>
 Printing is performed only to a file that duplicates the standard output (see `-o|--out` option).<br>
-If duplicating standard output is not set, it is activated automatically.<br>
-Input file with *.dist* extention ignores this option.
+If duplicating output is not set, it is activated automatically.<br>
+Input file with *.dist* extention ignores this option, but not the explicit `-o|--out` option.
 
 `-s|--stats`<br>
-prints input item issues statistics.
+prints input item issues statistics
 
 `-o|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
-If file is not specified, duplicates output to file with name, 
-constructed as input file short name (without path and extention) with addition of the extention *.freq*.<br>
-If, in addition, the input file already has the *.freq* extention, then the "_out" suffix is added to the name.<br>
+If <name> is not specified, duplicates output to file with name, 
+constructed as input file short name with extention *.dist*.<br>
+If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
+If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
@@ -428,7 +428,7 @@ Treatment:
                         as different [OFF]
 Output:
   -o|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>_valign.txt if file is not specified
+                        or to <in-file>_valign.txt if <name> is not specified
   -T|--sep              use 1000 separator in output
   -V|--verbose <TOT|LAC|DET>
                         set output verbose level:
@@ -504,7 +504,15 @@ Default: all reads are accepted.
 turns off/on recognition of uppercase and lowercase characters in template and test as different.<br>
 Default: `OFF`.
 
+`-o|--out [<name>]`<br>
+duplicates standard output to specified file (except alarm messages).<br>
+If <name> is not specified, duplicates output to file with name, 
+constructed as input file short name with addition of the suffix “_valign.txt”.<br>
+If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
+It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
+
 `-o|--out`<br>
+
 duplicates standard output to specified file (except alarm messages). If file is not specified, duplicates output to file with name, 
 constructed as input alignment short name (without path and extention) with addition of the suffix “_valign.txt”.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
@@ -525,7 +533,7 @@ or<br>
 ### Options:
 ```
   -o|--out [<name>]     duplicate standard output to specified file
-                        or to <sequence>_statn.txt if file is not specified
+                        or to <sequence>_statn.txt if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit 

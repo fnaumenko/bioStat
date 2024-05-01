@@ -3,7 +3,7 @@ fqStatN outputs statistic of ambiguous reference characters ‘N’ in fq-file.
 
 Copyright (C) 2018 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/24/2024
+Last modified: 05/01/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -83,8 +83,11 @@ int main(int argc, char* argv[])
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);
-		if (!dout.OpenFile(Options::GetFileName(oOUTFILE, iName, OutFileSuff)))
-			Err(Err::FailOpenOFile).Throw();
+
+		if (Options::Assigned(oOUTFILE))
+			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileSuff)))
+				Err(Err::FailOpenOFile).Throw();
+
 		dout << iName << SepCl;	fflush(stdout);
 		if (!FS::HasExt(iName, FT::Ext(FT::eType::FQ))) Err("wrong format").Throw();
 		FqReader fq(iName);

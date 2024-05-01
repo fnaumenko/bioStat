@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 04/30/2024
+Last modified: 05/01/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -42,7 +42,7 @@ Options::Option Options::List[] = {
 	{ HPH,"min-scr",  tOpt::NONE,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
 	{ HPH,"char-case",tOpt::NONE,tENUM,	gTREAT, FALSE,	0, 2, (char*)Booleans,
 	"recognize uppercase and lowercase characters in template and test\nas different", NULL },
-	{ 'o', sOutput,	tOpt::OBLIG,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'o', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
 	{ 'T', "sep",	tOpt::NONE,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
 	{ 'V', "verbose",tOpt::NONE, tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
 	 "set output verbose level:\n? - only total detailed,\n? - laconic for each chromosome and total detailed,\n? - detailed for each chromosome", NULL },
@@ -67,18 +67,17 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option
 	int ret = 0;						// main() return code
 
-	if (Options::GetBVal(oLOCALE))	cout.imbue(locale(LOCALE_ENG));
+	if (Options::GetBVal(oLOCALE))	dout.Imbue(locale(LOCALE_ENG));
 
 	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input alignment
-		const char* oName = Options::GetSVal(oOUTFILE);			// output
 
-		if (Options::Assigned(oOUTFILE)
-		&& (!dout.OpenFile(Options::GetFileName(oOUTFILE, oName, OutFileSuff))))
-			Err(Err::FailOpenOFile).Throw();
+		if (Options::Assigned(oOUTFILE))
+			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileSuff)))
+				Err(Err::FailOpenOFile).Throw();
 
 		dout << iName << LF;	cout.flush();
 		ChromSizes cSizes(Options::GetSVal(oGEN), true);
@@ -87,7 +86,6 @@ int main(int argc, char* argv[])
 	catch (Err & e) { ret = 1;	cerr << e.what() << LF; }
 	catch (exception & e) { ret = 1;	cerr << e.what() << LF; }
 
-	//timer.Stop(0, false, true);
 	timer.Stop();
 	return ret;
 }
