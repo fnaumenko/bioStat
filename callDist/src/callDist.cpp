@@ -114,7 +114,6 @@ int main(int argc, char* argv[])
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }
-	//timer.Stop("wall-clock: ", false, true);
 	timer.Stop();
 	return ret;
 }

@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/01/2024
+Last modified: 05/02/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
 	}
 	catch (const Err & e)		{ ret = 1; cerr << e.what() << LF; }
 	catch (const exception & e) { ret = 1; cerr << SPACE << e.what() << LF; }
-	timer.Stop(0,false,true);
+	timer.Stop();
 	return ret;
 }
 

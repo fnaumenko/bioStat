@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/01/2024
+Last modified: 05/02/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -448,7 +448,7 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 			dout << " (" << recCnt << " data lines)";
 		if (!(Timer::Enabled && UniBedReader::IsTimer))	dout << LF;
 	}
-	timer.Stop(1, true, PrintMngr::OutInfo() > eOInfo::NM);
+	timer.Stop(1, true);	if (PrintMngr::OutInfo() > eOInfo::NM)	dout << LF;
 }
 
 // Creates new instance by wig-file name
