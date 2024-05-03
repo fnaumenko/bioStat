@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/01/2024
+Last modified: 05/03/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -157,7 +157,7 @@ void vAlign::Stat::Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist)
 	if (prMismDist)	PrintHorLine(wd);
 
 	// *** print stats
-	wd = DigitsCount(cnt, Options::GetBVal(oLOCALE));
+	wd = DigitsCountLocale(cnt, Options::GetBVal(oLOCALE));
 	const string reads = "reads ";
 	const string mapped = "mapped ";
 	const string misms = " mismathes:";
