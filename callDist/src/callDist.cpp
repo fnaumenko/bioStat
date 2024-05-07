@@ -122,12 +122,10 @@ int main(int argc, char* argv[])
 
 bool FragDist::operator()()
 {
-	if (!_checkedPE) {
-		if (!File().IsPairedRead())
-			Err("only paired-end reads are acceptable to call fragments distribution",
-				File().CondFileName()).Throw();
-		_checkedPE = true;
-	}
+	if (!File().IsPaired())
+		Err("only paired-end reads are acceptable to call fragments distribution",
+			File().CondFileName()).Throw();
+
 	Region frag;
 	const Read read(File());
 

@@ -69,7 +69,6 @@ class FragDist : public LenDist
 {
 	FragIdent _fIdent;
 	bool	_dupl;						// if TRUE if duplicate frags are allowed
-	bool	_checkedPE = false;			// if TRUE if reads have been checked for PE
 
 public:
 	FragDist(const char* fname, bool prStats) : _fIdent(_dupl = Options::GetBVal(oDUPL))
