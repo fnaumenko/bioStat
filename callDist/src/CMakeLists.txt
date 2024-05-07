@@ -5,7 +5,6 @@ project(${PROJECT_NAME})
 
 add_compile_definitions(
 	_DUP_OUTPUT		# duplicated output
-	_READS
 	_PE_READ
 	)
 	
