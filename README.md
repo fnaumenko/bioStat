@@ -297,7 +297,7 @@ Input:
   -c|--chr <name>       treat specified chromosome only
   -D|--dist <N,LN,G>    called distribution (can be combined in any order):
                         N - normal, LN - lognormal, G - Gamma [LN]
-  -d|--dup <OFF|ON>     allow duplicates [OFF]
+  -d|--dup <OFF|ON>     allow duplicates [ON]
 Processing:
   -p|--pr-dist          print obtained frequency distribution to file
   -s|--stats            print input item issues statistics
@@ -382,7 +382,7 @@ Default: `LN` for BAM/BED (assuming fragments), `N` for FASTQ (assuming reads)
 `-d|--dup <OFF|ON>`<br>
 rejects/allows duplicate fragments/reads.<br>
 This option is topical for BAM/BED files only.<br>
-Default: `OFF`
+Default: `ON`
 
 `-p|--pr-dist`<br>
 prints original (actual) fragment/read length frequency distribution as a set of \<size\>-\<frequency\> pairs.<br>

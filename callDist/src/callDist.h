@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 04/27/2024
+Last modified: 05/07/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -13,7 +13,6 @@ Provides main functionality
 #include "ChromData.h"
 #include "Distrib.h"
 #include "FqReader.h"
-#include <unordered_map>
 
 enum optValue {		// options id
 	oINPUT,
@@ -68,31 +67,24 @@ public:
 // 'FragDist' represents fragment's length frequency statistics ('fragment distribution')
 class FragDist : public LenDist
 {
-	unordered_map<ULONG, Read> _waits;	// 'waiting list' - pair mate candidate's collection
-	vector<UniBedReader::Issue> _issues = { "duplicates" };
-	ULONG	_cnt = 0;					// count of items
-	chrlen	_pos[2] = {0,0};			// mates start positions ([0] - neg read, [1] - pos read)
+	FragIdent _fIdent;
 	bool	_dupl;						// if TRUE if duplicate frags are allowed
 	bool	_checkedPE = false;			// if TRUE if reads have been checked for PE
-#ifdef MY_DEBUG
-	int		_maxSize = 0;				// maximum waiting _waits size
-#endif
-
-	// Adds frag to the freq distribution
-	//	@param r1: first read in a pair
-	//	@param r2: second read in a pair
-	void AddFrag(const Read& r1, const Read& r2) { AddLen(r1.FragLen(r2)); }
 
 public:
-	FragDist(const char* fname, bool prStats) : _dupl(Options::GetBVal(oDUPL))
+	FragDist(const char* fname, bool prStats) : _fIdent(_dupl = Options::GetBVal(oDUPL))
 	{
+		vector<UniBedReader::Issue> issues = { "duplicates" };
 		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false);
+
 		Pass(this, file);
 
-		UniBedReader::PrintItemCount(_cnt, "fragments");
-		if (_issues[0].Cnt) {
-			if (_dupl)	_issues[0].Action = UniBedReader::eAction::ACCEPT;
-			UniBedReader::PrintStats(_cnt, _issues[0].Cnt, _issues, prStats);
+		size_t cnt = _fIdent.Count();
+		issues[0].Cnt = _fIdent.DuplCount();
+		UniBedReader::PrintItemCount(cnt, "fragments");
+		if (issues[0].Cnt) {
+			if (_dupl)	issues[0].Action = UniBedReader::eAction::ACCEPT;
+			UniBedReader::PrintStats(cnt, issues[0].Cnt, issues, prStats);
 		}
 	}
 

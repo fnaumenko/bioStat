@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/01/2024
+Last modified: 05/07/2024
 -------------------------
 ************************************************************************************/
 
@@ -41,7 +41,7 @@ Options::Option Options::List[] = {
 	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
 	{ 'D',"dist",	tOpt::NONE,	tCOMB,	gTREAT, Distrib::LNORM, Distrib::NORM, ArrCnt(dTypes), (char*)dTypes,
 	"called distribution (can be combined in any order):\n? - normal, ? - lognormal, ? - Gamma", NULL },
-	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	FALSE,	0, 2, (char*)Booleans, "allow duplicates", NULL },
+	{ 'd', "dup",	tOpt::NONE,	tENUM,	gTREAT,	TRUE,	0, 2, (char*)Booleans, "allow duplicates", NULL },
 	{ 'p', "pr-dist",tOpt::NONE,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
 	{ 's', "stats",	tOpt::NONE,	tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
@@ -120,7 +120,6 @@ int main(int argc, char* argv[])
 
 // *********************** FragDist *********************************
 
-// treats current read
 bool FragDist::operator()()
 {
 	if (!_checkedPE) {
@@ -129,27 +128,12 @@ bool FragDist::operator()()
 				File().CondFileName()).Throw();
 		_checkedPE = true;
 	}
+	Region frag;
 	const Read read(File());
-	const auto itMate = _waits.find(read.Numb);	// look for the read with given Numb
 
-	if (itMate == _waits.end())					// is read not on the waiting list?
-		_waits.emplace(read.Numb, read);		// add read to the waiting list
-	else {										// a mate
-		const Read& mate = itMate->second;
-		if (mate.Start != _pos[mate.Strand] || read.Start != _pos[read.Strand])	// not a duplicate
-			AddFrag(mate, read);				// add uniq fragment into distribution
-		else {
-			if (_dupl)	AddFrag(mate, read);	// add dupl fragment into distribution
-			_issues[0].Cnt++;
-		}
-		_pos[mate.Strand] = mate.Start;
-		_pos[read.Strand] = read.Start;
-#ifdef MY_DEBUG
-		if (_maxSize < _waits.size())	_maxSize = _waits.size();
-#endif
-		_waits.erase(itMate);					// remove read from the waiting list
-		_cnt++;
-	}
+	if (_fIdent(read, frag))
+		AddLen(frag.Length());
+
 	return true;
 }
 
