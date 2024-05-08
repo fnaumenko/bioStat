@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/07/2024
+Last modified: 05/08/2024
 -------------------------
 ************************************************************************************/
 
@@ -51,8 +51,6 @@ Options::Option Options::List[] = {
 	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
 };
 const BYTE Options::OptCount = ArrCnt(Options::List);
-//template <typename T, int N>
-//static constexpr int array_size(T(&a)[N]) { return N; }
 
 const Options::Usage Options::Usages[] = {	// content of 'Usage' variants in help
 	{ vUNDEF, ProgParam, true, "paired-end alignment in bam/bed format OR reads in fq/bam/bed format" }
@@ -62,7 +60,8 @@ const BYTE Options::UsageCount = ArrCnt(Options::Usages);
 dostream dout;	// stream's duplicator
 
 // Returns explicitly defined by user combo type, otherwise default combo type
-Distrib::eCType GetType(Distrib::eCType defType) {
+Distrib::eCType GetType(Distrib::eCType defType)
+{
 	return Options::Assigned(oDTYPE) ? Distrib::eCType(Options::GetIVal(oDTYPE)) : defType;
 }
 
@@ -117,22 +116,3 @@ int main(int argc, char* argv[])
 	timer.Stop();
 	return ret;
 }
-
-// *********************** FragDist *********************************
-
-bool FragDist::operator()()
-{
-	if (!File().IsPaired())
-		Err("only paired-end reads are acceptable to call fragments distribution",
-			File().CondFileName()).Throw();
-
-	Region frag;
-	const Read read(File());
-
-	if (_fIdent(read, frag))
-		AddLen(frag.Length());
-
-	return true;
-}
-
-// *********************** end of FragDist *********************************

@@ -74,7 +74,13 @@ public:
 	FragDist(const char* fname, bool prStats) : _fIdent(_dupl = Options::GetBVal(oDUPL))
 	{
 		vector<UniBedReader::Issue> issues = { "duplicates" };
-		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false, false);
+		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false, false, true, true);
+
+		// pre-read first item to check for PE sequence
+		file.GetNextItem();		// no need to check for empty sequence
+		if (!file.IsPaired())
+			Err("only paired-end reads are acceptable to call fragments distribution",
+				file.CondFileName()).Throw();
 
 		Pass(this, file);
 
@@ -88,15 +94,22 @@ public:
 	}
 
 	// treats current read
-	bool operator()();
+	bool operator()()
+	{
+		Region frag;
+		const Read read(File());
+
+		if (_fIdent(read, frag))	AddLen(frag.Length());
+		return true;
+	}
 
 	// Closes current chrom, open next one
-	inline void operator()(chrid, chrlen, size_t, chrid) {}
+	void operator()(chrid, chrlen, size_t, chrid) {}
 
 	// Closes last chrom
-	inline void operator()(chrid, chrlen, size_t, size_t) {
+	void operator()(chrid, chrlen, size_t, size_t) {
 #ifdef MY_DEBUG
-		printf(">>max size: %d ", _maxSize);
+		printf(">>max size: %d ", _fIdent.MaxMapSize());
 #endif
 	}
 };
