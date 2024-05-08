@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 05/07/2024
+Last modified: 05/08/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -74,7 +74,7 @@ public:
 	FragDist(const char* fname, bool prStats) : _fIdent(_dupl = Options::GetBVal(oDUPL))
 	{
 		vector<UniBedReader::Issue> issues = { "duplicates" };
-		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false);
+		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false, false);
 
 		Pass(this, file);
 
@@ -107,10 +107,14 @@ class ReadDist : public LenDist
 public:
 	// Constructor by BAM/BED file
 	ReadDist(const char* fname, bool prStats) {
-		RBedReader file(fname, nullptr,
+		RBedReader file(
+			fname,
+			nullptr,
 			BYTE(Options::GetRDuplLevel(oDUPL)),
 			prStats ? eOInfo::STAT : eOInfo::STD,
-			false);
+			false,
+			false
+		);
 
 		Pass(this, file);
 	}
