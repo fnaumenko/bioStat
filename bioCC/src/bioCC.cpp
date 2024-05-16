@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/02/2024
+Last modified: 05/17/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -69,7 +69,7 @@ Options::Option Options::List[] = {
 	{ 'l', "list",	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
 	"list of multiple input files.\nFirst (primary) file in list is comparing with others (secondary)", NULL },
 	{ 'f', "fbed",	tOpt::NONE,	tNAME,	gTREAT, vUNDEF,	0, 0, NULL,
-	"'template' ordinary bed file which features define compared regions.\n", IgnoreBed},
+	"'template' ordinary bed file which features define compared regions.", IgnoreBed},
 	{ 'e', "ext-len",	tOpt::NONE,	tINT,	gTREAT,0, 0, 2e4, NULL,
 	"length by which the features in primary file (for ordinary beds) or in\n'template' (for alignments and wigs) will be extended in both directions\nbefore treatment", NULL },
 	{ 's', "ext-step",	tOpt::NONE,	tINT,	gTREAT,0, 0, 500, NULL,
