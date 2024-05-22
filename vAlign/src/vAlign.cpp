@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/03/2024
+Last modified: 05/21/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -134,7 +134,7 @@ void vAlign::Stat::Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist)
 	const bool isTotal = cID == Chrom::UnID;
 
 	if (isTotal)		dout << "TOTAL\n";
-	int wd;			// wigth of digital field
+	USHORT wd;		// wigth of digital field
 	// *** print mismathes distribution
 	size_t rCnt = _preciseAccum.Count();
 	size_t rPrecCnt = rCnt;
@@ -143,7 +143,7 @@ void vAlign::Stat::Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist)
 		//wd = 3 * 8;		// wigth of digital field
 		dout << "mismCnt\treadCnt\n";
 		wd = 2 * 8;		// wigth of digital field
-		PrintHorLine(wd);
+		PrintSolidLine(wd);
 		dout << "precise\t";	_preciseAccum.Print(_maxScore);
 	}
 	for (const auto& acc : _mismAccum) {
@@ -154,7 +154,7 @@ void vAlign::Stat::Print(chrid cID, size_t cnt, size_t duplCnt, bool prMismDist)
 		if (!acc.first)	rPrecCnt += acc.second.Count();
 		rCnt += acc.second.Count();
 	}
-	if (prMismDist)	PrintHorLine(wd);
+	if (prMismDist)	PrintSolidLine(wd);
 
 	// *** print stats
 	wd = DigitsCountLocale(cnt, Options::GetBVal(oLOCALE));
