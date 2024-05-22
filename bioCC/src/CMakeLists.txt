@@ -8,7 +8,7 @@ add_compile_definitions(
     _FEATURES
 	_DUP_OUTPUT		# duplicated output
 	_READS
-	_WIG
+	_WIG_READER
 	)
 	
 # Source groups
