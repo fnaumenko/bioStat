@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/02/2024
+Last modified: 05/03/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -247,33 +247,35 @@ bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Featu
 #endif
 	// rgns is already limited by chroms represented in template, if it's defined
 	for (auto rit = rgns.cBegin(); rit != rgns.cEnd(); rit++) {
-		chrid cID = CID(rit);
-		if (!FindChrom(cID) || !cv.FindChrom(cID))	continue;
-		chrlen fCnt = 0;							// count of templ features
-		Items<Featr>::cItemsIter itF, itFend;		// template feature iterator
+		cIter itC_this = GetIter(CID(rit));
+		if (itC_this == cEnd())		continue;	// chrom not found
+		cIter itC_cv = cv.GetIter(CID(rit));
+		if (itC_cv == cv.cEnd())	continue;	// chrom not found
+
+		chrlen fCnt = 0;						// count of templ features
+		Items<Featr>::cItemsIter itF, itFend;	// template feature iterator
 		if (templ) {
-			auto itC = templ->GetIter(cID);
+			auto itC = templ->GetIter(CID(rit));
 			itF = templ->ItemsBegin(itC);
 			itFend = templ->ItemsEnd(itC);
 			fCnt = chrlen(templ->ItemsCount(itC));
 		}
 
 		// local results
-		spR locR;
 		chrlen ind = 0;				// item index
-		FeatureRs locResults(_binWidth ? fCnt : 0);	// create histogram
 		chrlen len;					// length of current united (with equal X, Y values) region
 		chrlen posN, pos = 0;		// max(posX,posY), current position, 
 		float valX = 0, valY = 0;	// first sequence, second sequence current value
 		bool insideF = !templ;		// true if current position is inside current template feature
 		bool inTempl = templ;		// true if current position did not go beyond the border of the last feature 
 		bool closeF = false;		// true if the feature has just ended
-		const auto itXend = ItemsEnd(cID), itYend = cv.ItemsEnd(cID);
+		spR locR;
+		FeatureRs locResults(_binWidth ? fCnt : 0);	// create histogram
+		const auto itXend = ItemsEnd(itC_this), itYend = cv.ItemsEnd(itC_cv);
 
 		chrR.Clear();
 		// loop through cover items (intervals)
-		for (auto itX = ItemsBegin(cID), itY = cv.ItemsBegin(cID);
-			itX != itXend && itY != itYend; ) {
+		for (auto itX = ItemsBegin(itC_this), itY = cv.ItemsBegin(itC_cv); itX != itXend && itY != itYend; ) {
 			const chrlen posX = itX->Pos, posY = itY->Pos;
 			const float prevValX = valX, prevValY = valY;	// X, Y current value
 
@@ -307,7 +309,6 @@ bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Featu
 				chrR.AddVal(len, prevValX, prevValY);		// previous combined region
 				if (PrintMngr::IsPrintTotal())
 					totR.AddVal(len, prevValX, prevValY);
-					//totR.AddVal(len, valX, valY);
 			}
 
 			//== close feature, save loc CC
@@ -324,7 +325,7 @@ bool PlainCover::CalcR(const PlainCover& cv, const DefRegions& rgns, const Featu
 		if (PrintMngr::IsPrintLocal()) {
 			if (templ)
 				locResults.Print(_printFRes, _binWidth);
-			PrintMngr::PrintCC(chrR.PCC(), cID);
+			PrintMngr::PrintCC(chrR.PCC(), CID(rit));
 		}
 	}
 	if (PrintMngr::IsPrintTotal())
@@ -672,11 +673,10 @@ bool JointedBeds::CalcR(const ChromSizes& cSizes)
 #ifdef _DEBUG
 void	JointedBeds::Print()
 {
-	chrlen	ri;				// index of range
 	cout << "JointedBeds:\n";
 	for (cIter it = cBegin(); it != cEnd(); it++) {
 		cout << Chrom::AbbrName(CID(it)) << COLON;
-		for (ri = Data(it).FirstInd; ri <= Data(it).LastInd; ri++)
+		for (auto ri = Data(it).FirstInd; ri <= Data(it).LastInd; ri++)
 			cout << TAB << _ranges[ri].Start << TAB << int(_ranges[ri].Val) << LF;
 	}
 }
