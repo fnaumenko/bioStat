@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 05/08/2024
+Last modified: 05/24/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -60,7 +60,7 @@ public:
 	{
 		// empty input is checked already in the 'UniBedReader' constructor
 		if (_freq.Size())
-			_freq.Print(dout, ctype, prDistr);
+			_freq.Print(dout, ctype, true, prDistr);
 	}
 };
 
