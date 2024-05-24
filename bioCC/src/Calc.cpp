@@ -518,10 +518,6 @@ ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool pri
 
 /************************ end of class ReadDens ************************/
 
-// Fills ChromRanges & Range by given two beds.
-// Beds chromosomes should be checked as Treated.
-// Both fs1 & fs2 must be valid: no duplicated, crossed, adjacent, coverage features;
-// in other case R may be wrong
 JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 {
 	const Region fEnd = Region(CHRLEN_UNDEF, CHRLEN_UNDEF - 1);	// last chromosome's joint feature
@@ -530,7 +526,6 @@ JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 	const auto cit1end = fs1.cEnd(), cit2end = fs2.cEnd();
 
 	chrlen	firstInd = 0, lastInd = 0;	// current first, last feature indexes in JointedBeds
-	Region	r1, r2;						// dedicated feature used for detecting
 
 	_ranges.reserve(2 * (fs1.Count() + fs2.Count()));	// ranges
 	for (auto cit1 = fs1.cBegin(); cit1 != cit1end; cit1++) {
@@ -538,13 +533,15 @@ JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 		if(cit2 == cit2end)			continue;		// no chrom
 		const chrlen fCnt1 = chrlen(fs1.ItemsCount(cit1));	// count of features in fs1, fs2
 		const chrlen fCnt2 = chrlen(fs2.ItemsCount(cit2));
-		r1 = fs1.Regn(cit1);
-		r2 = fs2.Regn(cit2);
+		Region r1 = fs1.Regn(cit1);
+		Region r2 = fs2.Regn(cit2);
 		char val = 0;							// current joint range value
+
 		// loop through current chromosome's features 
 		for (chrlen fi1 = 0, fi2 = 0; fi1 < fCnt1 || fi2 < fCnt2;) {
 			chrlen pos = val & VAL1 ? (r1.End + 1) : r1.Start;
 			const chrlen pos2 = val & VAL2 ? (r2.End + 1) : r2.Start;
+
 			if (pos < pos2) {
 				val ^= VAL1;		// flip val for fs1
 				if (!(val & VAL1))	// true when fs1 feature is closed (every second range)
@@ -575,10 +572,6 @@ JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 	}
 }
 
-// Calculates r and fills results
-//	@cSizes: chrom sizes
-//	@results: object to fill results
-//	return: true if calculation was actually done
 bool JointedBeds::CalcR(const ChromSizes& cSizes)
 {
 	// 'dsR' - discrete signal Pearson coefficient (R) calculater; keeps cumulative data & calculates PCC

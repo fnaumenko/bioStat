@@ -2,7 +2,7 @@
 Calc.h
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 04.24.2024
+Last modified: 05.24.2024
 ***********************************************************/
 #pragma once
 
@@ -259,33 +259,33 @@ struct ChromRanges : public ItemIndices
 //	Fast but a bit complicated implementation of calculating algorithm.
 class JointedBeds : Chroms<ChromRanges>
 {
-private:
 	// 'Range' represens a joint feature with start position and joint (combined) value.
 	struct Range
-		// All features from fs1, fs2 are splitted by contiguous ranges with predefined value:
-		// VAL1 (only the first Features has a feature here), or
-		// VAL2 (only the second Features has a feature here), or
-		// VAL1 & VAL2 (both of the Beds have a feature here), or
-		// 0 (no features for both of the Beds)
+		/*
+		All features from fs1, fs2 are splitted by contiguous ranges with predefined value:
+		VAL1 (only the first Features has a feature here), or
+		VAL2 (only the second Features has a feature here), or
+		VAL1 & VAL2 (both of the Beds have a feature here), or
+		0 (no features for both of the Beds)
+		*/
 	{
 		chrlen	Start;	// start position of range in standard chromosomal coordinates
 		char	Val;	// value of range
 
-		inline Range(chrlen pos = 0, char val = 0) : Start(pos), Val(val) {}
+		Range(chrlen pos = 0, char val = 0) : Start(pos), Val(val) {}
 	};
 
 	vector<Range> _ranges;
 
 public:
-	// Fills ChromRanges & Range by given two beds.
-	// Beds chromosomes should be checked as Treated.
-	// Both fs1 & fs2 must be valid: no duplicated, crossed, adjacent, coverage features;
-	// in other case R may be wrong
+	// Two-Features constructor
+	//	@param fs1: first  valid features (no duplicated, crossed, adjacent, coverage features)
+	//	@param fs2: second valid features (no duplicated, crossed, adjacent, coverage features)
 	JointedBeds(const Features& fs1, const Features& fs2);
 
 	// Calculates r and fills results
-	//	@cSizes: chrom sizes
-	//	return: true if calculation was actually done
+	//	@param cSizes: chrom sizes
+	//	@returns: true if calculation was actually done
 	bool CalcR(const ChromSizes& cSizes);
 
 #ifdef _DEBUG
