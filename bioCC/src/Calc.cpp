@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/03/2024
+Last modified: 05/24/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -534,7 +534,6 @@ JointedBeds::JointedBeds(const Features& fs1, const Features& fs2)
 
 	_ranges.reserve(2 * (fs1.Count() + fs2.Count()));	// ranges
 	for (auto cit1 = fs1.cBegin(); cit1 != cit1end; cit1++) {
-		if (!fs1.IsTreated(cit1))	continue;
 		auto cit2 = fs2.GetIter(CID(cit1));
 		if(cit2 == cit2end)			continue;		// no chrom
 		const chrlen fCnt1 = chrlen(fs1.ItemsCount(cit1));	// count of features in fs1, fs2
