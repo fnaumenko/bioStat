@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/24/2024
+Last modified: 07/06/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -505,7 +505,7 @@ void ReadDens::AddChrom(chrid cID, chrlen cLen)
 ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval)
 	: PlainCover()
 {
-	RBedReader file(fName, &cSizes, BYTE(Options::GetRDuplLevel(oDUPL)), oinfo, printfName, abortInval);
+	RBedReader file(fName, &cSizes, BYTE(Options::GetRDuplPermit(oDUPL)), oinfo, printfName, abortInval);
 	rfreq freq;
 	_freq = &freq;
 

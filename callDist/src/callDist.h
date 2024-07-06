@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 05/24/2024
+Last modified: 07/06/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -68,13 +68,19 @@ public:
 class FragDist : public LenDist
 {
 	FragIdent _fIdent;
-	bool	_dupl;						// if TRUE if duplicate frags are allowed
+	bool	_duplAccept;			// if TRUE if duplicate frags are allowed
 
 public:
-	FragDist(const char* fname, bool prStats) : _fIdent(_dupl = Options::GetBVal(oDUPL))
+	FragDist(const char* fname, bool prStats) : _fIdent(_duplAccept = Options::GetBVal(oDUPL))
 	{
 		vector<UniBedReader::Issue> issues = { "duplicates" };
-		RBedReader file(fname, nullptr, BYTE_UNDEF, eOInfo::NONE, false, false, true, true);
+		RBedReader file(
+			fname,
+			nullptr,
+			0,					// no internal duplicates control; it performs in _fIdent
+			eOInfo::NONE,
+			false, false, true, true
+		);
 
 		// pre-read first item to check for PE sequence
 		file.GetNextItem();		// no need to check for empty sequence
@@ -88,7 +94,7 @@ public:
 		issues[0].Cnt = _fIdent.DuplCount();
 		UniBedReader::PrintItemCount(cnt, "fragments");
 		if (issues[0].Cnt) {
-			if (_dupl)	issues[0].Action = UniBedReader::eAction::ACCEPT;
+			if (_duplAccept)	issues[0].Action = UniBedReader::eAction::ACCEPT;
 			UniBedReader::PrintStats(cnt, issues[0].Cnt, issues, prStats);
 		}
 	}
@@ -123,7 +129,7 @@ public:
 		RBedReader file(
 			fname,
 			nullptr,
-			BYTE(Options::GetRDuplLevel(oDUPL)),
+			Options::GetRDuplPermit(oDUPL),
 			prStats ? eOInfo::STAT : eOInfo::STD,
 			false,
 			false
