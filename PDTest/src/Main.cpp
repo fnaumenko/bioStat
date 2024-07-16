@@ -65,16 +65,24 @@ int main(int argc, char* argv[])
 		//const char* oName = Options::GetSVal(oOUTFILE);			// output name
 		//const char* gName = Options::GetSVal(oGEN);				// chrom sizes
 
-		//Features templ(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
-		//	cSizes,
-		//	Options::GetBVal(oOVERL),
-		//	Options::GetIVal(oBS_SCORE),
-		//	0, //readlen(Options::GetUIVal(oBS_LEN)),	// binding length
-		//	false										// print name
-		//);
-		//templ->Print();
+		Features templ(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
+			nullptr,
+			false,
+			eOInfo::STD,
+			true,
+			true
+		);
+		templ.Print(20);
 
-		printf("DONE\n");
+		Features test(iName,
+			nullptr,
+			false,
+			eOInfo::STD,
+			true,
+			true
+		);
+		test.Print(20);
+
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }

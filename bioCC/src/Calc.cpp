@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/06/2024
+Last modified: 07/16/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -705,7 +705,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 		}
 		else {
 			if (PrintMngr::IsPrName())	dout << sTemplate << SepCl;
-			_templ = new Features(FS::CheckedFileName(tfName), _gRgns.ChrSizes(),
+			_templ = new Features(FS::CheckedFileName(tfName), &_gRgns.ChrSizes(),
 				Options::GetBVal(oOVERL), PrintMngr::OutInfo(), PrintMngr::IsPrName(), true);
 			CheckItemsCount(_templ, tfName);
 
@@ -790,7 +790,7 @@ void CorrPair::CalcCC(const char* fName)
 //	@primary: if true object is primary
 void* CorrPair::CreateBedF(const char* fName, bool primary)
 {
-	Features* obj = new Features(fName, _gRgns.ChrSizes(), Options::GetBVal(oOVERL),
+	Features* obj = new Features(fName, &_gRgns.ChrSizes(), Options::GetBVal(oOVERL),
 		PrintMngr::OutInfo(), PrintMngr::IsPrName(), primary);
 	CheckItemsCount(obj, fName);
 	if (obj->NarrowLenDistr())

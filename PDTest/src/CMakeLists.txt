@@ -4,6 +4,7 @@ set(PROJECT_NAME PDTest)
 project(${PROJECT_NAME})
 
 add_compile_definitions(
+	MY_DEBUG
 	_FEATURES
 	)
 
