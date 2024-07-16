@@ -88,6 +88,7 @@ add_subdirectory(bioCC/src ${CMAKE_BINARY_DIR}/bioCC)
 add_subdirectory(callDist/src ${CMAKE_BINARY_DIR}/callDist)
 add_subdirectory(fqStatN/src ${CMAKE_BINARY_DIR}/fqStatN)
 add_subdirectory(vAlign/src ${CMAKE_BINARY_DIR}/vAlign)
+add_subdirectory(PDTest/src ${CMAKE_BINARY_DIR}/PDTest)
 
 # add_subdirectory(../callDistTest/src ${CMAKE_BINARY_DIR}/callDistTest)
 

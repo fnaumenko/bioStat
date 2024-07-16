@@ -45,6 +45,7 @@ constexpr pairCommand commands[] = {
 	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
+	{ "pdtest",		"PDTest" },
 };
 constexpr BYTE commCnt = sizeof(commands) / sizeof(commands[0]);
 
