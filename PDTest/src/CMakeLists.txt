@@ -6,6 +6,7 @@ project(${PROJECT_NAME})
 add_compile_definitions(
 	MY_DEBUG
 	_FEATURES
+	_FEATR_SCORE
 	)
 
 # Source groups

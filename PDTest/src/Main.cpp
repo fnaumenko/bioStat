@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option or tip output
 	int ret = 0;						// main() return code
 
-	//Timer::Enabled = Options::GetBVal(oTIME);
-	//Timer timer;
+	Timer::Enabled = Options::GetBVal(oTIME);
+	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input name
 		//const char* oName = Options::GetSVal(oOUTFILE);			// output name
@@ -74,18 +74,18 @@ int main(int argc, char* argv[])
 		);
 		templ.Print(20);
 
-		Features test(iName,
-			nullptr,
-			false,
-			eOInfo::STD,
-			true,
-			true
-		);
-		test.Print(20);
+		//Features test(iName,
+		//	nullptr,
+		//	false,
+		//	eOInfo::STD,
+		//	true,
+		//	true
+		//);
+		//test.Print(20);
 
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }
-	//timer.Stop();
+	timer.Stop();
 	return ret;
 }
