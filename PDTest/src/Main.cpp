@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 			DiscardNonOverlapRegions<ChromFeaturesIters>(data, 1);
 
 			// print result per shrom
-			cout << Chrom::AbbrName(CID(it0)) << ':' << TAB;
+			cout << Chrom::AbbrName(CID(it0)) << COLON << TAB;
 			data[0].PrBcCount(TAB);
 			data[1].PrBcCount(LF);
 
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 		}
 		// print total result
 		if (chrCount > 1) {
-			cout << sTotal << ':' << TAB;
+			cout << sTotal << COLON << TAB;
 			ChromFeaturesIters::PrBcCounts(BC::FN, falseCount[0], totalCount[0], TAB);
 			ChromFeaturesIters::PrBcCounts(BC::FP, falseCount[1], totalCount[1], LF);
 		}
