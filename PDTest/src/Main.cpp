@@ -71,6 +71,10 @@ int main(int argc, char* argv[])
 		//return 0;
 		ChromFeaturesIters::SetOutFile(oName);
 
+		chrid	chrCount = 0;	// count of threated chromosomes
+		size_t	falseCount[2]{ 0,0 };
+		size_t	totalCount[2]{ 0,0 };
+
 		const Features tmpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
@@ -85,8 +89,21 @@ int main(int argc, char* argv[])
 			};
 			ChromFeaturesIters::SetChrom(CID(it0));
 			DiscardNonOverlapRegions<ChromFeaturesIters>(data, 1);
+
+			// print result per shrom
+			cout << Chrom::AbbrName(CID(it0)) << ':' << TAB;
 			data[0].PrBcCount(TAB);
 			data[1].PrBcCount(LF);
+
+			data[0].AddBcCounts(falseCount[0], totalCount[0]);
+			data[1].AddBcCounts(falseCount[1], totalCount[1]);
+			chrCount++;
+		}
+		// print total result
+		if (chrCount > 1) {
+			cout << sTotal << ':' << TAB;
+			ChromFeaturesIters::PrBcCounts(BC::FN, falseCount[0], totalCount[0], TAB);
+			ChromFeaturesIters::PrBcCounts(BC::FP, falseCount[1], totalCount[1], LF);
 		}
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }

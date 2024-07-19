@@ -83,7 +83,7 @@ public:
 } bc;
 
 
-// Features wrapper for manipulating iterators for a given chromosome 
+// 'Features' wrapper for manipulating iterators for a given chromosome 
 class ChromFeaturesIters
 {
 public:
@@ -91,16 +91,24 @@ public:
 
 	static void SetChrom(chrid cID)	{ if (locus)	locus->SetChrom(cID); }
 
+	// prints binary classifiers
+	static void PrBcCounts(BC::eBC bc, size_t falseCount, size_t totalCount, char sep)
+	{
+		cout << BC::Title(bc) << SepCl << falseCount << sPercent(falseCount, totalCount, 4, 0, true) << sep;
+	}
+
 	ChromFeaturesIters(BC::eBC bc, const Features& fs, Features::cIter cIt, float minScore = 0)
 		: _bc(bc), _minScore(minScore)
 	{
 		auto& data = fs.Data(cIt);
+		_perChrCount = UINT(data.ItemsCount());
 		_beginII = fs.ItemsBegin(data);
 		_endII = fs.ItemsEnd(data);
 		if (!locus)	locus = new IGVlocus;
 	}
 
-	~ChromFeaturesIters() {
+	~ChromFeaturesIters()
+	{
 		if (oFile) { delete oFile; oFile = nullptr;	}
 		if (locus) { delete locus; locus = nullptr;	}
 	}
@@ -113,7 +121,16 @@ public:
 		}
 	}
 
-	void PrBcCount(char sep) const { cout << BC::Title(_bc) << SepCl << _bcCount << sep; }
+	// prints binary classifiers for current chromosome
+	//	@param sep: separator at the end
+	void PrBcCount(char sep) const { PrBcCounts(_bc, _falseCount, _perChrCount, sep); }
+
+	// adds binary classifier values for current chromosome to the total counters
+	void AddBcCounts(size_t& falseCount, size_t& totalCount) const
+	{
+		falseCount += _falseCount;
+		totalCount += _perChrCount;
+	}
 
 	iterator& begin()	{ return _beginII; }
 	iterator& end()		{ return _endII; }
@@ -122,19 +139,22 @@ public:
 	static chrlen	End(iterator it) { return it->End; }
 	static bool		IsWeak(iterator it) { return false; }
 	void			Discard(iterator it) { 
-		if (it->Value < _minScore)	return;
-		_bcCount++;
-		if (oFile) {
-			float score = it->Value;
-			if (score > 1)	score /= 1000;
-			oFile->Write("%s\t%-3s%d\t%d\t%.2f\t%s\n",
-				locus->ChromAbbrName(),
-				BC::Title(_bc),
-				it->Start,
-				it->End,
-				score,
-				locus->Print(it->Start, it->End)
-			);
+		if (it->Value < _minScore)
+			_perChrCount--;
+		else {
+			_falseCount++;
+			if (oFile) {
+				float score = it->Value;
+				if (score > 1)	score /= 1000;
+				oFile->Write("%s\t%-3s%d\t%d\t%.2f\t%s\n",
+					locus->ChromAbbrName(),
+					BC::Title(_bc),
+					it->Start,
+					it->End,
+					score,
+					locus->Print(it->Start, it->End)
+				);
+			}
 		}
 	}
 
@@ -143,7 +163,8 @@ private:
 	static TxtOutFile* oFile;
 
 	BC::eBC	 _bc;
-	USHORT	 _bcCount = 0;
+	UINT	 _falseCount = 0;	// count of false positive or false negative features
+	UINT	 _perChrCount = 0;	// count of valid features for current chrom
 	float	 _minScore = 0;
 	iterator _beginII;
 	iterator _endII;
