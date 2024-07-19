@@ -2,7 +2,7 @@
 vAlign.h
 Provides option emum and main functionality
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 04.24.2024
+Last modified: 07/19/2024
 ***********************************************************/
 #pragma once
 
@@ -13,7 +13,7 @@ Last modified: 04.24.2024
 enum optValue {
 	oGEN,
 	oCHROM,
-	oMINSCR,
+	oMIN_SCORE,
 	oCCASE,
 	oOUTFILE,
 	oLOCALE,
@@ -124,7 +124,7 @@ public:
 		_caseDiff(Options::GetBVal(oCCASE)),
 		_multy(Chrom::UserCID() == Chrom::UnID),
 		_verb(eVerb(Options::GetIVal(oVERBOSE))),
-		_minScore(Options::GetFVal(oMINSCR)),
+		_minScore(Options::GetFVal(oMIN_SCORE)),
 		_cs(cs)
 	{
 		RBedReader file(fname, &cs, BYTE_UNDEF, eOInfo::LAC, false);
