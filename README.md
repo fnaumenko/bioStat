@@ -405,78 +405,36 @@ It is an analogue of the **tee** Linux command and is constructed rather for the
 
 ---
 ## PDTest
-
-Does something
+**P**eak **D**etectors Statistical **Test**
 
 ### Usage
 
-`biostat pdtest [options] <in-file>`<br>
+`biostat pdtest [options] -T|--templ <name> <in-file>`<br>
 or<br>
-`PDTest [options] <in-file>`
+`PDTest [options] -T|--templ <name> <in-file>`
 
 ### Options
 ```
-Input:
-  -i|--inp <FRAG|READ>  input data to call distribution: FRAG - fragments, READ - reads [FRAG]
-  -c|--chr <name>       treat specified chromosome only
-Processing:
-  -s|--stats            print input item issues statistics
-  -O|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>.dist if <name> is not specified
+  -T|--templ <name>     template BS file Required
+  -s|--min-scr <float>  threshold score for taking template features into accounts [0]
+  -O|--out <name>       output file name
   -t|--time             print run time
   -v|--version          print program's version and exit
-  -h|--help             print usage information and exit
-```
+  -h|--help             print usage information and exit```
 ### Details
 
 #### Input
-*Fragment* size distribution is called based on aligned sorted DNA paired-end sequence in 
-[BAM](https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm)/
-[BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
-*Read* size distribution is called based on original DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format 
-or aligned sorted DNA sequence in BAM/BED format.<br>
-The number of mapped reads can be significantly less than the initial one, which can lead to distortion 
-of the read distribution parameters relative to the original one (see, for example, cases 7-8 and 10-11 
-in ![Read distributions figure](https://github.com/fnaumenko/bioStat/tree/master/pict/Read_distrs.png)).<br>
-The program can also accept a file containing the finished distribution, in order to call its parameters.<br>
-This is a plain text file with *.dist* extention, each line of which corresponds to one distribution point, 
-i.e. a pair \<size\>&#x2011;\<frequency\>. Both values should be integers.<br>
-The first lines of the file that do not contain such a pair are ignored.<br>
-A similar file is produced when the `-p|--pr-dist` option is activated, and it can also be used as an input.<br>
-Input file with *.dist* extention ignores `-p|--pr-dist` option (but not `-O|--out` one).
-
-The program recognizes the file format automatically by their extention (case-insensitive).
+[BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing test sites of interest<br>
+Typically this is the result of peak detectors.
 
 #### Output
-Called distribution parameters and Pearson correlation coefficient (PCC) for the original and called distributions, 
-calculated on the basis of the \<start of the sequence\>–\<the first frequency value less than 0.1% of the maximum\>.<br>
-If the original distribution is assumed to be lognormal, 
-the program also outputs the parameters and PCC for the normal distribution if it looks similar.<br>
-An example of the output:
-```
-$ callDist -D ln,g -p 5278099.bam
-5278099.bam: 4557867 fragments
+In progress.
 
-	 PCC	relPCC	p1*	p2**	mode	exp.val
-Lognorm	0.9811		5.775	0.4631	260	358.6
-Gamma	0.95554	-2.6%	4.856	67.43	260	327.4
-
-  *p1 - mean, or alpha for Gamma
- **p2 - sigma, or beta for Gamma
-
-Original distribution:
-length	frequency
-60	1
-70	1
-72	1 
-...
-```
 #### Options description
 
-`-i|--inp <FRAG|READ>`<br>
-sets the subject of distribution parameter calling: `FRAG` - fragments, `READ` - reads<br>
-This option is topical for BAM/BED files only.<br>
-Default: `FRAG` for BAM/BED, `READ` for FASTQ
+`-T|--templ <name>`<br>
+name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing the real sites of interest ('gold standard')<br>
+Required.
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
@@ -485,16 +443,13 @@ Specifying one first chromosome gives a difference from the distribution paramet
 of less than 2% (for a reliable number of fragments, exceeding thousand), 
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
-`-s|--stats`<br>
-prints input item issues statistics
+`-s|--min-scr <float>`<br>
+specifies template features score threshold for testing.<br>
+Default: 0.
 
-`-O|--out [<name>]`<br>
-duplicates standard output to specified file (except alarm messages).<br>
-If <name> is not specified, duplicates output to file with name, 
-constructed as input file short name with extention *.dist*.<br>
-If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
-If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
-It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
+`-O|--out <name>`<br>
+specifies output file containing each False Positive and False Negative cases.<br>
+If <name> is not specified, this information is omitted 
 
 ---
 ## vAlign

@@ -44,7 +44,6 @@ set(Header_Files
     ${BASIC_DIR}/Options.h
     ${BASIC_DIR}/Features.h
     ${BASIC_DIR}/TxtFile.h
-#    ${BASIC_DIR}/spline.h
     Main.h
 )
 source_group("Header Files" FILES ${Header_Files})
@@ -56,7 +55,6 @@ set(Source_Files
     ${BASIC_DIR}/Options.cpp
     ${BASIC_DIR}/Features.cpp
     ${BASIC_DIR}/TxtFile.cpp
-    # ${BASIC_DIR}spline.cpp
     Main.cpp
 )
 if(ZLIB_FOUND)
