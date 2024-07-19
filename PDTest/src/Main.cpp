@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
 		ChromFeaturesIters::SetOutFile(oName);
 
 		chrid	chrCount = 0;	// count of threated chromosomes
-		size_t	falseCount[2]{ 0,0 };
-		size_t	totalCount[2]{ 0,0 };
+		size_t	FN_Count[2]{ 0,0 };	// false, total counter of False Negative features
+		size_t	FP_Count[2]{ 0,0 };	// false, total counter of False Positive features
 
 		const Features tmpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
@@ -95,15 +95,15 @@ int main(int argc, char* argv[])
 			data[0].PrBcCount(TAB);
 			data[1].PrBcCount(LF);
 
-			data[0].AddBcCounts(falseCount[0], totalCount[0]);
-			data[1].AddBcCounts(falseCount[1], totalCount[1]);
+			data[0].AddBcCounts(FN_Count);
+			data[1].AddBcCounts(FP_Count);
 			chrCount++;
 		}
 		// print total result
 		if (chrCount > 1) {
 			cout << sTotal << COLON << TAB;
-			ChromFeaturesIters::PrBcCounts(BC::FN, falseCount[0], totalCount[0], TAB);
-			ChromFeaturesIters::PrBcCounts(BC::FP, falseCount[1], totalCount[1], LF);
+			ChromFeaturesIters::PrBcCounts(BC::FN, FN_Count, TAB);
+			ChromFeaturesIters::PrBcCounts(BC::FP, FP_Count, LF);
 		}
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }

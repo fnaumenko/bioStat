@@ -92,16 +92,16 @@ public:
 	static void SetChrom(chrid cID)	{ if (locus)	locus->SetChrom(cID); }
 
 	// prints binary classifiers
-	static void PrBcCounts(BC::eBC bc, size_t falseCount, size_t totalCount, char sep)
+	static void PrBcCounts(BC::eBC bc, const size_t count[2], char sep)
 	{
-		cout << BC::Title(bc) << SepCl << falseCount << sPercent(falseCount, totalCount, 4, 0, true) << sep;
+		cout << BC::Title(bc) << SepCl << count[0] << sPercent(count[0], count[1], 4, 0, true) << sep;
 	}
 
 	ChromFeaturesIters(BC::eBC bc, const Features& fs, Features::cIter cIt, float minScore = 0)
 		: _bc(bc), _minScore(minScore)
 	{
 		auto& data = fs.Data(cIt);
-		_perChrCount = UINT(data.ItemsCount());
+		_ftrCount[1] = UINT(data.ItemsCount());
 		_beginII = fs.ItemsBegin(data);
 		_endII = fs.ItemsEnd(data);
 		if (!locus)	locus = new IGVlocus;
@@ -123,13 +123,13 @@ public:
 
 	// prints binary classifiers for current chromosome
 	//	@param sep: separator at the end
-	void PrBcCount(char sep) const { PrBcCounts(_bc, _falseCount, _perChrCount, sep); }
+	void PrBcCount(char sep) const { PrBcCounts(_bc, _ftrCount, sep); }
 
-	// adds binary classifier values for current chromosome to the total counters
-	void AddBcCounts(size_t& falseCount, size_t& totalCount) const
+	// adds binary classifier counts for current chromosome to the total counters
+	void AddBcCounts(size_t count[2]) const
 	{
-		falseCount += _falseCount;
-		totalCount += _perChrCount;
+		count[0] += _ftrCount[0];
+		count[1] += _ftrCount[1];
 	}
 
 	iterator& begin()	{ return _beginII; }
@@ -140,9 +140,9 @@ public:
 	static bool		IsWeak(iterator it) { return false; }
 	void			Discard(iterator it) { 
 		if (it->Value < _minScore)
-			_perChrCount--;
+			_ftrCount[1]--;		// decrease chrom counter
 		else {
-			_falseCount++;
+			_ftrCount[0]++;		// increase false counter
 			if (oFile) {
 				float score = it->Value;
 				if (score > 1)	score /= 1000;
@@ -163,8 +163,7 @@ private:
 	static TxtOutFile* oFile;
 
 	BC::eBC	 _bc;
-	UINT	 _falseCount = 0;	// count of false positive or false negative features
-	UINT	 _perChrCount = 0;	// count of valid features for current chrom
+	size_t	 _ftrCount[2]{ 0,0 };	// false, chrom feature's counter
 	float	 _minScore = 0;
 	iterator _beginII;
 	iterator _endII;
