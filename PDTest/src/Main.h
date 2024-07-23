@@ -146,49 +146,49 @@ public:
 	static const char* Title(eBC bc) { return titles[bc]; }
 } bc;
 
+// target set for computation
+enum eTarget {
+	CHR,	// for the current chromosome
+	ALL		// for all
+};
+
 // Keeps data and calculates Standard Deviation
 class StandDev
 {
 	vector<short> _devs;	// deviations
 	UINT	_startInd = 0;	// starting index in _devs for the current chromosome
-	int		_cSumDev = 0;	// sum of deviation for current chromosome
-	int		_sumDev = 0;	// total sum of deviation
-	chrlen	_cCnt = 0;		// local count (for the current chromosome)
+	int		_sumDev[2]{ 0,0 };	// sum of deviation for current chromosome, for all
 
-	// returns Standard Deviation
-	float GetSD(UINT startInd, chrlen sum, chrlen cnt) const
+public:
+	void Reserve(size_t capacity) { _devs.reserve(capacity); }
+
+	// Returns Standard Deviation
+	//	@param t: target set for computation
+	float GetSD(eTarget t) const
 	{
-		auto avr = float(sum) / cnt;
+		UINT startInd = !t * _startInd;		// _startInd for chrom, 0 for all
+		chrlen cnt = chrlen(_devs.size()) - startInd;
+		auto avr = float(_sumDev[t]) / cnt;
 		float sumD = 0;
+
 		for (auto it = _devs.begin() + startInd; it != _devs.end(); it++)
 			sumD += float(pow(float(*it) - avr, 2));
 		return sqrt(sumD / cnt);
 	}
 
-public:
-	void Reserve(size_t capacity) { _devs.reserve(capacity); }
-
-	// returns standard deviation for current chromosome;
-	// should be called before ResetChrom()
-	float GetChromSD() const { return GetSD(_startInd, _cSumDev, _cCnt); }
-
-	// returns total standard deviation;
-	// should be called after last ResetChrom()
-	float GetTotalSD() const { return GetSD(0, _sumDev, chrlen(_devs.size())); }
-
+	// Adds deviation value
 	void AddDev(short dev)
 	{
 		_devs.push_back(dev);
-		_cSumDev += dev;
-		_cCnt++;
+		_sumDev[CHR] += dev;
 	}
 
-	// stops counting data for the current chromosome
+	// Stops counting data for the current chromosome
 	void ResetChrom()
 	{
 		_startInd = UINT(_devs.size() - 1);
-		_sumDev += _cSumDev;
-		_cSumDev = _cCnt = 0;
+		_sumDev[ALL] += _sumDev[CHR];
+		_sumDev[CHR] = 0;
 	}
 };
 
@@ -210,13 +210,20 @@ private:
 	}
 
 	const Features& _fs;
-	StandDev& _sd;
-	iterator _beginII;
-	iterator _endII;
-	BC::eBC	_bc;				// needed for printing to dump file
-	float	_minScore;
-	chrlen	_cntBC[2]{ 0,0 };	// false, total valid feature's count
-	chrlen	_cCntBC[2]{ 0,0 };	// false, total valid feature's count for chromosome
+	StandDev&	_sd;
+	iterator	_beginII;
+	iterator	_endII;
+	BC::eBC		_bc;				// needed for printing to dump file
+	float		_minScore;
+	/*
+	* valid feature's counters (per chrom and total) are only needed 
+	* for autonomous calculation of FNR and FDR (when printing).
+	* In FeaturesStatTuple::PrintF1() we can use _sd.size() as True Positive
+	*/
+	chrlen	_cntBC[2][2]{ 
+		{ 0,0 },	// false, total valid feature's count for chromosome
+		{ 0,0 }		// false, total valid feature's count in total
+	};
 
 public:
 	static void SetOutFile(const char* fname)
@@ -240,20 +247,20 @@ public:
 		if (locus) { delete locus; locus = nullptr; }
 	}
 
-	const chrlen* ChromBC() const { return _cCntBC; }
-	const chrlen* TotalBC() const { return _cntBC; }
+	// returns binary classifiers
+	//	@param t: target set for computation
+	const chrlen* BC(eTarget t) const { return _cntBC[t]; }
 
-	// prints binary classifiers for current chromosome
-	void PrintChromStat() const { PrBcCounts(_cCntBC); }
-	// prints total binary classifiers
-	void PrintTotalStat() const { PrBcCounts(_cntBC); }
+	// prints binary classifiers
+	//	@param t: target set for computation
+	void PrintStat(eTarget t) const { PrBcCounts(_cntBC[t]); }
 
 	// sets counting local stats data (for given chromosome)
 	//	@param cIt: chromosome's iterator
 	void SetChrom(Features::cIter cIt)
 	{
 		auto& data = _fs.Data(cIt);
-		_cCntBC[1] = chrlen(data.ItemsCount());
+		_cntBC[CHR][1] = chrlen(data.ItemsCount());
 		_beginII = _fs.ItemsBegin(data);
 		_endII = _fs.ItemsEnd(data);
 		if (locus)	locus->SetChrom(CID(cIt));
@@ -262,9 +269,9 @@ public:
 	// stops counting local stats data
 	void ResetChrom()
 	{
-		_cntBC[0] += _cCntBC[0];
-		_cntBC[1] += _cCntBC[1];
-		memset(_cCntBC, 0, sizeof(_cCntBC));
+		_cntBC[ALL][0] += _cntBC[CHR][0];
+		_cntBC[ALL][1] += _cntBC[CHR][1];
+		memset(_cntBC[CHR], 0, sizeof(_cntBC) / 2);
 	}
 
 	iterator& begin()	{ return _beginII; }
@@ -280,9 +287,11 @@ public:
 	void Discard	(iterator it)
 	{ 
 		if (it->Value < _minScore)
-			_cCntBC[1]--;		// decrease chrom counter
+			//_cCntBC[1]--;		// decrease chrom counter
+			_cntBC[CHR][1]--;		// decrease chrom counter
 		else {
-			_cCntBC[0]++;		// increase false counter
+			//_cCntBC[0]++;		// increase false counter
+			_cntBC[CHR][0]++;		// increase false counter
 			if (oFile) {
 				float score = it->Value;
 				if (score > 1)	score /= 1000;
@@ -299,6 +308,7 @@ public:
 	}
 };
 
+
 class FeaturesStatTuple
 {
 	static const USHORT titleLineLen = 42;
@@ -310,18 +320,18 @@ class FeaturesStatTuple
 
 	StandDev _sd;
 	FeaturesStatData _data[2];
+	chrid _cID = Chrom::UnID;
 
-	static float GetF1(const chrlen* tmplPC, const chrlen* testPC)
+	// returns F1 score
+	//	@param t: target set for computation
+	float GetF1(eTarget t) const
 	{
-		auto fn = tmplPC[0];
-		auto dtp = 2 * (tmplPC[1] - fn);		// double TP
-		return float(dtp) / (dtp + testPC[0] + fn);
+		auto fn = _data[0].BC(t)[0];
+		auto dtp = 2 * (_data[0].BC(t)[1] - fn);		// double TP
+		return float(dtp) / (dtp + _data[1].BC(t)[0] + fn);
 	}
 
-	void PrintF1(const chrlen* tmplPC, const chrlen* testPC) const
-	{
-		cout << GetF1(tmplPC, testPC) << "  ";
-	}
+	void PrintF1(eTarget t) const { cout << GetF1(t) << "  "; }
 
 public:
 	static void PrintHeader()
@@ -344,6 +354,7 @@ public:
 	//	@param testIt: test chromosome's iterator
 	void SetChrom(Features::cIter tmplIt, Features::cIter testIt)
 	{
+		_cID = CID(tmplIt);
 		_data[0].SetChrom(tmplIt);
 		_data[1].SetChrom(testIt);
 	}
@@ -358,23 +369,15 @@ public:
 
 	void Treat() { DiscardNonOverlapRegions<FeaturesStatData>(_data, 1); }
 
-	// prints binary classifiers for current chromosome
-	void PrintChromStat(chrid cID) const
-	{ 
-		cout << Chrom::AbbrName(cID) << COLON << TAB;
-		_data[0].PrintChromStat();
-		_data[1].PrintChromStat();
-		PrintF1(_data[0].ChromBC(), _data[1].ChromBC());
-		cout << _sd.GetChromSD() << LF;
-	}
-
-	// prints total binary classifiers
-	void PrintTotalStat() const
+	// prints BC, F1 and SD
+	//	@param t: target set for computation
+	void PrintStat(eTarget t) const
 	{
-		PrintFooter();
-		_data[0].PrintTotalStat();
-		_data[1].PrintTotalStat();
-		PrintF1(_data[0].TotalBC(), _data[1].TotalBC());
-		cout << _sd.GetTotalSD() << LF;
+		if (t == CHR)	cout << Chrom::AbbrName(_cID) << COLON << TAB;
+		else			PrintFooter();
+		_data[0].PrintStat(t);
+		_data[1].PrintStat(t);
+		PrintF1(t);
+		cout << _sd.GetSD(t) << LF;
 	}
 };

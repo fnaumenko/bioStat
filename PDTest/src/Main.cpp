@@ -86,12 +86,12 @@ int main(int argc, char* argv[])
 
 			fst.SetChrom(it0, it1);
 			fst.Treat();
-			fst.PrintChromStat(CID(it0));
+			fst.PrintStat(CHR);
 			fst.ResetChrom();
 			chrCount++;
 		}
 		//if (chrCount > 1) 
-			fst.PrintTotalStat();
+			fst.PrintStat(ALL);
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }
