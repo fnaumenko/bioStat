@@ -26,6 +26,69 @@ enum optValue {		// options id
 
 const fraglen ROI_ext = 500;
 
+
+template<typename T>
+void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
+{
+	const typename T::iterator itEnd[2]{ rgns[0].end(), rgns[1].end() };
+	typename T::iterator it[2]{ rgns[0].begin(), rgns[1].begin() };
+	BYTE s;		// index of the left started region: 0 - direct, 1 - reverse
+	BYTE suspended = 0;	// if 1st|2nd bit is set then direct|reverse region is suspended and should be analyzed in the next pass
+
+	auto start = [&it](BYTE s) -> chrlen { return T::Start(it[s]); };
+	auto end = [&it](BYTE s) -> chrlen { return T::End(it[s]); };
+
+	// unconditional discarde the region
+	auto discardeRgn = [&](BYTE s) {
+		rgns[s].Discard(it[s]);
+		suspended &= ~(1 << s);	// reset suspended s
+		it[s]++;
+	};
+	// unconditional discarde the regions; always applied to the left region
+	auto discardeLastRgns = [&it, &itEnd, &discardeRgn](BYTE s) {
+		while (it[s] != itEnd[s])
+			discardeRgn(s);
+	};
+
+	while (it[0] != itEnd[0] && it[1] != itEnd[1]) {
+		s = start(0) > start(1);
+		if (end(s) > start(!s) + minOverlapLen) {	// strong intersection
+			/***************************************
+				-----    ?????	more regions?		left overlaps
+			+++++++++++++		suspended...		left overlaps
+				---------		suspended...		right overlaps
+			+++++++	  ?????		more regions?		right overlaps
+			***************************************/
+			bool valid = true;
+			if (T::IsWeak(it[s]))	discardeRgn(s), valid = false;
+			if (T::IsWeak(it[!s]))	discardeRgn(!s), valid = false;
+			if (valid) {
+				rgns[0].Accept(it);
+				s ^= end(s) < end(!s);	// flip by condition
+				it[!s]++;
+				suspended |= 1 << s;	// set suspended s
+			}
+		}
+		else {							// weak intersection or no one
+			// conditional close of the region
+			if (suspended)	suspended = 0;
+			else			rgns[s].Discard(it[s]);
+
+			// close remaining complementary regions
+			if (++it[s] == rgns[s].end()) {
+				discardeLastRgns(!s);
+				break;			// no need to check in while()
+			}
+		}
+	}
+
+	// close 'out of scope' regions
+	if ((s = it[1] != itEnd[1]) || it[0] != itEnd[0]) {
+		it[s]++;
+		discardeLastRgns(s);
+	}
+}
+
 // 'IGVlocus' is designed to print locus that can be pasted into the address bar of Integrative Genomics Viewer
 class IGVlocus
 {
@@ -83,6 +146,7 @@ public:
 	static const char* Title(eBC bc) { return titles[bc]; }
 } bc;
 
+// Keeps data and calculates Standard Deviation
 class StandDev
 {
 	vector<short> _devs;	// deviations
@@ -102,7 +166,7 @@ class StandDev
 	}
 
 public:
-	StandDev(size_t capacity) { _devs.reserve(capacity); }
+	void Reserve(size_t capacity) { _devs.reserve(capacity); }
 
 	// returns standard deviation for current chromosome;
 	// should be called before ResetChrom()
@@ -135,8 +199,6 @@ public:
 	using iterator = Features::cItemsIter;
 
 private:
-	static const USHORT titleLineLen = 36;
-	static StandDev*	sd;
 	static IGVlocus*	locus;
 	static TxtOutFile*	oFile;
 
@@ -148,6 +210,7 @@ private:
 	}
 
 	const Features& _fs;
+	StandDev& _sd;
 	iterator _beginII;
 	iterator _endII;
 	BC::eBC	_bc;				// needed for printing to dump file
@@ -156,29 +219,6 @@ private:
 	chrlen	_cCntBC[2]{ 0,0 };	// false, total valid feature's count for chromosome
 
 public:
-	static void PrintHeader()
-	{
-		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    SD\n";
-		//cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    F1    SD\n";
-		PrintSolidLine(titleLineLen);
-	}
-
-	static void PrintFooter()
-	{
-		PrintSolidLine(titleLineLen);
-		cout << sTotal << COLON << TAB;
-	}
-
-	// prints standard deviation for the current chromosome
-	static void PrintChromSD() { cout << sd->GetChromSD() << LF; }
-	// prints total standard deviation
-	static void PrintTotalSD() { cout << sd->GetTotalSD() << LF; }
-
-	// prints F1 score for the current chromosome
-	static void PrintChromF1() { cout << sd->GetChromSD() << LF; }
-	// prints total F1 score
-	static void PrintTotalF1() { cout << sd->GetTotalSD() << LF; }
-
 	static void SetOutFile(const char* fname)
 	{
 		if (fname) {
@@ -187,25 +227,21 @@ public:
 		}
 	}
 
-
-	FeaturesStatData(BC::eBC bc, const Features& fs, float minScore = 0)
-		: _bc(bc), _fs(fs), _minScore(minScore)
+	FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore)
+		: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore)
 	{
-		if (!sd) {
-			sd = new StandDev(fs.ItemsCount());
-			if(oFile)
-				locus = new IGVlocus;
-		}
+		if(oFile)
+			locus = new IGVlocus;
 	}
 
 	~FeaturesStatData()
 	{
-		if (sd) {
-			if (oFile) { delete oFile; oFile = nullptr; }
-			if (locus) { delete locus; locus = nullptr; }
-			delete sd; sd = nullptr;
-		}
+		if (oFile) { delete oFile; oFile = nullptr; }
+		if (locus) { delete locus; locus = nullptr; }
 	}
+
+	const chrlen* ChromBC() const { return _cCntBC; }
+	const chrlen* TotalBC() const { return _cntBC; }
 
 	// prints binary classifiers for current chromosome
 	void PrintChromStat() const { PrBcCounts(_cCntBC); }
@@ -229,7 +265,6 @@ public:
 		_cntBC[0] += _cCntBC[0];
 		_cntBC[1] += _cCntBC[1];
 		memset(_cCntBC, 0, sizeof(_cCntBC));
-		sd->ResetChrom();
 	}
 
 	iterator& begin()	{ return _beginII; }
@@ -238,11 +273,11 @@ public:
 	static chrlen	Start	(iterator it) { return it->Start; }
 	static chrlen	End		(iterator it) { return it->End; }
 	static bool		IsWeak	(iterator it) { return false; }	// stub
-	static void		Accept	(const iterator it[2])
+	void Accept(const iterator it[2])
 	{
-		sd->AddDev(short(int(it[0]->Centre()) - it[1]->Centre()));
+		_sd.AddDev(short(int(it[0]->Centre()) - it[1]->Centre()));
 	}
-	void			Discard	(iterator it)
+	void Discard	(iterator it)
 	{ 
 		if (it->Value < _minScore)
 			_cCntBC[1]--;		// decrease chrom counter
@@ -264,65 +299,82 @@ public:
 	}
 };
 
-
-template<typename T>
-void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
+class FeaturesStatTuple
 {
-	const typename T::iterator itEnd[2]{ rgns[0].end(), rgns[1].end() };
-	typename T::iterator it[2]{ rgns[0].begin(), rgns[1].begin() };
-	BYTE s;		// index of the left started region: 0 - direct, 1 - reverse
-	BYTE suspended = 0;	// if 1st|2nd bit is set then direct|reverse region is suspended and should be analyzed in the next pass
-
-	auto start = [&it](BYTE s) -> chrlen { return T::Start(it[s]); };
-	auto end = [&it](BYTE s) -> chrlen { return T::End(it[s]); };
-
-	// unconditional discarde the region
-	auto discardeRgn = [&](BYTE s) {
-		rgns[s].Discard(it[s]);
-		suspended &= ~(1 << s);	// reset suspended s
-		it[s]++;
-	};
-	// unconditional discarde the regions; always applied to the left region
-	auto discardeLastRgns = [&it, &itEnd, &discardeRgn](BYTE s) {
-		while (it[s] != itEnd[s])
-			discardeRgn(s);
-	};
-
-	while (it[0] != itEnd[0] && it[1] != itEnd[1]) {
-		s = start(0) > start(1);
-		if (end(s) > start(!s) + minOverlapLen) {	// strong intersection
-			/***************************************
-				-----    ?????	more regions?		left overlaps
-			+++++++++++++		suspended...		left overlaps
-				---------		suspended...		right overlaps
-			+++++++	  ?????		more regions?		right overlaps
-			***************************************/
-			bool valid = true;
-			if (T::IsWeak(it[s]))	discardeRgn(s), valid = false;
-			if (T::IsWeak(it[!s]))	discardeRgn(!s), valid = false;
-			if (valid) {
-				T::Accept(it);
-				s ^= end(s) < end(!s);	// flip by condition
-				it[!s]++;
-				suspended |= 1 << s;	// set suspended s
-			}
-		}
-		else {							// weak intersection or no one
-			// conditional close of the region
-			if (suspended)	suspended = 0;
-			else			rgns[s].Discard(it[s]);
-
-			// close remaining complementary regions
-			if (++it[s] == rgns[s].end()) {
-				discardeLastRgns(!s);
-				break;			// no need to check in while()
-			}
-		}
+	static const USHORT titleLineLen = 42;
+	static void PrintFooter()
+	{
+		PrintSolidLine(titleLineLen);
+		cout << sTotal << COLON << TAB;
 	}
 
-	// close 'out of scope' regions
-	if ((s = it[1] != itEnd[1]) || it[0] != itEnd[0]) {
-		it[s]++;
-		discardeLastRgns(s);
+	StandDev _sd;
+	FeaturesStatData _data[2];
+
+	static float GetF1(const chrlen* tmplPC, const chrlen* testPC)
+	{
+		auto fn = tmplPC[0];
+		auto dtp = 2 * (tmplPC[1] - fn);		// double TP
+		return float(dtp) / (dtp + testPC[0] + fn);
 	}
-}
+
+	void PrintF1(const chrlen* tmplPC, const chrlen* testPC) const
+	{
+		cout << GetF1(tmplPC, testPC) << "  ";
+	}
+
+public:
+	static void PrintHeader()
+	{
+		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    F1     SD\n";
+		PrintSolidLine(titleLineLen);
+	}
+
+	FeaturesStatTuple(const Features& tmpl, const Features& test, float minScore)
+		: _data{
+			FeaturesStatData(BC::FN, tmpl, _sd, minScore),
+			FeaturesStatData(BC::FP, test, _sd, 0)
+		}
+	{
+		_sd.Reserve(tmpl.ItemsCount());
+	}
+
+	// sets counting local stats data (for given chromosome)
+	//	@param tmplIt: template chromosome's iterator
+	//	@param testIt: test chromosome's iterator
+	void SetChrom(Features::cIter tmplIt, Features::cIter testIt)
+	{
+		_data[0].SetChrom(tmplIt);
+		_data[1].SetChrom(testIt);
+	}
+
+	// stops counting local stats data
+	void ResetChrom()
+	{
+		_data[0].ResetChrom();
+		_data[1].ResetChrom();
+		_sd.ResetChrom();
+	}
+
+	void Treat() { DiscardNonOverlapRegions<FeaturesStatData>(_data, 1); }
+
+	// prints binary classifiers for current chromosome
+	void PrintChromStat(chrid cID) const
+	{ 
+		cout << Chrom::AbbrName(cID) << COLON << TAB;
+		_data[0].PrintChromStat();
+		_data[1].PrintChromStat();
+		PrintF1(_data[0].ChromBC(), _data[1].ChromBC());
+		cout << _sd.GetChromSD() << LF;
+	}
+
+	// prints total binary classifiers
+	void PrintTotalStat() const
+	{
+		PrintFooter();
+		_data[0].PrintTotalStat();
+		_data[1].PrintTotalStat();
+		PrintF1(_data[0].TotalBC(), _data[1].TotalBC());
+		cout << _sd.GetTotalSD() << LF;
+	}
+};
