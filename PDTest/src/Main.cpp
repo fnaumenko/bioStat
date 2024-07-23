@@ -1,7 +1,7 @@
 /************************************************************************************
 PDTest - Peak Detectors test
 -------------------------
-Last modified: 07/19/2024
+Last modified: 07/23/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -69,41 +69,45 @@ int main(int argc, char* argv[])
 		//auto name = FS::ComposeFileName(oName, iName);
 		//cout << name << LF;
 		//return 0;
-		ChromFeaturesIters::SetOutFile(oName);
+		FeaturesStatData::SetOutFile(oName);
 
 		chrid	chrCount = 0;	// count of threated chromosomes
-		size_t	FN_Count[2]{ 0,0 };	// false, total counter of False Negative features
-		size_t	FP_Count[2]{ 0,0 };	// false, total counter of False Positive features
 
 		const Features tmpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
-		
+
+		FeaturesStatData data[2]{
+			FeaturesStatData(BC::FN, tmpl, Options::GetFVal(oMIN_SCORE)),
+			FeaturesStatData(BC::FP, test)
+		};
+
+		FeaturesStatData::PrintHeader();
 		for (auto it0 = tmpl.cBegin(); it0 != tmpl.cEnd(); it0++) {
 			auto it1 = test.GetIter(CID(it0));
 			if (it1 == test.cEnd())		continue;	// chrom not found
 
-			ChromFeaturesIters data[2]{
-				ChromFeaturesIters(BC::FN, tmpl, it0, Options::GetFVal(oMIN_SCORE)),
-				ChromFeaturesIters(BC::FP, test, it1)
-			};
-			ChromFeaturesIters::SetChrom(CID(it0));
-			DiscardNonOverlapRegions<ChromFeaturesIters>(data, 1);
+			data[0].SetChrom(it0);
+			data[1].SetChrom(it1);
+			DiscardNonOverlapRegions<FeaturesStatData>(data, 1);
 
-			// print result per shrom
+			// print result per chrom
 			cout << Chrom::AbbrName(CID(it0)) << COLON << TAB;
-			data[0].PrBcCount(TAB);
-			data[1].PrBcCount(LF);
+			data[0].PrintChromStat();
+			data[1].PrintChromStat();
+			FeaturesStatData::PrintChromSD();
 
-			data[0].AddBcCounts(FN_Count);
-			data[1].AddBcCounts(FP_Count);
+			data[0].ResetChrom();
+			data[1].ResetChrom();
 			chrCount++;
 		}
 		// print total result
-		if (chrCount > 1) {
-			cout << sTotal << COLON << TAB;
-			ChromFeaturesIters::PrBcCounts(BC::FN, FN_Count, TAB);
-			ChromFeaturesIters::PrBcCounts(BC::FP, FP_Count, LF);
+		//if (chrCount > 1) 
+		{
+			FeaturesStatData::PrintFooter();
+			data[0].PrintTotalStat();
+			data[1].PrintTotalStat();
+			FeaturesStatData::PrintTotalSD();
 		}
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
@@ -112,6 +116,14 @@ int main(int argc, char* argv[])
 	return ret;
 }
 
-IGVlocus* ChromFeaturesIters::locus = nullptr;
-TxtOutFile* ChromFeaturesIters::oFile = nullptr;
 const char* BC::titles[2]{ "FP", "FN" };
+IGVlocus* FeaturesStatData::locus = nullptr;
+TxtOutFile* FeaturesStatData::oFile = nullptr;
+StandDev* FeaturesStatData::sd = nullptr;
+
+//vector<short>* FeaturesStatData::devs = nullptr;
+//vector<short>::iterator	FeaturesStatData::beginDevs;
+//chrlen	FeaturesStatData::cSumDev = 0;
+//chrlen	FeaturesStatData::sumDev = 0;
+//chrlen	FeaturesStatData::count[2]{ 0,0 };
+

@@ -3,12 +3,13 @@ PDTest - Peak Detectors test
 Copyright (C) 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/19/2024
+Last modified: 07/23/2024
 -------------------------
 ***********************************************************/
 
 #pragma once
 #include "Features.h"
+#include <numeric>		// std::reduce
 
 enum optValue {		// options id
 	//oGEN,
@@ -82,36 +83,101 @@ public:
 	static const char* Title(eBC bc) { return titles[bc]; }
 } bc;
 
+class StandDev
+{
+	vector<short> _devs;	// deviations
+	UINT	_startInd = 0;	// starting index in _devs for the current chromosome
+	int		_cSumDev = 0;	// sum of deviation for current chromosome
+	int		_sumDev = 0;	// total sum of deviation
+	chrlen	_cCnt = 0;		// local count (for the current chromosome)
+
+	// returns Standard Deviation
+	float GetSD(UINT startInd, chrlen sum, chrlen cnt) const
+	{
+		auto avr = float(sum) / cnt;
+		float sumD = 0;
+		for (auto it = _devs.begin() + startInd; it != _devs.end(); it++)
+			sumD += float(pow(float(*it) - avr, 2));
+		return sqrt(sumD / cnt);
+	}
+
+public:
+	StandDev(size_t capacity) { _devs.reserve(capacity); }
+
+	// returns standard deviation for current chromosome;
+	// should be called before ResetChrom()
+	float GetChromSD() const { return GetSD(_startInd, _cSumDev, _cCnt); }
+
+	// returns total standard deviation;
+	// should be called after last ResetChrom()
+	float GetTotalSD() const { return GetSD(0, _sumDev, chrlen(_devs.size())); }
+
+	void AddDev(short dev)
+	{
+		_devs.push_back(dev);
+		_cSumDev += dev;
+		_cCnt++;
+	}
+
+	// stops counting data for the current chromosome
+	void ResetChrom()
+	{
+		_startInd = UINT(_devs.size() - 1);
+		_sumDev += _cSumDev;
+		_cSumDev = _cCnt = 0;
+	}
+};
 
 // 'Features' wrapper for manipulating iterators for a given chromosome 
-class ChromFeaturesIters
+class FeaturesStatData
 {
 public:
 	using iterator = Features::cItemsIter;
 
-	static void SetChrom(chrid cID)	{ if (locus)	locus->SetChrom(cID); }
+private:
+	static const USHORT titleLineLen = 36;
+	static StandDev*	sd;
+	static IGVlocus*	locus;
+	static TxtOutFile*	oFile;
 
 	// prints binary classifiers
-	static void PrBcCounts(BC::eBC bc, const size_t count[2], char sep)
+	static void PrBcCounts(const chrlen count[2])
 	{
-		cout << BC::Title(bc) << SepCl << count[0] << sPercent(count[0], count[1], 4, 0, true) << sep;
+		const char* delim = "  ";
+		cout << setw(4) << count[0] << delim << setprecision(3) << float(count[0]) / count[1] << delim;
 	}
 
-	ChromFeaturesIters(BC::eBC bc, const Features& fs, Features::cIter cIt, float minScore = 0)
-		: _bc(bc), _minScore(minScore)
+	const Features& _fs;
+	iterator _beginII;
+	iterator _endII;
+	BC::eBC	_bc;				// needed for printing to dump file
+	float	_minScore;
+	chrlen	_cntBC[2]{ 0,0 };	// false, total valid feature's count
+	chrlen	_cCntBC[2]{ 0,0 };	// false, total valid feature's count for chromosome
+
+public:
+	static void PrintHeader()
 	{
-		auto& data = fs.Data(cIt);
-		_ftrCount[1] = UINT(data.ItemsCount());
-		_beginII = fs.ItemsBegin(data);
-		_endII = fs.ItemsEnd(data);
-		if (!locus)	locus = new IGVlocus;
+		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    SD\n";
+		//cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    F1    SD\n";
+		PrintSolidLine(titleLineLen);
 	}
 
-	~ChromFeaturesIters()
+	static void PrintFooter()
 	{
-		if (oFile) { delete oFile; oFile = nullptr;	}
-		if (locus) { delete locus; locus = nullptr;	}
+		PrintSolidLine(titleLineLen);
+		cout << sTotal << COLON << TAB;
 	}
+
+	// prints standard deviation for the current chromosome
+	static void PrintChromSD() { cout << sd->GetChromSD() << LF; }
+	// prints total standard deviation
+	static void PrintTotalSD() { cout << sd->GetTotalSD() << LF; }
+
+	// prints F1 score for the current chromosome
+	static void PrintChromF1() { cout << sd->GetChromSD() << LF; }
+	// prints total F1 score
+	static void PrintTotalF1() { cout << sd->GetTotalSD() << LF; }
 
 	static void SetOutFile(const char* fname)
 	{
@@ -121,28 +187,67 @@ public:
 		}
 	}
 
-	// prints binary classifiers for current chromosome
-	//	@param sep: separator at the end
-	void PrBcCount(char sep) const { PrBcCounts(_bc, _ftrCount, sep); }
 
-	// adds binary classifier counts for current chromosome to the total counters
-	void AddBcCounts(size_t count[2]) const
+	FeaturesStatData(BC::eBC bc, const Features& fs, float minScore = 0)
+		: _bc(bc), _fs(fs), _minScore(minScore)
 	{
-		count[0] += _ftrCount[0];
-		count[1] += _ftrCount[1];
+		if (!sd) {
+			sd = new StandDev(fs.ItemsCount());
+			if(oFile)
+				locus = new IGVlocus;
+		}
+	}
+
+	~FeaturesStatData()
+	{
+		if (sd) {
+			if (oFile) { delete oFile; oFile = nullptr; }
+			if (locus) { delete locus; locus = nullptr; }
+			delete sd; sd = nullptr;
+		}
+	}
+
+	// prints binary classifiers for current chromosome
+	void PrintChromStat() const { PrBcCounts(_cCntBC); }
+	// prints total binary classifiers
+	void PrintTotalStat() const { PrBcCounts(_cntBC); }
+
+	// sets counting local stats data (for given chromosome)
+	//	@param cIt: chromosome's iterator
+	void SetChrom(Features::cIter cIt)
+	{
+		auto& data = _fs.Data(cIt);
+		_cCntBC[1] = chrlen(data.ItemsCount());
+		_beginII = _fs.ItemsBegin(data);
+		_endII = _fs.ItemsEnd(data);
+		if (locus)	locus->SetChrom(CID(cIt));
+	}
+
+	// stops counting local stats data
+	void ResetChrom()
+	{
+		_cntBC[0] += _cCntBC[0];
+		_cntBC[1] += _cCntBC[1];
+		memset(_cCntBC, 0, sizeof(_cCntBC));
+		sd->ResetChrom();
 	}
 
 	iterator& begin()	{ return _beginII; }
 	iterator& end()		{ return _endII; }
 
-	static chrlen	Start(iterator it) { return it->Start; }
-	static chrlen	End(iterator it) { return it->End; }
-	static bool		IsWeak(iterator it) { return false; }
-	void			Discard(iterator it) { 
+	static chrlen	Start	(iterator it) { return it->Start; }
+	static chrlen	End		(iterator it) { return it->End; }
+	static bool		IsWeak	(iterator it) { return false; }	// stub
+	static void		Accept	(const iterator it[2])
+	{
+		sd->AddDev(short(int(it[0]->Centre()) - it[1]->Centre()));
+	}
+	void			Discard	(iterator it)
+	{ 
 		if (it->Value < _minScore)
-			_ftrCount[1]--;		// decrease chrom counter
+			_cCntBC[1]--;		// decrease chrom counter
 		else {
-			_ftrCount[0]++;		// increase false counter
+			_cCntBC[0]++;		// increase false counter
 			if (oFile) {
 				float score = it->Value;
 				if (score > 1)	score /= 1000;
@@ -157,16 +262,6 @@ public:
 			}
 		}
 	}
-
-private:
-	static IGVlocus* locus;
-	static TxtOutFile* oFile;
-
-	BC::eBC	 _bc;
-	size_t	 _ftrCount[2]{ 0,0 };	// false, chrom feature's counter
-	float	 _minScore = 0;
-	iterator _beginII;
-	iterator _endII;
 };
 
 
@@ -183,7 +278,6 @@ void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
 
 	// unconditional discarde the region
 	auto discardeRgn = [&](BYTE s) {
-		//T::Discard(it[s], s);
 		rgns[s].Discard(it[s]);
 		suspended &= ~(1 << s);	// reset suspended s
 		it[s]++;
@@ -207,6 +301,7 @@ void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
 			if (T::IsWeak(it[s]))	discardeRgn(s), valid = false;
 			if (T::IsWeak(it[!s]))	discardeRgn(!s), valid = false;
 			if (valid) {
+				T::Accept(it);
 				s ^= end(s) < end(!s);	// flip by condition
 				it[!s]++;
 				suspended |= 1 << s;	// set suspended s
@@ -215,9 +310,7 @@ void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
 		else {							// weak intersection or no one
 			// conditional close of the region
 			if (suspended)	suspended = 0;
-			else			
-				//T::Discard(it[s], s);
-				rgns[s].Discard(it[s]);
+			else			rgns[s].Discard(it[s]);
 
 			// close remaining complementary regions
 			if (++it[s] == rgns[s].end()) {
