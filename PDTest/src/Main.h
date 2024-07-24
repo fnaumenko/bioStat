@@ -9,7 +9,6 @@ Last modified: 07/24/2024
 
 #pragma once
 #include "Features.h"
-#include <numeric>		// std::reduce
 
 enum optValue {		// options id
 	//oGEN,
@@ -23,8 +22,6 @@ enum optValue {		// options id
 	oSUMM,
 	oHELP,
 };
-
-const fraglen ROI_ext = 500;
 
 
 template<typename T>
@@ -98,6 +95,7 @@ class IGVlocus
 	// Prints IGV locus to inner buffer
 	void NPrint(chrlen start, chrlen end) const
 	{
+		const fraglen ROI_ext = 500;
 		sprintf(_buf, "%s:%d-%d", _chrom.c_str(), start - ROI_ext, end + ROI_ext);
 	}
 
@@ -120,28 +118,30 @@ public:
 	const char* Print(chrlen pos) const { return Print(pos, pos); }
 };
 
-class TxtOutFile
+// 'Formatted Output File' - simple output text file with formatted line writer
+class FOutFile
 {
 	FILE* _file;
+
 public:
-	TxtOutFile(const char* name) { _file = fopen(name, "w"); }
-	~TxtOutFile() { 
-		printf("close file\n");
-		fclose(_file); 
-	}
+	FOutFile(const char* name) { _file = fopen(name, "w"); }
+
+	~FOutFile() { fclose(_file); }
 
 	template<typename... Args>
 	void Write(const char* format, Args ... args) { fprintf(_file, format, args...); }
 };
 
-// target set for computation
-enum eTarget {
-	CHR,	// for the current chromosome
-	ALL		// for all
-};
 
+// A tuple of two Feature files - sample and test - that calculates and prints BC, F1 and SD statistics
 class FeaturesStatTuple
 {
+	// target set for computation
+	enum eTarget {
+		CHR,	// for the current chromosome
+		ALL		// for all
+	};
+
 	// Statistical Binary Classifiers
 	static class BC
 	{
@@ -196,13 +196,13 @@ class FeaturesStatTuple
 		}
 	};
 
-	// False features dump file
-	class FF_OutFile : public TxtOutFile
+	// False Features dump file
+	class FF_OutFile : public FOutFile
 	{
 		IGVlocus _locus;
 
 	public:
-		FF_OutFile(const char* fname) : TxtOutFile(fname) {}
+		FF_OutFile(const char* fname) : FOutFile(fname) {}
 
 		void SetChrom(chrid cID) { _locus.SetChrom(cID); }
 
@@ -222,7 +222,7 @@ class FeaturesStatTuple
 		}
 	};
 
-	// 'Features' wrapper for manipulating iterators for a given chromosome 
+	// 'Features' wrapper for manipulating Features iterators for a given chromosome 
 	class FeaturesStatData
 	{
 	public:
@@ -321,7 +321,6 @@ class FeaturesStatTuple
 
 	StandDev _sd;
 	FeaturesStatData _data[2];
-	chrid _cID = Chrom::UnID;
 	unique_ptr<FF_OutFile> _oFile;
 
 	// returns F1 score
@@ -334,6 +333,16 @@ class FeaturesStatTuple
 	}
 
 	void PrintF1(eTarget t) const { cout << GetF1(t) << "  "; }
+
+	// prints BC, F1 and SD
+//	@param t: for the current chromosome or for all
+	void PrintStat(eTarget t) const
+	{
+		_data[0].PrintStat(t);
+		_data[1].PrintStat(t);
+		PrintF1(t);
+		cout << _sd.GetSD(t) << LF;
+	}
 
 public:
 	static void PrintHeader()
@@ -355,35 +364,30 @@ public:
 		}
 	}
 
-	// sets counting local stats data (for given chromosome)
+	// calculates and print chromosome's statistics
 	//	@param tmplIt: template chromosome's iterator
 	//	@param testIt: test chromosome's iterator
-	void SetChrom(Features::cIter tmplIt, Features::cIter testIt)
+	void GetChromStat(Features::cIter tmplIt, Features::cIter testIt)
 	{
-		_cID = CID(tmplIt);
+		// set chrom's data
 		_data[0].SetChrom(tmplIt);
 		_data[1].SetChrom(testIt);
-	}
-
-	// stops counting local stats data
-	void ResetChrom()
-	{
+		// treat
+		DiscardNonOverlapRegions<FeaturesStatData>(_data, 1);
+		// print stats
+		cout << Chrom::AbbrName(CID(tmplIt)) << COLON << TAB;
+		PrintStat(CHR);
+		// reset chrom
 		_data[0].ResetChrom();
 		_data[1].ResetChrom();
 		_sd.ResetChrom();
 	}
 
-	void Treat() { DiscardNonOverlapRegions<FeaturesStatData>(_data, 1); }
-
 	// prints BC, F1 and SD
-	//	@param t: for the current chromosome or for all
-	void PrintStat(eTarget t) const
+	void PrintTotalStat() const
 	{
-		if (t == CHR)	cout << Chrom::AbbrName(_cID) << COLON << TAB;
-		else			PrintFooter();
-		_data[0].PrintStat(t);
-		_data[1].PrintStat(t);
-		PrintF1(t);
-		cout << _sd.GetSD(t) << LF;
+		PrintFooter();
+		PrintStat(ALL);
 	}
+
 };

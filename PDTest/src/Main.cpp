@@ -35,9 +35,9 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "chromosome sizes file", NULL },
 	//{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, "treat specified chromosome only", NULL },
-	{ 'T',"templ",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "template BS file.", NULL },
+	{ 'T',"templ",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "template file.", NULL },
 	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking template features into accounts", NULL },
-	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each read ambiguity, if they exist" },
+	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
 	{ 'O', sOutput,	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output file name", NULL },
 	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
 	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
@@ -70,26 +70,22 @@ int main(int argc, char* argv[])
 		//cout << name << LF;
 		//return 0;
 
-		const Features tmpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
+		const Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
 
-		FeaturesStatTuple fst(tmpl, test, Options::GetFVal(oMIN_SCORE), oName);
+		FeaturesStatTuple fst(smpl, test, Options::GetFVal(oMIN_SCORE), oName);
 		chrid	chrCount = 0;	// count of threated chromosomes
 
 		FeaturesStatTuple::PrintHeader();
-		for (auto it0 = tmpl.cBegin(); it0 != tmpl.cEnd(); it0++) {
+		for (auto it0 = smpl.cBegin(); it0 != smpl.cEnd(); it0++) {
 			auto it1 = test.GetIter(CID(it0));
 			if (it1 == test.cEnd())		continue;	// chrom not found
-
-			fst.SetChrom(it0, it1);
-			fst.Treat();
-			fst.PrintStat(CHR);
-			fst.ResetChrom();
+			fst.GetChromStat(it0, it1);
 			chrCount++;
 		}
 		//if (chrCount > 1) 
-			fst.PrintStat(ALL);
+			fst.PrintTotalStat();
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }
 	catch (const exception& e) { ret = 1; cerr << e.what() << endl; }
