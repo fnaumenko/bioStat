@@ -3,7 +3,7 @@ PDTest - Peak Detectors test
 Copyright (C) 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/23/2024
+Last modified: 07/24/2024
 -------------------------
 ***********************************************************/
 
@@ -125,7 +125,10 @@ class TxtOutFile
 	FILE* _file;
 public:
 	TxtOutFile(const char* name) { _file = fopen(name, "w"); }
-	~TxtOutFile() { fclose(_file); }
+	~TxtOutFile() { 
+		printf("close file\n");
+		fclose(_file); 
+	}
 
 	template<typename... Args>
 	void Write(const char* format, Args ... args) { fprintf(_file, format, args...); }
@@ -146,6 +149,7 @@ public:
 	static const char* Title(eBC bc) { return titles[bc]; }
 } bc;
 
+
 // target set for computation
 enum eTarget {
 	CHR,	// for the current chromosome
@@ -155,15 +159,15 @@ enum eTarget {
 // Keeps data and calculates Standard Deviation
 class StandDev
 {
-	vector<short> _devs;	// deviations
-	UINT	_startInd = 0;	// starting index in _devs for the current chromosome
+	vector<short> _devs;		// deviations
+	UINT	_startInd = 0;		// starting index in _devs for the current chromosome
 	int		_sumDev[2]{ 0,0 };	// sum of deviation for current chromosome, for all
 
 public:
 	void Reserve(size_t capacity) { _devs.reserve(capacity); }
 
 	// Returns Standard Deviation
-	//	@param t: target set for computation
+	//	@param t: for the current chromosome or for all
 	float GetSD(eTarget t) const
 	{
 		UINT startInd = !t * _startInd;		// _startInd for chrom, 0 for all
@@ -192,6 +196,33 @@ public:
 	}
 };
 
+// False features dump file
+class FF_OutFile : public TxtOutFile
+{
+	IGVlocus _locus;
+
+public:
+	FF_OutFile(const char* fname) : TxtOutFile(fname) {}
+
+	void SetChrom(chrid cID) { _locus.SetChrom(cID); }
+
+	// Writes false feature line
+	void WriteFF(Features::cItemsIter& it, BC::eBC bc)
+	{
+		float score = it->Value;
+		if (score > 1)	score /= 1000;
+		Write("%s\t%-3s%d\t%d\t%.2f\t%s\n",
+			_locus.ChromAbbrName(),
+			BC::Title(bc),
+			it->Start,
+			it->End,
+			score,
+			_locus.Print(it->Start, it->End)
+		);
+	}
+};
+
+
 // 'Features' wrapper for manipulating iterators for a given chromosome 
 class FeaturesStatData
 {
@@ -199,8 +230,11 @@ public:
 	using iterator = Features::cItemsIter;
 
 private:
-	static IGVlocus*	locus;
-	static TxtOutFile*	oFile;
+	// false or total enumeration
+	enum eFT {
+		FLS,	// false value
+		TTL		// total values
+	};
 
 	// prints binary classifiers
 	static void PrBcCounts(const chrlen count[2])
@@ -215,6 +249,7 @@ private:
 	iterator	_endII;
 	BC::eBC		_bc;				// needed for printing to dump file
 	float		_minScore;
+	unique_ptr<FF_OutFile>& _oFile;
 	/*
 	* valid feature's counters (per chrom and total) are only needed 
 	* for autonomous calculation of FNR and FDR (when printing).
@@ -226,33 +261,15 @@ private:
 	};
 
 public:
-	static void SetOutFile(const char* fname)
-	{
-		if (fname) {
-			oFile = new TxtOutFile(fname);
-			oFile->Write("chrom\tBC start\tend  \tscore\tlocus\n");
-		}
-	}
-
-	FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore)
-		: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore)
-	{
-		if(oFile)
-			locus = new IGVlocus;
-	}
-
-	~FeaturesStatData()
-	{
-		if (oFile) { delete oFile; oFile = nullptr; }
-		if (locus) { delete locus; locus = nullptr; }
-	}
+	FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, unique_ptr<FF_OutFile>& oFile)
+		: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore), _oFile(oFile)	{}
 
 	// returns binary classifiers
-	//	@param t: target set for computation
+	//	@param t: for the current chromosome or for all
 	const chrlen* BC(eTarget t) const { return _cntBC[t]; }
 
 	// prints binary classifiers
-	//	@param t: target set for computation
+	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const { PrBcCounts(_cntBC[t]); }
 
 	// sets counting local stats data (for given chromosome)
@@ -260,17 +277,17 @@ public:
 	void SetChrom(Features::cIter cIt)
 	{
 		auto& data = _fs.Data(cIt);
-		_cntBC[CHR][1] = chrlen(data.ItemsCount());
+		_cntBC[CHR][TTL] = chrlen(data.ItemsCount());
 		_beginII = _fs.ItemsBegin(data);
 		_endII = _fs.ItemsEnd(data);
-		if (locus)	locus->SetChrom(CID(cIt));
+		if (_oFile)	_oFile->SetChrom(CID(cIt));
 	}
 
 	// stops counting local stats data
 	void ResetChrom()
 	{
-		_cntBC[ALL][0] += _cntBC[CHR][0];
-		_cntBC[ALL][1] += _cntBC[CHR][1];
+		_cntBC[ALL][FLS] += _cntBC[CHR][FLS];
+		_cntBC[ALL][TTL] += _cntBC[CHR][TTL];
 		memset(_cntBC[CHR], 0, sizeof(_cntBC) / 2);
 	}
 
@@ -287,27 +304,13 @@ public:
 	void Discard	(iterator it)
 	{ 
 		if (it->Value < _minScore)
-			//_cCntBC[1]--;		// decrease chrom counter
-			_cntBC[CHR][1]--;		// decrease chrom counter
+			_cntBC[CHR][TTL]--;
 		else {
-			//_cCntBC[0]++;		// increase false counter
-			_cntBC[CHR][0]++;		// increase false counter
-			if (oFile) {
-				float score = it->Value;
-				if (score > 1)	score /= 1000;
-				oFile->Write("%s\t%-3s%d\t%d\t%.2f\t%s\n",
-					locus->ChromAbbrName(),
-					BC::Title(_bc),
-					it->Start,
-					it->End,
-					score,
-					locus->Print(it->Start, it->End)
-				);
-			}
+			_cntBC[CHR][FLS]++;
+			if (_oFile)		_oFile->WriteFF(it, _bc);
 		}
 	}
 };
-
 
 class FeaturesStatTuple
 {
@@ -321,9 +324,10 @@ class FeaturesStatTuple
 	StandDev _sd;
 	FeaturesStatData _data[2];
 	chrid _cID = Chrom::UnID;
+	unique_ptr<FF_OutFile> _oFile;
 
 	// returns F1 score
-	//	@param t: target set for computation
+	//	@param t: for the current chromosome or for all
 	float GetF1(eTarget t) const
 	{
 		auto fn = _data[0].BC(t)[0];
@@ -340,13 +344,17 @@ public:
 		PrintSolidLine(titleLineLen);
 	}
 
-	FeaturesStatTuple(const Features& tmpl, const Features& test, float minScore)
+	FeaturesStatTuple(const Features& tmpl, const Features& test, float minScore, const char* fname)
 		: _data{
-			FeaturesStatData(BC::FN, tmpl, _sd, minScore),
-			FeaturesStatData(BC::FP, test, _sd, 0)
+			FeaturesStatData(BC::FN, tmpl, _sd, minScore, _oFile),
+			FeaturesStatData(BC::FP, test, _sd, 0, _oFile)
 		}
 	{
 		_sd.Reserve(tmpl.ItemsCount());
+		if (fname) {
+			_oFile.reset(new FF_OutFile(fname));
+			_oFile->Write("chrom\tBC start\tend  \tscore\tlocus\n");
+		}
 	}
 
 	// sets counting local stats data (for given chromosome)
@@ -370,7 +378,7 @@ public:
 	void Treat() { DiscardNonOverlapRegions<FeaturesStatData>(_data, 1); }
 
 	// prints BC, F1 and SD
-	//	@param t: target set for computation
+	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const
 	{
 		if (t == CHR)	cout << Chrom::AbbrName(_cID) << COLON << TAB;

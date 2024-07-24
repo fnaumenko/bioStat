@@ -1,7 +1,7 @@
 /************************************************************************************
 PDTest - Peak Detectors test
 -------------------------
-Last modified: 07/23/2024
+Last modified: 07/24/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -69,15 +69,13 @@ int main(int argc, char* argv[])
 		//auto name = FS::ComposeFileName(oName, iName);
 		//cout << name << LF;
 		//return 0;
-		FeaturesStatData::SetOutFile(oName);
-
-		chrid	chrCount = 0;	// count of threated chromosomes
 
 		const Features tmpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
 
-		FeaturesStatTuple fst(tmpl, test, Options::GetFVal(oMIN_SCORE));
+		FeaturesStatTuple fst(tmpl, test, Options::GetFVal(oMIN_SCORE), oName);
+		chrid	chrCount = 0;	// count of threated chromosomes
 
 		FeaturesStatTuple::PrintHeader();
 		for (auto it0 = tmpl.cBegin(); it0 != tmpl.cEnd(); it0++) {
@@ -101,5 +99,3 @@ int main(int argc, char* argv[])
 
 
 const char* BC::titles[2]{ "FP", "FN" };
-IGVlocus* FeaturesStatData::locus = nullptr;
-TxtOutFile* FeaturesStatData::oFile = nullptr;
