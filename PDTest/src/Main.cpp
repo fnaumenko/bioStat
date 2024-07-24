@@ -98,4 +98,4 @@ int main(int argc, char* argv[])
 }
 
 
-const char* BC::titles[2]{ "FP", "FN" };
+const char* FeaturesStatTuple::BC::titles[2]{ "FP", "FN" };
