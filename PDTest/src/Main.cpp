@@ -66,7 +66,6 @@ int main(int argc, char* argv[])
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input name
-		const char* oName = Options::GetSVal(oDUMP_FILE);			// output name
 		//const char* gName = Options::GetSVal(oGEN);				// chrom sizes
 
 		//auto name = FS::ComposeFileName(oName, iName);
@@ -79,7 +78,13 @@ int main(int argc, char* argv[])
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
 
-		FeaturesStatTuple fst(smpl, test, Options::GetFVal(oMIN_SCORE), short(Options::GetIVal(oMIN_DEV)), oName);
+		FeaturesStatTuple fst(
+			smpl,
+			test,
+			Options::GetFVal(oMIN_SCORE),
+			short(Options::GetIVal(oMIN_DEV)),
+			Options::GetSVal(oDUMP_FILE)
+		);
 		chrid	chrCount = 0;	// count of threated chromosomes
 
 		FeaturesStatTuple::PrintHeader();
