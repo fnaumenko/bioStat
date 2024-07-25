@@ -693,6 +693,8 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 	_gRgns(rgns),
 	_typeInd(CheckFileExt(primefName, true))
 {
+	const char* sTemplate = "template";
+
 	PrintMngr::Init(Options::GetIVal(oPR_CC), eOInfo(Options::GetIVal(oVERB)), multiFiles);
 	UniBedReader::IsTimer = PrintMngr::OutInfo() > eOInfo::LAC;
 	if (tfName)
