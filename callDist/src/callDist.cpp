@@ -44,10 +44,10 @@ Options::Option Options::List[] = {
 	{ 'p', "pr-dist",tOpt::NONE, tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
 	{ 's', "stats",	tOpt::NONE,	 tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, DoutHelp(ProgParam, OutFileExt), NULL },
-	{ 't',	sTime,	tOpt::NONE,	 tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
-	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
-	{ 'v',	sVers,	tOpt::NONE,	 tVERS,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
-	{ 'h',	sHelp,	tOpt::NONE,	 tHELP,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrUsage, NULL }
+	{ 't',	sTime,	tOpt::NONE,	 tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, sHelpTime, NULL },
+	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sHelpSummary, NULL },
+	{ 'v',	sVers,	tOpt::NONE,	 tVERS,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sHelpVersion, NULL },
+	{ 'h',	sHelp,	tOpt::NONE,	 tHELP,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sHelpUsage, NULL }
 };
 const BYTE Options::OptCount = ArrCnt(Options::List);
 

@@ -44,10 +44,10 @@ Options::Option Options::List[] = {
 	{ 'T', "sep",	tOpt::NONE,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
 	{ 'V', "verbose",tOpt::NONE, tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
 	 "set output verbose level:\n? - only total detailed,\n? - laconic for each chromosome and total detailed,\n? - detailed for each chromosome", NULL },
-	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 2, NULL, sPrTime,	NULL },
-	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrSummary,NULL },
-	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrVersion,NULL },
-	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sPrUsage,	NULL }
+	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 2, NULL, sHelpTime,	NULL },
+	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpSummary,NULL },
+	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpVersion,NULL },
+	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpUsage,	NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 

@@ -84,10 +84,10 @@ Options::Option Options::List[] = {
 	{ 'w', "write",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL,
 	"write each inner representation to file with '_out' suffix", NULL },
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, DoutHelp(Product::Title.c_str()), NULL },
-	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sPrTime, NULL },
-	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrSummary, NULL },
-	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
-	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrUsage, NULL }
+	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sHelpTime, NULL },
+	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sHelpSummary, NULL },
+	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sHelpVersion, NULL },
+	{ 'h', sHelp,	tOpt::NONE,	tHELP,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sHelpUsage, NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 

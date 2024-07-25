@@ -57,10 +57,10 @@ const BYTE Options::Option::IndentInTabs = 3;
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	oOPTION, NO_DEF,	0,	0, NULL, DoutHelp(ProgParam), NULL },
-	{ 't', sTime,	tOpt::NONE,	tENUM,	oOPTION, FALSE,	vUNDEF,	2, NULL, sPrTime, NULL },
-	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrSummary, NULL },
-	{ 'v',	sVers,	tOpt::NONE,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sPrVersion, NULL },
-	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrUsage, NULL }
+	{ 't', sTime,	tOpt::NONE,	tENUM,	oOPTION, FALSE,	vUNDEF,	2, NULL, sHelpTime, NULL },
+	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	oOPTION, vUNDEF, vUNDEF,0, NULL, sHelpSummary, NULL },
+	{ 'v',	sVers,	tOpt::NONE,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sHelpVersion, NULL },
+	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	oOPTION, vUNDEF, vUNDEF,0, NULL, sHelpUsage, NULL }
 };
 const BYTE	Options::OptCount = ArrCnt(Options::List);
 
