@@ -2,7 +2,7 @@
 Calc.h
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05.24.2024
+Last modified: 07/25/2024
 ***********************************************************/
 #pragma once
 
@@ -108,8 +108,8 @@ protected:
 	size_t	_lastInd = 0;			// last index of recorded item; for child constructor only
 
 	PlainCover() :
-		_binWidth(Options::GetFVal(oBINWIDTH)),
-		_printFRes(Options::Assigned(oPRFCC) ? eRS(Options::GetIVal(oPRFCC)) : eRS::rsOFF)
+		_binWidth(Options::GetFVal(oBIN_WIDTH)),
+		_printFRes(Options::Assigned(oPR_FCC) ? eRS(Options::GetIVal(oPR_FCC)) : eRS::rsOFF)
 	{}
 
 	// pass through file records

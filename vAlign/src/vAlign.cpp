@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 05/21/2024
+Last modified: 07/25/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -18,8 +18,6 @@ const string Product::Version = "2.0";
 const string Product::Descr = "alignment verifier";
 
 const char* ProgParam = "<in-file>";	// program parameter tip
-const string OutFileSuff = "_valign.txt";
-const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sFileDuplEnd;
 
 // *** Options definition
 const char* verbs[] = { "TOT", "LAC","DET" };	// verbose option; corresponds to Inp
@@ -42,7 +40,7 @@ Options::Option Options::List[] = {
 	{ HPH,"min-scr",  tOpt::NONE,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
 	{ HPH,"char-case",tOpt::NONE,tENUM,	gTREAT, FALSE,	0, 2, (char*)Booleans,
 	"recognize uppercase and lowercase characters in template and test\nas different", NULL },
-	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, DoutHelp(ProgParam), NULL },
 	{ 'T', "sep",	tOpt::NONE,	tENUM,	gOUTPUT, FALSE,	vUNDEF, 2, NULL, "use 1000 separator in output", NULL },
 	{ 'V', "verbose",tOpt::NONE, tENUM,	gOUTPUT, float(eVerb::LAC), float(eVerb::TOT), ArrCnt(verbs), (char*)verbs,
 	 "set output verbose level:\n? - only total detailed,\n? - laconic for each chromosome and total detailed,\n? - detailed for each chromosome", NULL },
@@ -75,10 +73,7 @@ int main(int argc, char* argv[])
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input alignment
 
-		if (Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileSuff)))
-				Err(Err::FailOpenOFile).Throw();
-
+		Options::SetDoutFile(oDOUT_FILE, iName);
 		dout << iName << LF;	cout.flush();
 		ChromSizes cSizes(Options::GetSVal(oGEN), true);
 		vAlign align(iName, cSizes);

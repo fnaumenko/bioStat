@@ -7,6 +7,7 @@ add_compile_definitions(
 	MY_DEBUG
 	_FEATURES
 	_FEATR_SCORE
+	_DUP_OUTPUT		# duplicated output
 	)
 
 # Source groups

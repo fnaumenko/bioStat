@@ -17,7 +17,8 @@ enum optValue {		// options id
 	oMIN_DEV,
 	oMIN_SCORE,
 	oALARM,
-	oOUTFILE,
+	oDUMP_FILE,
+	oDOUT_FILE,
 	oTIME,
 	oVERSION,
 	oSUMM,
@@ -262,7 +263,7 @@ class FeaturesStatTuple
 		static void PrBcCounts(const chrlen count[2])
 		{
 			const char* delim = "  ";
-			cout << setw(4) << count[0] << delim << setprecision(3) << float(count[0]) / count[1] << delim;
+			dout << setw(4) << count[0] << delim << setprecision(3) << float(count[0]) / count[1] << delim;
 		}
 
 		const Features& _fs;
@@ -341,7 +342,7 @@ class FeaturesStatTuple
 	static void PrintFooter()
 	{
 		PrintSolidLine(titleLineLen);
-		cout << sTotal << COLON << TAB;
+		dout << sTotal << COLON << TAB;
 	}
 
 	StandDev _sd;
@@ -364,14 +365,14 @@ class FeaturesStatTuple
 		_data[0].PrintStat(t);
 		_data[1].PrintStat(t);
 		const char* delim = "  ";
-		cout << delim << GetF1(t)
+		dout << delim << GetF1(t)
 			 << delim << _sd.GetSD(t) << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
-		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
+		dout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
 		PrintSolidLine(titleLineLen);
 	}
 
@@ -397,7 +398,7 @@ public:
 		// treat
 		DiscardNonOverlapRegions<FeaturesStatData>(_data, 1);
 		// print stats
-		cout << Chrom::AbbrName(CID(sIt)) << COLON << TAB;
+		dout << Chrom::AbbrName(CID(sIt)) << COLON << TAB;
 		PrintStat(CHR);
 		// reset chrom's data
 		_data[0].ResetChrom();

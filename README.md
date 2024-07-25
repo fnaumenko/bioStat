@@ -112,7 +112,8 @@ Output:
                         ITEM - file names and number of items
                         STAT - file names and items statistics [NM]
   -O|--out [<name>]     duplicate standard output to specified file
-                        or to bioCC_out.txt if <name> is not specifiedOther:
+                        or to bioCC.output.txt if <name> is not specified
+Other:
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit
@@ -271,7 +272,7 @@ Default: `NM`
 
 `-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
-If <name> is not specified, duplicates output to **bioCC_out.txt** file.<br>
+If <name> is not specified, duplicates output to **bioCC.output.txt** file.<br>
 If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
@@ -415,14 +416,17 @@ or<br>
 
 ### Options
 ```
-  -T|--templ <name>     template BS file Required
-  -s|--min-scr <float>  threshold score for taking template features into accounts [0]
-  -O|--out <name>       output file name
+  -S|--sample <name>    sample file. Required
+  -d|--min-dev <int>    threshold deviation for writing a test feature to a dump file [10]
+  -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
+  -D|--dump <name>      output dump file name
+  -O|--out [<name>]     duplicate standard output to specified file
+                        or to <in-file>.output.txt if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
-  -h|--help             print usage information and exit```
-### Details
-
+  -h|--help             print usage information and exit
+```
+  
 #### Input
 [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing test sites of interest<br>
 Typically this is the result of peak detectors.
@@ -432,7 +436,7 @@ In progress.
 
 #### Options description
 
-`-T|--templ <name>`<br>
+`-S|--sample <name>`<br>
 name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing the real sites of interest ('gold standard')<br>
 Required.
 
@@ -447,9 +451,16 @@ but significantly speeds up processing (e.g. about 8 times for the mouse genome)
 specifies template features score threshold for testing.<br>
 Default: 0.
 
-`-O|--out <name>`<br>
+`-D|--dump <name>`<br>
 specifies output file containing each False Positive and False Negative cases.<br>
-If <name> is not specified, this information is omitted 
+
+`-O|--out [<name>]`<br>
+duplicates standard output to specified file (except alarm messages).<br>
+If <name> is not specified, duplicates output to file with name, 
+constructed as input file short name with extention *.dist*.<br>
+If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
+If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
+It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
 ## vAlign
@@ -477,7 +488,7 @@ Treatment:
                         as different [OFF]
 Output:
   -O|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>_valign.txt if <name> is not specified
+                        or to <in-file>.output.txt if <name> is not specified
   -T|--sep              use 1000 separator in output
   -V|--verbose <TOT|LAC|DET>
                         set output verbose level:
@@ -556,7 +567,7 @@ Default: `OFF`.
 `-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
 If <name> is not specified, duplicates output to file with name, 
-constructed as input file short name with addition of the suffix “_valign.txt”.<br>
+constructed as input file short name with addition of the suffix “.output.txt”.<br>
 If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
@@ -576,7 +587,7 @@ or<br>
 ### Options:
 ```
   -O|--out [<name>]     duplicate standard output to specified file
-                        or to <sequence>_statn.txt if <name> is not specified
+                        or to <sequence>.output.txt if <name> is not specified
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit 

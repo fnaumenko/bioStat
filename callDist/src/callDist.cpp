@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/24/2024
+Last modified: 07/25/2024
 -------------------------
 ************************************************************************************/
 
@@ -19,7 +19,6 @@ const string Product::Descr = "PE-fragment-size/read-length distribution paramet
 
 const char* ProgParam = "<in-file>";	// program parameter tip
 const string OutFileExt = FT::Ext(FT::eType::DIST);
-const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileExt + sFileDuplEnd;
 
 const char* inputs[] = { "FRAG","READ" };	// input option; corresponds to Inp
 const char* dTypes[] = { "N","LN","G" };	// input distrib option; corresponds to InType	
@@ -44,7 +43,7 @@ Options::Option Options::List[] = {
 	{ 'd', "dup",	tOpt::NONE,	 tENUM,	gTREAT,	TRUE,	0, 2, (char*)Booleans, "allow duplicates", NULL },
 	{ 'p', "pr-dist",tOpt::NONE, tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print obtained frequency distribution", NULL },
 	{ 's', "stats",	tOpt::NONE,	 tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print input item issues statistics", NULL },
-	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, DoutHelp(ProgParam, OutFileExt), NULL },
 	{ 't',	sTime,	tOpt::NONE,	 tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
 	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrSummary, NULL },
 	{ 'v',	sVers,	tOpt::NONE,	 tVERS,	gOUTPUT,NO_DEF, NO_VAL, 0, NULL, sPrVersion, NULL },
@@ -80,9 +79,7 @@ int main(int argc, char* argv[])
 		const bool prDist = Options::GetBVal(oPR_DIST);
 		const FT::eType ftype = FT::GetType(iName);
 
-		if ((prDist && ftype != FT::eType::DIST) || Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileExt)))
-				Err(Err::FailOpenOFile).Throw();
+		Options::SetDoutFile(oDOUT_FILE, iName, prDist && ftype != FT::eType::DIST, OutFileExt);
 
 		// take distribution
 		const bool fragType = InpType(Options::GetIVal(oINPUT)) == InpType::FRAG;

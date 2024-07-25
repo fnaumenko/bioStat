@@ -2,7 +2,7 @@
 #include "FqReader.h"
 
 enum optValue {
-	oOUTFILE,
+	oDOUT_FILE,
 	oTIME,
 	oSUMM,
 	oVERSION,

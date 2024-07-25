@@ -2,7 +2,7 @@
 vAlign.h
 Provides option emum and main functionality
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/19/2024
+Last modified: 07/25/2024
 ***********************************************************/
 #pragma once
 
@@ -15,7 +15,7 @@ enum optValue {
 	oCHROM,
 	oMIN_SCORE,
 	oCCASE,
-	oOUTFILE,
+	oDOUT_FILE,
 	oLOCALE,
 	oVERBOSE,
 	oTIME,

@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/06/2024
+Last modified: 07/25/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -21,7 +21,7 @@ enum optValue {		// options id
 	oDUPL,
 	oPR_DIST,
 	oPR_STATS,
-	oOUTFILE,
+	oDOUT_FILE,
 	oTIME,
 	oSUMM,
 	oVERSION,

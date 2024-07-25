@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/16/2024
+Last modified: 07/25/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -693,7 +693,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 	_gRgns(rgns),
 	_typeInd(CheckFileExt(primefName, true))
 {
-	PrintMngr::Init(Options::GetIVal(oPRCC), eOInfo(Options::GetIVal(oVERB)), multiFiles);
+	PrintMngr::Init(Options::GetIVal(oPR_CC), eOInfo(Options::GetIVal(oVERB)), multiFiles);
 	UniBedReader::IsTimer = PrintMngr::OutInfo() > eOInfo::LAC;
 	if (tfName)
 		if (IsBedF()) {
@@ -709,7 +709,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 				Options::GetBVal(oOVERL), PrintMngr::OutInfo(), PrintMngr::IsPrName(), true);
 			CheckItemsCount(_templ, tfName);
 
-			chrlen extLen = Options::GetIVal(oEXTLEN);
+			chrlen extLen = Options::GetIVal(oEXT_LEN);
 			if (extLen) {
 				chrlen minDistance = _templ->GetMinDistance();
 				if (extLen > minDistance / 2) {
@@ -760,9 +760,9 @@ void CorrPair::CalcCC(const char* fName)
 	bool done;
 	if (IsBedF()) {
 		if (done = CalcCCBedF(*((Features*)_firstObj))) {		// 'zero extended'
-			const int extStep = Options::GetIVal(oEXTSTEP);
+			const int extStep = Options::GetIVal(oEXT_STEP);
 			if (extStep) {		// calculation r by step increasing expanding length
-				const int extLen = Options::GetIVal(oEXTLEN);
+				const int extLen = Options::GetIVal(oEXT_LEN);
 				if (extLen < extStep)
 					Err("extending length is less then extending step. Extension has stopped here.",
 						PrintMngr::EchoName(fName)).Warning();

@@ -2,7 +2,7 @@
 bioCC.h
 Provides option emum and FileList class
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 11.23.2023
+Last modified: 07/25/2024
 ***********************************************************/
 #pragma once
 
@@ -10,19 +10,19 @@ enum optValue {
 	oALIGN,
 	oGENOM,
 	oCHROM,
-	oGAPLEN,
+	oGAP_LEN,
 	oDUPL,
 	oOVERL,
 	oFILE_LIST,
 	oFBED,
-	oEXTLEN,
-	oEXTSTEP,
-	oPRCC,
-	oBINWIDTH,
-	oPRFCC,
+	oEXT_LEN,
+	oEXT_STEP,
+	oPR_CC,
+	oBIN_WIDTH,
+	oPR_FCC,
 	oVERB,
 	oWRITE,
-	oOUTFILE,
+	oDOUT_FILE,
 	oTIME,
 	oVERSION,
 	oSUMM,

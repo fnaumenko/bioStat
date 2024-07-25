@@ -3,7 +3,7 @@ fqStatN outputs statistic of ambiguous reference characters ‘N’ in fq-file.
 
 Copyright (C) 2018 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/01/2024
+Last modified: 07/25/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -43,8 +43,6 @@ const string Product::Version = "1.0";
 const string Product::Descr = "fastq 'N' statistics calculator";
 
 const char* ProgParam = "<sequence>";	// program parameter tip
-const string OutFileSuff = "_statn.txt";
-const string HelpOutFile = sFileDuplBegin + string(ProgParam) + OutFileSuff + sFileDuplEnd;
 
 // *** Options definition
 
@@ -58,7 +56,7 @@ const BYTE Options::Option::IndentInTabs = 3;
 //	defVal (if NO_DEF then no default value printed),
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
-	{ 'O', sOutput,	tOpt::FACULT,tNAME,	oOPTION, NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	oOPTION, NO_DEF,	0,	0, NULL, DoutHelp(ProgParam), NULL },
 	{ 't', sTime,	tOpt::NONE,	tENUM,	oOPTION, FALSE,	vUNDEF,	2, NULL, sPrTime, NULL },
 	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	oOPTION, vUNDEF, vUNDEF,0, NULL, sPrSummary, NULL },
 	{ 'v',	sVers,	tOpt::NONE,	tVERS,	oOPTION, NO_DEF, NO_VAL,0, NULL, sPrVersion, NULL },
@@ -84,10 +82,7 @@ int main(int argc, char* argv[])
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);
 
-		if (Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), iName, OutFileSuff)))
-				Err(Err::FailOpenOFile).Throw();
-
+		Options::SetDoutFile(oDOUT_FILE, iName);
 		dout << iName << SepCl;	fflush(stdout);
 		if (!FS::HasExt(iName, FT::Ext(FT::eType::FQ))) Err("wrong format").Throw();
 		FqReader fq(iName);

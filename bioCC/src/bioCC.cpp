@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 05/17/2024
+Last modified: 07/25/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -26,8 +26,6 @@ const string Product::Title = "bioCC";
 const string Product::Version = "2.0";
 const string Product::Descr = "advanced correlation calculator";
 
-const string OutFile = Product::Title + "_out.txt";
-const string HelpOutFile = sFileDuplBegin + OutFile + sFileDuplEnd;
 const string InFiles = "input files";
 
 // --ext option
@@ -85,7 +83,7 @@ Options::Option Options::List[] = {
 	"set verbose level:\n?  - laconic\n?   - file names\n? - file names and number of items\n? - file names and items statistics", NULL },
 	{ 'w', "write",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	vUNDEF, 2, NULL,
 	"write each inner representation to file with '_out' suffix", NULL },
-	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, HelpOutFile.c_str(), NULL },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL, DoutHelp(Product::Title.c_str()), NULL },
 	{ 't', sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	vUNDEF, 2, NULL, sPrTime, NULL },
 	{ HPH, sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrSummary, NULL },
 	{ 'v', sVers,	tOpt::NONE,	tVERS,	gOTHER,	vUNDEF, vUNDEF, 0, NULL, sPrVersion, NULL },
@@ -139,12 +137,10 @@ int main(int argc, char* argv[])
 				inFiles[0]).Throw();
 
 		// set output file
-		if (Options::Assigned(oOUTFILE))
-			if (!dout.OpenFile(FS::ComposeFileName(Options::GetSVal(oOUTFILE), OutFile.c_str())))
-				Err(Err::FailOpenOFile).Throw();
+		Options::SetDoutFile(oDOUT_FILE, Product::Title.c_str());
 
 		ChromSizes cSizes(gName, true);
-		DefRegions gRgn(cSizes, Options::GetIVal(oGAPLEN));
+		DefRegions gRgn(cSizes, Options::GetIVal(oGAP_LEN));
 		CorrPair cPair(inFiles[0], gRgn, Options::GetSVal(oFBED), inFilesCnt > 2);
 		for (short i = 1; i < inFilesCnt; i++)
 			cPair.CalcCC(inFiles[i]);
