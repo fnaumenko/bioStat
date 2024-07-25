@@ -3,7 +3,7 @@ PDTest - Peak Detectors test
 Copyright (C) 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/24/2024
+Last modified: 07/25/2024
 -------------------------
 ***********************************************************/
 
@@ -14,6 +14,7 @@ enum optValue {		// options id
 	//oGEN,
 	//oCHROM,
 	oTEMPL,
+	oMIN_DEV,
 	oMIN_SCORE,
 	oALARM,
 	oOUTFILE,
@@ -142,6 +143,12 @@ class FeaturesStatTuple
 		ALL		// for all
 	};
 
+	// false or total enumeration
+	enum eFT {
+		FLS,	// false value
+		TTL		// total values
+	};
+
 	// Statistical Binary Classifiers
 	static class BC
 	{
@@ -199,24 +206,46 @@ class FeaturesStatTuple
 	// False Features dump file
 	class FF_OutFile : public FOutFile
 	{
-		IGVlocus _locus;
-
-	public:
-		FF_OutFile(const char* fname) : FOutFile(fname) {}
-
-		void SetChrom(chrid cID) { _locus.SetChrom(cID); }
-
-		// Writes false feature line
-		void WriteFF(Features::cItemsIter& it, BC::eBC bc)
+		// returns normalized score
+		static float NormScore(const Features::cItemsIter& it)
 		{
 			float score = it->Value;
 			if (score > 1)	score /= 1000;
-			Write("%s\t%-3s%d\t%d\t%.2f\t%s\n",
+			return score;
+		}
+
+		IGVlocus _locus;
+
+	public:
+		FF_OutFile(const char* fname) : FOutFile(fname)
+		{
+			Write("chrom\tiss start\tend  \tscore\tdev\tlocus\n");
+		}
+
+		void SetChrom(chrid cID) { _locus.SetChrom(cID); }
+
+		// Writes BC false feature line
+		void WriteFF(const Features::cItemsIter& it, BC::eBC bc)
+		{
+			Write("%s\t%-4s%d\t%d\t%.2f\t \t%s\n",
 				_locus.ChromAbbrName(),
 				BC::Title(bc),
 				it->Start,
 				it->End,
-				score,
+				NormScore(it),
+				_locus.Print(it->Start, it->End)
+			);
+		}
+
+		// Writes deviation false feature line
+		void WriteFF(const Features::cItemsIter& it, short dev)
+		{
+			Write("%s\tdev %d\t%d\t%.2f\t%d\t%s\n",
+				_locus.ChromAbbrName(),
+				it->Start,
+				it->End,
+				NormScore(it),
+				dev,
 				_locus.Print(it->Start, it->End)
 			);
 		}
@@ -229,12 +258,6 @@ class FeaturesStatTuple
 		using iterator = Features::cItemsIter;
 
 	private:
-		// false or total enumeration
-		enum eFT {
-			FLS,	// false value
-			TTL		// total values
-		};
-
 		// prints binary classifiers
 		static void PrBcCounts(const chrlen count[2])
 		{
@@ -243,10 +266,11 @@ class FeaturesStatTuple
 		}
 
 		const Features& _fs;
-		StandDev& _sd;
+		StandDev&	_sd;
 		iterator	_beginII;
 		iterator	_endII;
 		BC::eBC		_bc;				// needed for printing to dump file
+		short		_minDev;
 		float		_minScore;
 		unique_ptr<FF_OutFile>& _oFile;
 		/*
@@ -260,8 +284,8 @@ class FeaturesStatTuple
 		};
 
 	public:
-		FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, unique_ptr<FF_OutFile>& oFile)
-			: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore), _oFile(oFile) {}
+		FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, short minDev, unique_ptr<FF_OutFile>& oFile)
+			: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore), _minDev(minDev), _oFile(oFile) {}
 
 		// returns binary classifiers
 		//	@param t: for the current chromosome or for all
@@ -279,7 +303,6 @@ class FeaturesStatTuple
 			_cntBC[CHR][TTL] = chrlen(data.ItemsCount());
 			_beginII = _fs.ItemsBegin(data);
 			_endII = _fs.ItemsEnd(data);
-			if (_oFile)	_oFile->SetChrom(CID(cIt));
 		}
 
 		// stops counting local stats data
@@ -291,14 +314,16 @@ class FeaturesStatTuple
 		}
 
 		iterator& begin() { return _beginII; }
-		iterator& end() { return _endII; }
+		iterator& end()	{ return _endII; }
 
 		static chrlen	Start(iterator it) { return it->Start; }
 		static chrlen	End(iterator it) { return it->End; }
 		static bool		IsWeak(iterator it) { return false; }	// stub
 		void Accept(const iterator it[2])
 		{
-			_sd.AddDev(short(int(it[0]->Centre()) - it[1]->Centre()));
+			auto dev = short(int(it[0]->Centre()) - it[1]->Centre());
+			_sd.AddDev(dev);
+			if (_minDev && _oFile && dev > _minDev)		_oFile->WriteFF(it[1], dev);
 		}
 		void Discard(iterator it)
 		{
@@ -312,7 +337,7 @@ class FeaturesStatTuple
 	};
 
 
-	static const USHORT titleLineLen = 42;
+	static const USHORT titleLineLen = 44;
 	static void PrintFooter()
 	{
 		PrintSolidLine(titleLineLen);
@@ -327,57 +352,54 @@ class FeaturesStatTuple
 	//	@param t: for the current chromosome or for all
 	float GetF1(eTarget t) const
 	{
-		auto fn = _data[0].BC(t)[0];
-		auto dtp = 2 * (_data[0].BC(t)[1] - fn);		// double TP
-		return float(dtp) / (dtp + _data[1].BC(t)[0] + fn);
+		auto FN = _data[0].BC(t)[FLS];				// False Negative
+		auto dTP = 2 * (_data[0].BC(t)[TTL] - FN);	// double True Positive
+		return float(dTP) / (dTP + _data[1].BC(t)[FLS] + FN);
 	}
 
-	void PrintF1(eTarget t) const { cout << GetF1(t) << "  "; }
-
 	// prints BC, F1 and SD
-//	@param t: for the current chromosome or for all
+	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const
 	{
 		_data[0].PrintStat(t);
 		_data[1].PrintStat(t);
-		PrintF1(t);
-		cout << _sd.GetSD(t) << LF;
+		const char* delim = "  ";
+		cout << delim << GetF1(t)
+			 << delim << _sd.GetSD(t) << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
-		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR    F1     SD\n";
+		cout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
 		PrintSolidLine(titleLineLen);
 	}
 
-	FeaturesStatTuple(const Features& tmpl, const Features& test, float minScore, const char* fname)
+	FeaturesStatTuple(const Features& smpl, const Features& test, float minScore, short minDev, const char* fname)
 		: _data{
-			FeaturesStatData(BC::FN, tmpl, _sd, minScore, _oFile),
-			FeaturesStatData(BC::FP, test, _sd, 0, _oFile)
+			FeaturesStatData(BC::FN, smpl, _sd, minScore, minDev, _oFile),
+			FeaturesStatData(BC::FP, test, _sd, 0, minDev, _oFile)
 		}
 	{
-		_sd.Reserve(tmpl.ItemsCount());
-		if (fname) {
-			_oFile.reset(new FF_OutFile(fname));
-			_oFile->Write("chrom\tBC start\tend  \tscore\tlocus\n");
-		}
+		_sd.Reserve(smpl.ItemsCount());
+		if (fname)	_oFile.reset(new FF_OutFile(fname));
 	}
 
 	// calculates and print chromosome's statistics
-	//	@param tmplIt: template chromosome's iterator
-	//	@param testIt: test chromosome's iterator
-	void GetChromStat(Features::cIter tmplIt, Features::cIter testIt)
+	//	@param sIt: sample chromosome's iterator
+	//	@param tIt: test chromosome's iterator
+	void GetChromStat(Features::cIter sIt, Features::cIter tIt)
 	{
 		// set chrom's data
-		_data[0].SetChrom(tmplIt);
-		_data[1].SetChrom(testIt);
+		_data[0].SetChrom(sIt);
+		_data[1].SetChrom(tIt);
+		if (_oFile)	_oFile->SetChrom(CID(sIt));
 		// treat
 		DiscardNonOverlapRegions<FeaturesStatData>(_data, 1);
 		// print stats
-		cout << Chrom::AbbrName(CID(tmplIt)) << COLON << TAB;
+		cout << Chrom::AbbrName(CID(sIt)) << COLON << TAB;
 		PrintStat(CHR);
-		// reset chrom
+		// reset chrom's data
 		_data[0].ResetChrom();
 		_data[1].ResetChrom();
 		_sd.ResetChrom();

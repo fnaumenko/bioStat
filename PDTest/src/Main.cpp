@@ -1,7 +1,7 @@
 /************************************************************************************
 PDTest - Peak Detectors test
 -------------------------
-Last modified: 07/24/2024
+Last modified: 07/25/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -35,8 +35,9 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "chromosome sizes file", NULL },
 	//{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, "treat specified chromosome only", NULL },
-	{ 'T',"templ",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "template file.", NULL },
-	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking template features into accounts", NULL },
+	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "sample file.", NULL },
+	{ 'd',"min-dev",tOpt::NONE,	tINT,	gOTHER, 10, 0, 1000, NULL, "threshold deviation for writing a test feature to a dump file", NULL },
+	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts", NULL },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
 	{ 'O', sOutput,	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output file name", NULL },
 	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sPrTime, NULL },
@@ -74,7 +75,7 @@ int main(int argc, char* argv[])
 			nullptr, false, eOInfo::STD, true);
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
 
-		FeaturesStatTuple fst(smpl, test, Options::GetFVal(oMIN_SCORE), oName);
+		FeaturesStatTuple fst(smpl, test, Options::GetFVal(oMIN_SCORE), short(Options::GetIVal(oMIN_DEV)), oName);
 		chrid	chrCount = 0;	// count of threated chromosomes
 
 		FeaturesStatTuple::PrintHeader();
