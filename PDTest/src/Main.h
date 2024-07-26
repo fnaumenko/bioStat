@@ -3,7 +3,7 @@ PDTest - Peak Detectors test
 Copyright (C) 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/25/2024
+Last modified: 07/26/2024
 -------------------------
 ***********************************************************/
 
@@ -120,15 +120,15 @@ public:
 	const char* Print(chrlen pos) const { return Print(pos, pos); }
 };
 
-// 'Formatted Output File' - simple output text file with formatted line writer
-class FOutFile
+// 'Formatted Writer' - simple output text file with formatted line writer
+class FormWriter
 {
 	FILE* _file;
 
 public:
-	FOutFile(const char* name) { _file = fopen(name, "w"); }
+	FormWriter(const char* name) { _file = fopen(name, "w"); }
 
-	~FOutFile() { fclose(_file); }
+	~FormWriter() { fclose(_file); }
 
 	template<typename... Args>
 	void Write(const char* format, Args ... args) { fprintf(_file, format, args...); }
@@ -204,8 +204,8 @@ class FeaturesStatTuple
 		}
 	};
 
-	// False Features dump file
-	class FF_OutFile : public FOutFile
+	// Incorrect Features dump file
+	class IncFWriter : public FormWriter
 	{
 		// returns normalized score
 		static float NormScore(const Features::cItemsIter& it)
@@ -218,7 +218,7 @@ class FeaturesStatTuple
 		IGVlocus _locus;
 
 	public:
-		FF_OutFile(const char* fname) : FOutFile(fname)
+		IncFWriter(const char* fname) : FormWriter(fname)
 		{
 			Write("chrom\tiss start\tend  \tscore\tdev\tlocus\n");
 		}
@@ -273,7 +273,7 @@ class FeaturesStatTuple
 		BC::eBC		_bc;				// needed for printing to dump file
 		short		_minDev;
 		float		_minScore;
-		unique_ptr<FF_OutFile>& _oFile;
+		unique_ptr<IncFWriter>& _oFile;
 		/*
 		* valid feature's counters (per chrom and total) are only needed
 		* for autonomous calculation of FNR and FDR (when printing).
@@ -285,7 +285,7 @@ class FeaturesStatTuple
 		};
 
 	public:
-		FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, short minDev, unique_ptr<FF_OutFile>& oFile)
+		FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, short minDev, unique_ptr<IncFWriter>& oFile)
 			: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore), _minDev(minDev), _oFile(oFile) {}
 
 		// returns binary classifiers
@@ -347,7 +347,7 @@ class FeaturesStatTuple
 
 	StandDev _sd;
 	FeaturesStatData _data[2];
-	unique_ptr<FF_OutFile> _oFile;
+	unique_ptr<IncFWriter> _oFile;
 
 	// returns F1 score
 	//	@param t: for the current chromosome or for all
@@ -383,7 +383,7 @@ public:
 		}
 	{
 		_sd.Reserve(smpl.ItemsCount());
-		if (fname)	_oFile.reset(new FF_OutFile(fname));
+		if (fname)	_oFile.reset(new IncFWriter(fname));
 	}
 
 	// calculates and print chromosome's statistics
