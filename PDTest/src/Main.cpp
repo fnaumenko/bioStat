@@ -1,7 +1,7 @@
 /************************************************************************************
 PDTest - Peak Detectors test
 -------------------------
-Last modified: 07/25/2024
+Last modified: 07/26/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -33,18 +33,18 @@ const BYTE Options::Option::IndentInTabs = 3;
 //	defVal (if NO_DEF then no default value printed),
 //	minVal (if NO_VAL then value is prohibited), maxVal, strVal, descr, addDescr }
 Options::Option Options::List[] = {
-	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "chromosome sizes file", NULL },
-	//{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, "treat specified chromosome only", NULL },
-	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "sample file.", NULL },
-	{ 'd',"min-dev",tOpt::NONE,	tINT,	gOTHER, 10, 0, 1000, NULL, "threshold deviation for writing a test feature to a dump file", NULL },
-	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts", NULL },
+	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "chromosome sizes file" },
+	{ 'c', sChrom,	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, sHelpChrom },
+	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "sample file." },
+	{ 'd',"min-dev",tOpt::NONE,	tINT,	gOTHER, 10, 0, 1000, NULL, "threshold deviation for writing a test feature to a dump file" },
+	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
-	{ 'D', "dump",	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name", NULL },
-	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, DoutHelp(ProgParam), NULL },
-	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sHelpTime, NULL },
-	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpVersion, NULL },
-	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpSummary, NULL },
-	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpUsage, NULL },
+	{ 'D', "dump",	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name" },
+	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, DoutHelp(ProgParam) },
+	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sHelpTime },
+	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpVersion },
+	{ HPH,	sSumm,	tOpt::HIDDEN,tSUMM,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpSummary },
+	{ 'h',	sHelp,	tOpt::NONE,	tHELP,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpUsage },
 };
 const BYTE Options::OptCount = ArrCnt(Options::List);
 
@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
 	if (fileInd < 0)	return 1;		// wrong option or tip output
 	int ret = 0;						// main() return code
 
+	Chrom::SetUserChrom(Options::GetSVal(oCHROM));
 	Timer::Enabled = Options::GetBVal(oTIME);
 	Timer timer;
 	try {
@@ -72,7 +73,9 @@ int main(int argc, char* argv[])
 
 		const Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD, true);
+		if (!smpl.ChromCount())	return 0;
 		const Features test(iName, nullptr, false, eOInfo::STD, true);
+		if (!test.ChromCount())	return 0;
 
 		FeaturesStatTuple fst(
 			smpl,
@@ -90,7 +93,9 @@ int main(int argc, char* argv[])
 			fst.GetChromStat(it0, it1);
 			chrCount++;
 		}
-		//if (chrCount > 1) 
+		if (!chrCount)
+			dout << Chrom::NoChromMsg() << " common to sample and test\n";
+		else if (chrCount > 1)
 			fst.PrintTotalStat();
 	}
 	catch (const Err& e) { ret = 1; cerr << e.what() << endl; }

@@ -12,7 +12,7 @@ Last modified: 07/26/2024
 
 enum optValue {		// options id
 	//oGEN,
-	//oCHROM,
+	oCHROM,
 	oTEMPL,
 	oMIN_DEV,
 	oMIN_SCORE,
