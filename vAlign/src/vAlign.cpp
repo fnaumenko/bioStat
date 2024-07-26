@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/25/2024
+Last modified: 07/26/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -35,8 +35,8 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	{ 'g', sGen,	tOpt::OBLIG, tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
 	"reference genome library or single nucleotide sequence.", NULL },
-	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,
-	"treat specified chromosome only. For reference genome only", NULL },
+	{ 'c', sChrom,	tOpt::NONE,tNAME,	gTREAT, NO_DEF, 0, 0, NULL,
+	string(string(sHelpChrom) + ". For reference genome only").c_str(), NULL },
 	{ HPH,"min-scr",  tOpt::NONE,tINT,	gTREAT, 0, 0, 1000, NULL, "score threshold for treated reads", NULL },
 	{ HPH,"char-case",tOpt::NONE,tENUM,	gTREAT, FALSE,	0, 2, (char*)Booleans,
 	"recognize uppercase and lowercase characters in template and test\nas different", NULL },

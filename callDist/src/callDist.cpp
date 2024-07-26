@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/25/2024
+Last modified: 07/26/2024
 -------------------------
 ************************************************************************************/
 
@@ -37,7 +37,7 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	{ 'i', "inp",	tOpt::NONE,	 tENUM,	gTREAT, float(InpType::FRAG), float(InpType::FRAG), ArrCnt(inputs), (char*)inputs,
 	"input data to call distribution: ? - fragments, ? - reads", NULL },
-	{ 'c',Chrom::Abbr,tOpt::NONE,tNAME,	gTREAT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
+	{ 'c', sChrom,	tOpt::NONE,tNAME,	gTREAT, NO_DEF, 0, 0, NULL,	sHelpChrom, NULL },
 	{ 'D',"dist",	tOpt::NONE,	 tCOMB,	gTREAT, Distrib::LNORM, Distrib::NORM, ArrCnt(dTypes), (char*)dTypes,
 	"called distribution (can be combined in any order):\n? - normal, ? - lognormal, ? - Gamma", NULL },
 	{ 'd', "dup",	tOpt::NONE,	 tENUM,	gTREAT,	TRUE,	0, 2, (char*)Booleans, "allow duplicates", NULL },

@@ -68,10 +68,6 @@ int main(int argc, char* argv[])
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input name
 		//const char* gName = Options::GetSVal(oGEN);				// chrom sizes
 
-		//auto name = FS::ComposeFileName(oName, iName);
-		//cout << name << LF;
-		//return 0;
-
 		Options::SetDoutFile(oDOUT_FILE, iName);
 
 		const Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),

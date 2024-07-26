@@ -9,7 +9,7 @@ bioCC is designed to treat a bunch of files at once.
 
 Copyright (C) 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/25/2024
+Last modified: 07/26/2024
 -------------------------
 
 This program is free software. It is distributed in the hope that it will be useful,
@@ -56,9 +56,8 @@ const BYTE Options::Option::IndentInTabs = 3;
 Options::Option Options::List[] = {
 	{ 'a', "align",	tOpt::NONE,	tENUM,	gINPUT,	FALSE,	vUNDEF, 2, NULL,
 	"input bed files are alignments. Ignored for bam and wig", NULL },
-	{ 'g', sGen,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,
-	"chromosome sizes file", NULL },
-	{ 'c', Chrom::Abbr,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,	"treat specified chromosome only", NULL },
+	{ 'g', sGen,	tOpt::NONE,	tNAME,	gINPUT, vUNDEF, 0, 0, NULL,	"chromosome sizes file", NULL },
+	{ 'c', sChrom,	tOpt::NONE,	tNAME,	gINPUT, NO_DEF, 0, 0, NULL,	sHelpChrom, NULL },
 	{ HPH,"gap-len",tOpt::HIDDEN,tINT,	gINPUT,	1000, 50, 1e5, NULL,
 	"minimal length of undefined nucleotide region in genome\nwhich is declared as a gap.\nIgnored for the chromosome sizes file and for the ordinary beds", NULL },
 	{ 'd', "dup",	tOpt::NONE,	tENUM,	gINPUT, TRUE,	0, 2, (char*)Booleans, "allow duplicate reads.", ForAligns },
