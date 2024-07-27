@@ -2,8 +2,8 @@
 Cross-platform statistical package for NGS data.<br>
 It includes:<br>
  * [**cc**](#biocc)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;advanced correlation calculator for basic bioinformatics file formats<br>
+ * [**fgstest**](#fgstest)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;peak detectors test<br>
  * [**calldist**](#calldist)&nbsp;&nbsp;&nbsp;&nbsp;calls fragment/read length distribution<br>
- * [**pdtest**](#pdtest)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;peak detectors test<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
  * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;fastQ 'N' statistics calculator
 
@@ -277,6 +277,65 @@ If the <name> denotes an existing folder, the output file is created in it accor
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
+## FGStest
+**F**eatures **G**old **S**andard statistical **Test**
+
+### Usage
+
+`biostat fgstest [options] -S|--sample <name> <in-file>`<br>
+or<br>
+`fgstest [options] -S|--sample <name> <in-file>`
+
+### Options
+```
+  -c|--chr <name>       treat specified chromosome only
+  -S|--sample <name>    sample file. Required
+  -d|--min-dev <int>    threshold deviation for writing a test feature to a dump file [10]
+  -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
+  -D|--dump <name>      output dump file name
+  -O|--out [<name>]     duplicate standard output to specified file
+                        or to <in-file>.output.txt if <name> is not specified
+  -t|--time             print run time
+  -v|--version          print program's version and exit
+  -h|--help             print usage information and exit
+```
+  
+#### Input
+[BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing test sites of interest<br>
+Typically this is the result of peak detectors.
+
+#### Output
+In progress.
+
+#### Options description
+
+`-S|--sample <name>`<br>
+name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing the real sites of interest ('gold standard')<br>
+Required.
+
+`-c|--chr <name>`<br>
+treats specified chromosome only.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
+Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
+of less than 2% (for a reliable number of fragments, exceeding thousand), 
+but significantly speeds up processing (e.g. about 8 times for the mouse genome).
+
+`-s|--min-scr <float>`<br>
+specifies template features score threshold for testing.<br>
+Default: 0.
+
+`-D|--dump <name>`<br>
+specifies output file containing each False Positive and False Negative cases.<br>
+
+`-O|--out [<name>]`<br>
+duplicates standard output to specified file (except alarm messages).<br>
+If <name> is not specified, duplicates output to file with name, 
+constructed as input file short name with extention *.dist*.<br>
+If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
+If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
+It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
+
+---
 ## callDist
 
 Calculates paired-end fragment size or read variable length distribution parameters.<br>
@@ -395,64 +454,6 @@ Input file with *.dist* extention ignores this option, but not the explicit `-O|
 
 `-s|--stats`<br>
 prints input item issues statistics
-
-`-O|--out [<name>]`<br>
-duplicates standard output to specified file (except alarm messages).<br>
-If <name> is not specified, duplicates output to file with name, 
-constructed as input file short name with extention *.dist*.<br>
-If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
-If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
-It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
-
----
-## PDTest
-**P**eak **D**etectors Statistical **Test**
-
-### Usage
-
-`biostat pdtest [options] -T|--templ <name> <in-file>`<br>
-or<br>
-`PDTest [options] -T|--templ <name> <in-file>`
-
-### Options
-```
-  -S|--sample <name>    sample file. Required
-  -d|--min-dev <int>    threshold deviation for writing a test feature to a dump file [10]
-  -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
-  -D|--dump <name>      output dump file name
-  -O|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>.output.txt if <name> is not specified
-  -t|--time             print run time
-  -v|--version          print program's version and exit
-  -h|--help             print usage information and exit
-```
-  
-#### Input
-[BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing test sites of interest<br>
-Typically this is the result of peak detectors.
-
-#### Output
-In progress.
-
-#### Options description
-
-`-S|--sample <name>`<br>
-name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing the real sites of interest ('gold standard')<br>
-Required.
-
-`-c|--chr <name>`<br>
-treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
-Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
-of less than 2% (for a reliable number of fragments, exceeding thousand), 
-but significantly speeds up processing (e.g. about 8 times for the mouse genome).
-
-`-s|--min-scr <float>`<br>
-specifies template features score threshold for testing.<br>
-Default: 0.
-
-`-D|--dump <name>`<br>
-specifies output file containing each False Positive and False Negative cases.<br>
 
 `-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
@@ -597,7 +598,7 @@ or<br>
 
 #### Input
 DNA sequence in [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) format.
-
+-t -O outputSE\x3_2 -d 0 -V dbg -g $(SM) -R 40 -f 160 outputSE\G-3_SE_frag.wig
 #### Output
 The program displays the frequency of occurrence of 'N' in the position in the read, as well as the frequency of the template of the reads containing code N.
 Example  of output:
