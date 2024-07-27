@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.0)
 
-set(PROJECT_NAME PDTest)
+set(PROJECT_NAME FGStest)
 project(${PROJECT_NAME})
 
 add_compile_definitions(

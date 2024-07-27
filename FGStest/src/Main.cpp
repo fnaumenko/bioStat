@@ -1,7 +1,7 @@
 /************************************************************************************
-PDTest - Peak Detectors test
+FGStest - Features Gold Standard test
 -------------------------
-Last modified: 07/26/2024
+Last modified: 07/27/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -15,9 +15,9 @@ See GNU General Public License for more details.
 
 using namespace std;
 
-const string Product::Title = "PDTest";
+const string Product::Title = "FGStest";
 const string Product::Version = "1.0";
-const string Product::Descr = "Peak detectors Statistical Test";
+const string Product::Descr = "Features Gold Standard test";
 
 const char* ProgParam = "<in-file>";	// program parameter tip
 

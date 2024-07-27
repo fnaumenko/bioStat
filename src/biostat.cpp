@@ -41,11 +41,11 @@ using pairCommand = pair<const char*, const char*>;
 
 constexpr pairCommand commands[] = {
 	{ "cc",			"bioCC" },
+	{ "fgstest",	"FGStest" },
 	{ "calldist",	"callDist" },
 	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
-	{ "pdtest",		"PDTest" },
 };
 constexpr BYTE commCnt = sizeof(commands) / sizeof(commands[0]);
 
