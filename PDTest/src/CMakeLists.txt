@@ -42,6 +42,7 @@ set(Header_Files
     ${BASIC_DIR}/common.h
     ${BASIC_DIR}/ChromData.h
     ${BASIC_DIR}/DataReader.h
+    ${BASIC_DIR}/CrossRgns.h
     ${BASIC_DIR}/Options.h
     ${BASIC_DIR}/Features.h
     ${BASIC_DIR}/TxtFile.h
