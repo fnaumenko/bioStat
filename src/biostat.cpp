@@ -4,7 +4,7 @@ This is a command shell for calling statistical programs.
 
 Copyright (C) 2019 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 04/22/2024
+Last modified: 07/27/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -17,7 +17,6 @@ See the	GNU General Public License for more details.
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>
-//#include <cstring>
 #include <algorithm>
 #else
 #include <string.h>
@@ -26,7 +25,6 @@ See the	GNU General Public License for more details.
 #include <sys/stat.h>	// struct stat
 #include <unistd.h>		// getcwd() & realink
 #include <limits.h>		// PATH_MAX
-//typedef unsigned char BYTE;
 #endif
 
 typedef unsigned char BYTE;
@@ -43,7 +41,6 @@ constexpr pairCommand commands[] = {
 	{ "cc",			"bioCC" },
 	{ "fgstest",	"FGStest" },
 	{ "calldist",	"callDist" },
-	//{ "readdens",	"readDens" },
 	{ "valign",		"vAlign" },
 	{ "fqstatn",	"fqStatN" },
 };
