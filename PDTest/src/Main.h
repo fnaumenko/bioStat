@@ -3,7 +3,7 @@ PDTest - Peak Detectors test
 Copyright (C) 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/26/2024
+Last modified: 07/27/2024
 -------------------------
 ***********************************************************/
 
@@ -91,7 +91,7 @@ void DiscardNonOverlapRegions(T rgns[2], fraglen minOverlapLen)
 // 'IGVlocus' is designed to print locus that can be pasted into the address bar of Integrative Genomics Viewer
 class IGVlocus
 {
-	string _chrom = Chrom::AbbrName(0);
+	string _chrom;
 	mutable char _buf[2 * 10 + 5 + 2]{ 0 };	// 2 * max position length + Chrom::MaxAbbrNameLength + 2 separators
 
 	// Prints IGV locus to inner buffer
@@ -102,7 +102,7 @@ class IGVlocus
 	}
 
 public:
-	//IGVlocus(chrid cID) : _chrom(Chrom::AbbrName(cID)) {}
+	IGVlocus(chrid cID = Chrom::UnID) : _chrom(Chrom::AbbrName(cID)) {}
 
 	void SetChrom(chrid cID) { _chrom = Chrom::AbbrName(cID); }
 
