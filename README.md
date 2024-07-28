@@ -7,6 +7,8 @@ It includes:<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
  * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;fastQ 'N' statistics calculator
 
+v3.0 in progress
+
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
 or<br>
