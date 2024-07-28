@@ -2,7 +2,7 @@
 Calc.h
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/25/2024
+Last modified: 07/28/2024
 ***********************************************************/
 #pragma once
 
@@ -170,9 +170,8 @@ public:
 	// Invalid instance wil be completed by throwing exception.
 	//	@fName: file name
 	//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
-	//	@prfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
 	//	@abortInval: true if invalid instance should abort excecution
-	Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval);
+	Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool abortInval);
 
 	// Adds cover's item
 	bool operator()()
@@ -213,9 +212,8 @@ public:
 	// Invalid instance wil be completed by throwing exception.
 	//	@fName: file name
 	//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
-	//	@printfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
 	//	@abortInval: true if invalid instance should abort excecution
-	ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval);
+	ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool abortInval);
 
 	// Adds Read
 	bool operator()() {

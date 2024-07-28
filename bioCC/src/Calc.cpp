@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/25/2024
+Last modified: 07/28/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -452,16 +452,10 @@ void Cover::InitWiggle(BedReader& file, const ChromSizes& cSizes)
 	timer.Stop(1, true);	if (PrintMngr::OutInfo() > eOInfo::NM)	dout << LF;
 }
 
-// Creates new instance by wig-file name
-// Invalid instance wil be completed by throwing exception.
-//	@fName: file name
-//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
-//	@prfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
-//	@abortInval: true if invalid instance should abort excecution
-Cover::Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool prfName, bool abortInval)
+Cover::Cover(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool abortInval)
 	: PlainCover()
 {
-	UniBedReader file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, prfName, true, abortInval);
+	UniBedReader file(fName, FT::eType::BGRAPH, &cSizes, 4, 0, oinfo, true, abortInval);
 
 	ReserveItems(file.EstItemCount());	// EstItemCount() > 0 even for empty file, because of track line
 	if (file.Type() == FT::eType::BGRAPH)
@@ -496,16 +490,10 @@ void ReadDens::AddChrom(chrid cID, chrlen cLen)
 	PlainCover::AddChrom(cID, cLen, prevEnd);
 }
 
-// Creates new instance by abed/bam-file name
-// Invalid instance wil be completed by throwing exception.
-//	@fName: file name
-//	@cSizes: chrom sizes to control the chrom length exceedeng, or NULL if no control
-//	@printfName: true if file name should be printed unconditionally, otherwise deneds on oinfo
-//	@abortInval: true if invalid instance should abort excecution
-ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool printfName, bool abortInval)
+ReadDens::ReadDens(const char* fName, ChromSizes& cSizes, eOInfo oinfo, bool abortInval)
 	: PlainCover()
 {
-	RBedReader file(fName, &cSizes, BYTE(Options::GetRDuplPermit(oDUPL)), oinfo, printfName, abortInval);
+	RBedReader file(fName, &cSizes, BYTE(Options::GetRDuplPermit(oDUPL)), oinfo, abortInval);
 	rfreq freq;
 	_freq = &freq;
 
@@ -708,7 +696,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 		else {
 			if (PrintMngr::IsPrName())	dout << sTemplate << SepCl;
 			_templ = new Features(FS::CheckedFileName(tfName), &_gRgns.ChrSizes(),
-				Options::GetBVal(oOVERL), PrintMngr::OutInfo(), PrintMngr::IsPrName(), true);
+				Options::GetBVal(oOVERL), PrintMngr::OutInfo(), true);
 			CheckItemsCount(_templ, tfName);
 
 			chrlen extLen = Options::GetIVal(oEXT_LEN);
@@ -793,7 +781,7 @@ void CorrPair::CalcCC(const char* fName)
 void* CorrPair::CreateBedF(const char* fName, bool primary)
 {
 	Features* obj = new Features(fName, &_gRgns.ChrSizes(), Options::GetBVal(oOVERL),
-		PrintMngr::OutInfo(), PrintMngr::IsPrName(), primary);
+		PrintMngr::OutInfo(), primary);
 	CheckItemsCount(obj, fName);
 	if (obj->NarrowLenDistr())
 		Err("looks like an alignment but is handled as ordinary bed!", PrintMngr::EchoName(fName)).Warning();
@@ -803,8 +791,7 @@ void* CorrPair::CreateBedF(const char* fName, bool primary)
 // Creates alignment object
 void* CorrPair::CreateBedR(const char* fName, bool isPrimary)
 {
-	ReadDens* obj = new ReadDens(fName, _gRgns.ChrSizes(),
-		PrintMngr::OutInfo(), PrintMngr::IsPrName(), isPrimary);
+	ReadDens* obj = new ReadDens(fName, _gRgns.ChrSizes(), PrintMngr::OutInfo(), isPrimary);
 	CheckItemsCount(obj, fName);
 	return obj;
 }
@@ -814,8 +801,7 @@ void* CorrPair::CreateBedR(const char* fName, bool isPrimary)
 //	@primary: if true object is primary
 void* CorrPair::CreateWig(const char* fName, bool isPrimary)
 {
-	Cover* obj = new Cover(fName, _gRgns.ChrSizes(),
-		PrintMngr::OutInfo(), PrintMngr::IsPrName(), isPrimary);
+	Cover* obj = new Cover(fName, _gRgns.ChrSizes(), PrintMngr::OutInfo(), isPrimary);
 	CheckItemsCount(obj, fName);
 	return obj;
 }

@@ -2,7 +2,7 @@
 vAlign.h
 Provides option emum and main functionality
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/25/2024
+Last modified: 07/28/2024
 ***********************************************************/
 #pragma once
 
@@ -127,7 +127,7 @@ public:
 		_minScore(Options::GetFVal(oMIN_SCORE)),
 		_cs(cs)
 	{
-		RBedReader file(fname, &cs, BYTE_UNDEF, eOInfo::LAC, false);
+		RBedReader file(fname, &cs, BYTE_UNDEF, eOInfo::NM);
 		_file = &file;
 		file.Pass(*this);
 		_file = nullptr;

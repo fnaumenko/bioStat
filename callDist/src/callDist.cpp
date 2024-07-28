@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/26/2024
+Last modified: 07/28/2024
 -------------------------
 ************************************************************************************/
 
@@ -86,7 +86,6 @@ int main(int argc, char* argv[])
 		const string sWFormat = "wrong format";
 		const string sRExt = "should be BED or BAM";
 
-		dout << iName;	cout.flush();
 		switch (ftype) {
 		case FT::eType::BED:
 		case FT::eType::BAM:
@@ -96,15 +95,17 @@ int main(int argc, char* argv[])
 				ReadDist(iName, Options::GetBVal(oPR_STATS)).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::FQ:
+			dout << iName;	cout.flush();
 			if (fragType && Options::Assigned(oINPUT))
 				Err(sWFormat + " for fragment distribution; " + sRExt).Throw();
 			FqReadDist(iName).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::DIST:
+			dout << iName;
 			Distrib(iName, dout).Print(dout, Distrib::eCType(Options::GetIVal(oDTYPE)), true, false);
 			break;
 		default:
-			Err(sWFormat + SepSCl + sRExt + " or FQ").Throw();
+			Err(sWFormat + SepSCl + sRExt + " or FQ", iName).Throw();
 			break;
 		}
 	}

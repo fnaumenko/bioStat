@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 07/25/2024
+Last modified: 07/28/2024
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -78,8 +78,8 @@ public:
 			fname,
 			nullptr,
 			0,					// no internal duplicates control; it performs in _fIdent
-			eOInfo::NONE,
-			false, false, true, true
+			eOInfo::NM,
+			false, true, true
 		);
 
 		// pre-read first item to check for PE sequence
@@ -90,6 +90,7 @@ public:
 
 		Pass(this, file);
 
+		// print statistic
 		size_t cnt = _fIdent.Count();
 		issues[0].Cnt = _fIdent.DuplCount();
 		UniBedReader::PrintItemCount(cnt, "fragments");
@@ -131,7 +132,6 @@ public:
 			nullptr,
 			Options::GetRDuplPermit(oDUPL),
 			prStats ? eOInfo::STAT : eOInfo::STD,
-			false,
 			false
 		);
 

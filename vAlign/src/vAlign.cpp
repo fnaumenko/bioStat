@@ -5,7 +5,7 @@ It compares the original and actual coordinates of each read
 and prints statistics of right and wrong mappings.
 
 2017 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/26/2024
+Last modified: 07/28/2024
 ************************************************************************************/
 
 #include "ChromData.h"
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input alignment
 
 		Options::SetDoutFile(oDOUT_FILE, iName);
-		dout << iName << LF;	cout.flush();
+
 		ChromSizes cSizes(Options::GetSVal(oGEN), true);
 		vAlign align(iName, cSizes);
 	}
@@ -220,7 +220,11 @@ void vAlign::operator()(chrid cID, chrlen, size_t cnt, chrid nextcID)
 {
 	if (cID != Chrom::UnID)	// not pre-first chrom
 		CloseChromStat(cID, cnt, _file->DuplCount());
-	if (_verb >= eVerb::LAC) { dout << Chrom::ShortName(nextcID) << LF;	fflush(stdout); }
+	if (_verb >= eVerb::LAC) {
+		_file->PrintFirstLF();
+		dout << Chrom::ShortName(nextcID) << LF;
+		fflush(stdout); 
+	}
 	_seq.reset(new ChromSeq(_cID = nextcID, _cs));
 	_chrStat.Clear();
 }
