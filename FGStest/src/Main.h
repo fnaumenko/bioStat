@@ -1,5 +1,5 @@
 /**********************************************************
-PDTest - Peak Detectors test
+Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
 Last modified: 07/30/2024
@@ -144,22 +144,27 @@ class FeaturesStatTuple
 	};
 
 	// 'Unified Data' holds tuple common data
-	//	Data is filled in the 'FeaturesStatData' class and read in the 'FeaturesStatTuple' class
+	//	Data is filled by 'FeaturesStatData' instance and read by 'FeaturesStatTuple' instance
 	class UniData
 	{
-		unique_ptr<IncFWriter> _oFile;
+		unique_ptr<IncFWriter> _oFile;		// dump file
 		StandDev _sd;
-		chrlen	 _abnormDevCnt = 0;	// count of abnormal (too big) deviations
-		short	 _minDev = 0;
+		chrlen	 _abnormDevCnt[2]{ 0,0 };	// count of abnormal (too big) deviations for chrom, for all
+		short	 _minDev = 0;				// minimum deviation for the deviation issue accounting
 
 	public:
 		// Returns count of abnormal deviations
-		chrlen GetAbnormDevCnt() const { return _abnormDevCnt; }
+		//	@param t: for the current chromosome or for all
+		chrlen GetAbnormDevCnt(eTarget t) const { return _abnormDevCnt[t]; }
 
 		// Returns Standard Deviation
 		//	@param t: for the current chromosome or for all
 		float GetSD(eTarget t) const { return _sd.GetSD(t); }
 
+		// Initializes the instance
+		//	@param capacity: standard deviation capacity
+		//	@param minDev: minimum deviation for the deviation issue accounting
+		//	@param fname: name of dump file or NULL
 		void Init(size_t capacity, short minDev, const char* fname)
 		{
 			_sd.Reserve(capacity);
@@ -169,18 +174,24 @@ class FeaturesStatTuple
 
 		void SetChrom(chrid cID) { if (_oFile)	_oFile->SetChrom(cID); }
 
-		void ResetChrom() { _sd.ResetChrom(); }
+		void ResetChrom() {
+			_sd.ResetChrom(); 
+			_abnormDevCnt[ALL] += _abnormDevCnt[CHR];
+			_abnormDevCnt[CHR] = 0;
+		}
 
+		// Saves False Poitive/Negative issue
 		void Discard(Features::cItemsIter it, BC::eBC bc)
 		{
 			if (_oFile)	_oFile->WriteFF(it, bc);
 		}
 
+		// Saves abnormal deviation issue
 		void AcceptDev(Features::cItemsIter it, short dev)
 		{
 			_sd.AddDev(dev);
 			if (_minDev && dev > _minDev) {
-				_abnormDevCnt++;
+				_abnormDevCnt[CHR]++;
 				if (_oFile)	_oFile->WriteFF(it, dev);
 			}
 		}
@@ -292,7 +303,7 @@ class FeaturesStatTuple
 	void PrintStat(eTarget t) const
 	{
 		const char* delim = "  ";
-		dout << setw(4) << _uData.GetAbnormDevCnt() + *_data[0].BC(t) + *_data[1].BC(t) << delim;	// issues count
+		dout << setw(4) << _uData.GetAbnormDevCnt(t) + *_data[0].BC(t) + *_data[1].BC(t) << delim;	// issues count
 		_data[0].PrintStat(t);
 		_data[1].PrintStat(t);
 		dout << delim << GetF1(t) << delim << _uData.GetSD(t) << LF;
@@ -338,5 +349,4 @@ public:
 		PrintFooter();
 		PrintStat(ALL);
 	}
-
 };
