@@ -2,7 +2,7 @@
 PDTest - Peak Detectors test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/27/2024
+Last modified: 07/30/2024
 -------------------------
 ***********************************************************/
 
@@ -143,6 +143,49 @@ class FeaturesStatTuple
 		}
 	};
 
+	// 'Unified Data' holds tuple common data
+	//	Data is filled in the 'FeaturesStatData' class and read in the 'FeaturesStatTuple' class
+	class UniData
+	{
+		unique_ptr<IncFWriter> _oFile;
+		StandDev _sd;
+		chrlen	 _abnormDevCnt = 0;	// count of abnormal (too big) deviations
+		short	 _minDev = 0;
+
+	public:
+		// Returns count of abnormal deviations
+		chrlen GetAbnormDevCnt() const { return _abnormDevCnt; }
+
+		// Returns Standard Deviation
+		//	@param t: for the current chromosome or for all
+		float GetSD(eTarget t) const { return _sd.GetSD(t); }
+
+		void Init(size_t capacity, short minDev, const char* fname)
+		{
+			_sd.Reserve(capacity);
+			_minDev = minDev;
+			if (fname)	_oFile.reset(new IncFWriter(fname));
+		}
+
+		void SetChrom(chrid cID) { if (_oFile)	_oFile->SetChrom(cID); }
+
+		void ResetChrom() { _sd.ResetChrom(); }
+
+		void Discard(Features::cItemsIter it, BC::eBC bc)
+		{
+			if (_oFile)	_oFile->WriteFF(it, bc);
+		}
+
+		void AcceptDev(Features::cItemsIter it, short dev)
+		{
+			_sd.AddDev(dev);
+			if (_minDev && dev > _minDev) {
+				_abnormDevCnt++;
+				if (_oFile)	_oFile->WriteFF(it, dev);
+			}
+		}
+	};
+
 	// 'Features' wrapper for manipulating Features iterators for a given chromosome 
 	class FeaturesStatData
 	{
@@ -158,17 +201,15 @@ class FeaturesStatTuple
 		}
 
 		const Features& _fs;
-		StandDev&	_sd;
+		UniData&	_uData;
 		iterator	_beginII;
 		iterator	_endII;
 		BC::eBC		_bc;				// needed for printing to dump file
-		short		_minDev;
 		float		_minScore;
-		unique_ptr<IncFWriter>& _oFile;
 		/*
 		* valid feature's counters (per chrom and total) are only needed
 		* for autonomous calculation of FNR and FDR (when printing).
-		* In FeaturesStatTuple::PrintF1() we can use _sd.size() as True Positive
+		* In FeaturesStatTuple::PrintF1() we can use _sd.size() as True Positive\a
 		*/
 		chrlen	_cntBC[2][2]{
 			{ 0,0 },	// false, total valid feature's count for chromosome
@@ -176,8 +217,8 @@ class FeaturesStatTuple
 		};
 
 	public:
-		FeaturesStatData(BC::eBC bc, const Features& fs, StandDev& sd, float minScore, short minDev, unique_ptr<IncFWriter>& oFile)
-			: _bc(bc), _fs(fs), _sd(sd), _minScore(minScore), _minDev(minDev), _oFile(oFile) {}
+		FeaturesStatData(BC::eBC bc, const Features& fs, UniData& uData, float minScore)
+			: _bc(bc), _fs(fs), _uData(uData), _minScore(minScore) {}
 
 		// returns binary classifiers
 		//	@param t: for the current chromosome or for all
@@ -213,9 +254,7 @@ class FeaturesStatTuple
 		static bool		IsWeak(iterator it) { return false; }	// stub
 		void Accept(const iterator it[2])
 		{
-			auto dev = short(int(it[0]->Centre()) - it[1]->Centre());
-			_sd.AddDev(dev);
-			if (_minDev && _oFile && dev > _minDev)		_oFile->WriteFF(it[1], dev);
+			_uData.AcceptDev(it[1], short(int(it[0]->Centre()) - it[1]->Centre()));
 		}
 		void Discard(iterator it)
 		{
@@ -223,22 +262,21 @@ class FeaturesStatTuple
 				_cntBC[CHR][TTL]--;
 			else {
 				_cntBC[CHR][FLS]++;
-				if (_oFile)		_oFile->WriteFF(it, _bc);
+				_uData.Discard(it, _bc);
 			}
 		}
 	};
 
 
-	static const USHORT titleLineLen = 44;
+	static const USHORT titleLineLen = 53;
 	static void PrintFooter()
 	{
 		PrintSolidLine(titleLineLen);
 		dout << sTotal << COLON << TAB;
 	}
 
-	StandDev _sd;
 	FeaturesStatData _data[2];
-	unique_ptr<IncFWriter> _oFile;
+	UniData			 _uData;
 
 	// returns F1 score
 	//	@param t: for the current chromosome or for all
@@ -253,29 +291,26 @@ class FeaturesStatTuple
 	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const
 	{
+		const char* delim = "  ";
+		dout << setw(4) << _uData.GetAbnormDevCnt() + *_data[0].BC(t) + *_data[1].BC(t) << delim;	// issues count
 		_data[0].PrintStat(t);
 		_data[1].PrintStat(t);
-		const char* delim = "  ";
-		dout << delim << GetF1(t)
-			 << delim << _sd.GetSD(t) << LF;
+		dout << delim << GetF1(t) << delim << _uData.GetSD(t) << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
-		dout << setw(11) << BC::Title(BC::FN) << "   FNR   " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
+		dout << setw(15) << "issues   " << BC::Title(BC::FN) << "   FNR     " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
 		PrintSolidLine(titleLineLen);
 	}
 
 	FeaturesStatTuple(const Features& smpl, const Features& test, float minScore, short minDev, const char* fname)
 		: _data{
-			FeaturesStatData(BC::FN, smpl, _sd, minScore, minDev, _oFile),
-			FeaturesStatData(BC::FP, test, _sd, 0, minDev, _oFile)
+			FeaturesStatData(BC::FN, smpl, _uData, minScore),
+			FeaturesStatData(BC::FP, test, _uData, 0)
 		}
-	{
-		_sd.Reserve(smpl.ItemsCount());
-		if (fname)	_oFile.reset(new IncFWriter(fname));
-	}
+	{ _uData.Init(smpl.ItemsCount(), minDev, fname); }
 
 	// calculates and print chromosome's statistics
 	//	@param sIt: sample chromosome's iterator
@@ -285,7 +320,7 @@ public:
 		// set chrom's data
 		_data[0].SetChrom(sIt);
 		_data[1].SetChrom(tIt);
-		if (_oFile)	_oFile->SetChrom(CID(sIt));
+		_uData.SetChrom(CID(sIt));
 		// treat
 		DiscardNonOverlapRegions<FeaturesStatData>(_data, 1);
 		// print stats
@@ -294,7 +329,7 @@ public:
 		// reset chrom's data
 		_data[0].ResetChrom();
 		_data[1].ResetChrom();
-		_sd.ResetChrom();
+		_uData.ResetChrom();
 	}
 
 	// prints BC, F1 and SD

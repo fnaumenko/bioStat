@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 07/27/2024
+Last modified: 07/30/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -71,10 +71,12 @@ int main(int argc, char* argv[])
 
 		Options::SetDoutFile(oDOUT_FILE, iName);
 
+		dout << "sample: ";
 		const Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
-			nullptr, false, eOInfo::STD, true);
+			nullptr, false, eOInfo::STD);
 		if (!smpl.ChromCount())	return 0;
-		const Features test(iName, nullptr, false, eOInfo::STD, true);
+		dout << "test:\t";
+		const Features test(iName, nullptr, false, eOInfo::STD);
 		if (!test.ChromCount())	return 0;
 
 		FeaturesStatTuple fst(
