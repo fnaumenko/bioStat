@@ -313,13 +313,13 @@ class FeaturesStatTuple
 public:
 	static void PrintHeader()
 	{
-		auto prtBCtitle = [](BC::eBC bc, const char* rate) {
+		auto prBCtitle = [](BC::eBC bc, const char* rate) {
 			dout << setw(5) << BC::Title(bc) << setw(5) << rate << setw(3) << SPACE;
 		};
 
 		dout << setw(13) << "issues";
-		prtBCtitle(BC::FN, "FNR");
-		prtBCtitle(BC::FP, "FDR");
+		prBCtitle(BC::FN, "FNR");
+		prBCtitle(BC::FP, "FDR");
 		dout << setw(6) << "F1" << setw(8) << "SD\n";
 		PrintSolidLine(titleLineLen);
 	}
