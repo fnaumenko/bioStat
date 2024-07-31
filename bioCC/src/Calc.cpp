@@ -2,7 +2,7 @@
 Calc.ccp
 Provides classes for calculating CC
 2014 Fedor Naumenko (fedor.naumenko@gmail.com)
-Last modified: 07/28/2024
+Last modified: 07/31/2024
 ***********************************************************/
 
 #include "Calc.h"
@@ -709,7 +709,7 @@ CorrPair::CorrPair(const char* primefName, DefRegions& rgns, const char* tfName,
 						<< extLen;
 					Err(ss.str(), PrintMngr::EchoName(tfName)).Warning();
 				}
-				_templ->Extend(extLen, rgns.ChrSizes(), UniBedReader::eAction::ABORT);
+				_templ->Expand(extLen, rgns.ChrSizes(), UniBedReader::eAction::ABORT);
 			}
 		}
 	if (PrintMngr::IsNotLac()) 	dout << "Pearson CC between\n";
@@ -760,7 +760,7 @@ void CorrPair::CalcCC(const char* fName)
 					Features bedF(*((Features*)_firstObj));
 					for (int i = extStep; i <= extLen; i += extStep) {
 						dout << "primer extended by " << i << ":\n";
-						if (!bedF.Extend(extStep, _gRgns.ChrSizes(), UniBedReader::eAction::ABORT))
+						if (!bedF.Expand(extStep, _gRgns.ChrSizes(), UniBedReader::eAction::ABORT))
 							break;
 						CalcCCBedF(bedF);
 					}
