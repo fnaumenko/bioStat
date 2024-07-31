@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 07/30/2024
+Last modified: 07/31/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -38,6 +38,7 @@ Options::Option Options::List[] = {
 	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "sample file." },
 	{ 'd',"min-dev",tOpt::NONE,	tINT,	gOTHER, 10, 0, 1000, NULL, "threshold deviation for writing a test feature to a dump file" },
 	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
+	{ 'e', "expand",tOpt::NONE,	tINT,	gOTHER, 0, 0, 100, NULL, "expand sample features" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
 	{ 'D', "dump",	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name" },
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, DoutHelp(ProgParam) },
@@ -72,12 +73,13 @@ int main(int argc, char* argv[])
 		Options::SetDoutFile(oDOUT_FILE, iName);
 
 		dout << "sample: ";
-		const Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
+		Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD);
 		if (!smpl.ChromCount())	return 0;
 		dout << "test:\t";
 		const Features test(iName, nullptr, false, eOInfo::STD);
 		if (!test.ChromCount())	return 0;
+		smpl.Expand(Options::GetIVal(oEXPAND), nullptr, UniBedReader::ABORT);
 
 		FeaturesStatTuple fst(
 			smpl,

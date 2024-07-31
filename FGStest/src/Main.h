@@ -2,7 +2,7 @@
 Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/30/2024
+Last modified: 07/31/2024
 -------------------------
 ***********************************************************/
 
@@ -16,6 +16,7 @@ enum optValue {		// options id
 	oTEMPL,
 	oMIN_DEV,
 	oMIN_SCORE,
+	oEXPAND,
 	oALARM,
 	oDUMP_FILE,
 	oDOUT_FILE,
@@ -312,7 +313,8 @@ class FeaturesStatTuple
 public:
 	static void PrintHeader()
 	{
-		dout << setw(15) << "issues   " << BC::Title(BC::FN) << "   FNR     " << BC::Title(BC::FP) << "   FDR      F1     SD\n";
+		dout << setw(16) << "issues   " << BC::Title(BC::FN) << "  FNR      " 
+			<< BC::Title(BC::FP) << "  FDR       F1     SD\n";
 		PrintSolidLine(titleLineLen);
 	}
 
