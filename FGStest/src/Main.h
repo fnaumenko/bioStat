@@ -2,7 +2,7 @@
 Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 07/31/2024
+Last modified: 08/01/2024
 -------------------------
 ***********************************************************/
 
@@ -156,7 +156,7 @@ class FeaturesStatTuple
 	public:
 		// Returns count of abnormal deviations
 		//	@param t: for the current chromosome or for all
-		chrlen GetAbnormDevCnt(eTarget t) const { return _abnormDevCnt[t]; }
+		chrlen GetAbnormDevCount(eTarget t) const { return _abnormDevCnt[t]; }
 
 		// Returns Standard Deviation
 		//	@param t: for the current chromosome or for all
@@ -205,13 +205,6 @@ class FeaturesStatTuple
 		using iterator = Features::cItemsIter;
 
 	private:
-		// prints binary classifiers
-		static void PrBcCounts(const chrlen count[2])
-		{
-			const char* delim = "  ";
-			dout << setw(4) << count[0] << delim << setprecision(3) << float(count[0]) / count[1] << delim;
-		}
-
 		const Features& _fs;
 		UniData&	_uData;
 		iterator	_beginII;
@@ -232,13 +225,13 @@ class FeaturesStatTuple
 		FeaturesStatData(BC::eBC bc, const Features& fs, UniData& uData, float minScore)
 			: _bc(bc), _fs(fs), _uData(uData), _minScore(minScore) {}
 
-		// returns binary classifiers
+		// Returns binary classifiers
 		//	@param t: for the current chromosome or for all
 		const chrlen* BC(eTarget t) const { return _cntBC[t]; }
 
-		// prints binary classifiers
+		// Returns false rate
 		//	@param t: for the current chromosome or for all
-		void PrintStat(eTarget t) const { PrBcCounts(_cntBC[t]); }
+		const float Rate(eTarget t) const { return float(_cntBC[t][FLS]) / _cntBC[t][TTL]; }
 
 		// sets counting local stats data (for given chromosome)
 		//	@param cIt: chromosome's iterator
@@ -280,7 +273,7 @@ class FeaturesStatTuple
 	};
 
 
-	static const USHORT titleLineLen = 53;
+	static const USHORT titleLineLen = 59;
 	static void PrintFooter()
 	{
 		PrintSolidLine(titleLineLen);
@@ -303,24 +296,22 @@ class FeaturesStatTuple
 	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const
 	{
-		const char* delim = "  ";
-		dout << setw(4) << _uData.GetAbnormDevCnt(t) + *_data[0].BC(t) + *_data[1].BC(t) << delim;	// issues count
-		_data[0].PrintStat(t);
-		_data[1].PrintStat(t);
-		dout << delim << GetF1(t) << delim << _uData.GetSD(t) << LF;
+		chrlen bigDev	= _uData.GetAbnormDevCount(t);
+		chrlen sampleBC	= *_data[0].BC(t);
+		chrlen testBC	= *_data[1].BC(t);
+
+		dout << setw(4) << bigDev + sampleBC + testBC	// issues count
+			 << setw(6) << bigDev << setw(5) << sampleBC << setw(5) << testBC;
+		dout << TAB << setprecision(3) << _data[0].Rate(t) << TAB << _data[1].Rate(t)
+			 << TAB << GetF1(t) << TAB << _uData.GetSD(t) << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
-		auto prBCtitle = [](BC::eBC bc, const char* rate) {
-			dout << setw(5) << BC::Title(bc) << setw(5) << rate << setw(3) << SPACE;
-		};
-
-		dout << setw(13) << "issues";
-		prBCtitle(BC::FN, "FNR");
-		prBCtitle(BC::FP, "FDR");
-		dout << setw(6) << "F1" << setw(8) << "SD\n";
+		dout << setw(6) << SPACE << TAB << "total bigD"
+			 << setw(5) << BC::Title(BC::FN) << setw(5) << BC::Title(BC::FP)
+			 << TAB << "FNR" << SPACE << TAB << "FDR" <<  SPACE << TAB << "F1" << "  \t" << "SD\n";
 		PrintSolidLine(titleLineLen);
 	}
 
