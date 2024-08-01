@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 07/31/2024
+Last modified: 08/01/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -40,7 +40,7 @@ Options::Option Options::List[] = {
 	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
 	{ 'e', "expand",tOpt::NONE,	tINT,	gOTHER, 0, 0, 100, NULL, "expand sample features" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
-	{ 'D', "dump",	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name" },
+	{ 'D', "dump",	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name" },
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, DoutHelp(ProgParam) },
 	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sHelpTime },
 	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpVersion },
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 			test,
 			Options::GetFVal(oMIN_SCORE),
 			short(Options::GetIVal(oMIN_DEV)),
-			Options::GetSVal(oDUMP_FILE)
+			FS::ComposeFileName(Options::GetSVal(oDUMP_FILE), iName, ".dump.txt").c_str()
 		);
 		chrid	chrCount = 0;	// count of threated chromosomes
 
