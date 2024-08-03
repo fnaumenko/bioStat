@@ -292,9 +292,12 @@ or<br>
 ```
   -c|--chr <name>       treat specified chromosome only
   -S|--sample <name>    sample file. Required
-  -d|--min-dev <int>    threshold deviation for writing a test feature to a dump file [10]
+  -C|--min-cdev <int>   threshold centre deviation for writing a test feature to an issues file [10]
+  -W|--min-wdev <float> threshold width deviation for writing a test feature to an issues file [0]
   -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
-  -D|--dump <name>      output dump file name
+  -e|--expand <int>     expand sample features [0]
+  -I|--issues [<name>]  output locused issues to specified file
+                        or to <in-file>.issues.bed if <name> is not specified
   -O|--out [<name>]     duplicate standard output to specified file
                         or to <in-file>.output.txt if <name> is not specified
   -t|--time             print run time
