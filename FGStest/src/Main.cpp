@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 08/01/2024
+Last modified: 08/03/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -20,6 +20,7 @@ const string Product::Version = "1.0";
 const string Product::Descr = "Features Gold Standard test";
 
 const char* ProgParam = "<in-file>";	// program parameter tip
+const string IssFileSuffix = ".issues.bed";
 
 // *** Options definition
 
@@ -36,11 +37,13 @@ Options::Option Options::List[] = {
 	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "chromosome sizes file" },
 	{ 'c', sChrom,	tOpt::NONE,	tNAME,	gOTHER,	NO_DEF, 0, 0, NULL, sHelpChrom },
 	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gOTHER, NO_DEF, 0, 0, NULL, "sample file." },
-	{ 'd',"min-dev",tOpt::NONE,	tINT,	gOTHER, 10, 0, 1000, NULL, "threshold deviation for writing a test feature to a dump file" },
+	{ 'C',"min-cdev",tOpt::NONE,tINT,	gOTHER, 10, 0, 1000, NULL, "threshold centre deviation for writing a test feature to an issues file" },
+	{ 'W',"min-wdev",tOpt::NONE,tFLOAT,	gOTHER, 0, 1, 100, NULL, "threshold width deviation for writing a test feature to an issues file" },
 	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gOTHER, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
 	{ 'e', "expand",tOpt::NONE,	tINT,	gOTHER, 0, 0, 100, NULL, "expand sample features" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOTHER, FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
-	{ 'D', "dump",	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, "output dump file name" },
+	{ 'I', "issues",tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, 
+	OptFileNameHelp("output locused issues", ProgParam, IssFileSuffix)},
 	{ 'O', sOutput,	tOpt::FACULT,tNAME,	gOTHER,	NO_DEF,	0,	0, NULL, DoutHelp(ProgParam) },
 	{ 't',	sTime,	tOpt::NONE,	tENUM,	gOTHER,	FALSE,	NO_VAL, 0, NULL, sHelpTime },
 	{ 'v',	sVers,	tOpt::NONE,	tVERS,	gOTHER,	NO_DEF, NO_VAL, 0, NULL, sHelpVersion },
@@ -68,7 +71,7 @@ int main(int argc, char* argv[])
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input name
-		//const char* gName = Options::GetSVal(oGEN);				// chrom sizes
+		const char* issName = Options::GetSVal(oISSUE_FILE);		// issues file
 
 		Options::SetDoutFile(oDOUT_FILE, iName);
 
@@ -85,8 +88,9 @@ int main(int argc, char* argv[])
 			smpl,
 			test,
 			Options::GetFVal(oMIN_SCORE),
-			short(Options::GetIVal(oMIN_DEV)),
-			FS::ComposeFileName(Options::GetSVal(oDUMP_FILE), iName, ".dump.txt").c_str()
+			short(Options::GetIVal(oMIN_CDEV)),
+			Options::GetFVal(oMIN_WDEV),
+			issName ? FS::ComposeFileName(issName, iName, IssFileSuffix).c_str() : NULL
 		);
 		chrid	chrCount = 0;	// count of threated chromosomes
 
@@ -107,6 +111,5 @@ int main(int argc, char* argv[])
 	timer.Stop();
 	return ret;
 }
-
 
 const char* FeaturesStatTuple::BC::titles[2]{ "FP", "FN" };

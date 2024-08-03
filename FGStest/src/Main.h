@@ -2,7 +2,7 @@
 Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 08/01/2024
+Last modified: 08/03/2024
 -------------------------
 ***********************************************************/
 
@@ -14,11 +14,12 @@ enum optValue {		// options id
 	//oGEN,
 	oCHROM,
 	oTEMPL,
-	oMIN_DEV,
+	oMIN_CDEV,
+	oMIN_WDEV,
 	oMIN_SCORE,
 	oEXPAND,
 	oALARM,
-	oDUMP_FILE,
+	oISSUE_FILE,
 	oDOUT_FILE,
 	oTIME,
 	oVERSION,
@@ -56,15 +57,78 @@ class FeaturesStatTuple
 		static const char* Title(eBC bc) { return titles[bc]; }
 	} bc;
 
-	// Keeps data and calculates Standard Deviation
-	class StandDev
+	// Incorrect Features issues file
+	class IssBedWriter : public FormWriter
 	{
-		vector<short> _devs;		// deviations
-		UINT	_startInd = 0;		// starting index in _devs for the current chromosome
-		int		_sumDev[2]{ 0,0 };	// sum of deviation for current chromosome, for all
+		// returns normalized score
+		static float NormScore(const Features::cItemsIter& it)
+		{
+			float score = it->Value;
+			if (score > 1)	score /= 1000;
+			return score;
+		}
+
+		IGVlocus _locus;
+
+		template<typename T>
+		void WriteFF(const char* format, const char* title, const Features::cItemsIter& it, T val)
+		{
+			Write(format,
+				_locus.ChromAbbrName(),
+				it->Start,
+				it->End,
+				title,
+				NormScore(it),
+				val,
+				_locus.Print(it->Start, it->End)
+			);
+		}
 
 	public:
-		void Reserve(size_t capacity) { _devs.reserve(capacity); }
+		IssBedWriter(const char* fname) : FormWriter(fname)
+		{
+			Write("#chrom\t  start\t    end\tiss\tscore\tdev\tlocus\n");
+		}
+
+		void SetChrom(chrid cID) { _locus.SetChrom(cID); }
+
+		// Writes BC false feature line
+		void WriteFF(const Features::cItemsIter& it, BC::eBC bc)
+		{
+			WriteFF<char>("%s\t%d\t%d\t%s\t%.2f\t%c\t%s\n", BC::Title(bc), it, SPACE);
+		}
+
+		// Writes centre deviation false feature line
+		void WriteFF(const Features::cItemsIter& it, short dev)
+		{
+			WriteFF<short>("%s\t%d\t%d\t%s\t%.2f\t%d\t%s\n", "cD", it, dev);
+		}
+
+		// Writes width deviation false feature line
+		void WriteFF(const Features::cItemsIter& it, float dev)
+		{
+			WriteFF<float>("%s\t%d\t%d\t%s\t%.2f\t%.1f\t%s\n", "wD", it, dev);
+		}
+	};
+
+	// Keeps data and calculates Standard Deviation
+	template<typename T>
+	class StandDev
+	{
+		vector<T>	_devs;				// deviations
+		IssBedWriter*	_oFile = nullptr;
+		T		_minDev = 0;			// minimum deviation for the deviation issue accounting
+		UINT	_startInd = 0;			// starting index in _devs for the current chromosome
+		float	_sumDev[2]{ 0.,0. };	// sum of deviation for current chromosome, for all
+		chrlen	_abnormDevCnt[2]{ 0,0 };// count of abnormal (too big) deviations for chrom, for all
+
+	public:
+		void Init(size_t capacity, T minDev, IssBedWriter* oFile)
+		{
+			_minDev = minDev;
+			_oFile = oFile;
+			_devs.reserve(capacity);
+		}
 
 		// Returns Standard Deviation
 		//	@param t: for the current chromosome or for all
@@ -81,11 +145,23 @@ class FeaturesStatTuple
 		}
 
 		// Adds deviation value
-		void AddDev(short dev)
+		//	@param dev: deviation value
+		//	@param acceptAbnorm: if true then take into account the abnormal deviation value
+		//	@param it: Features iterator to save record into file
+		//	@returns: true is abnormal deviation value was taken into account
+		bool AddDev(T dev, bool acceptAbnorm, const Features::cItemsIter it)
 		{
 			_devs.push_back(dev);
 			_sumDev[CHR] += dev;
+			if (acceptAbnorm && _minDev && dev > _minDev) {
+				_abnormDevCnt[CHR]++;
+				if (_oFile)	_oFile->WriteFF(it, dev);
+				return true;
+			}
+			return false;
 		}
+
+		chrlen GetAbnormDevCount(eTarget t) const { return _abnormDevCnt[t]; }
 
 		// Stops counting data for the current chromosome
 		void ResetChrom()
@@ -93,54 +169,8 @@ class FeaturesStatTuple
 			_startInd = UINT(_devs.size() - 1);
 			_sumDev[ALL] += _sumDev[CHR];
 			_sumDev[CHR] = 0;
-		}
-	};
-
-	// Incorrect Features dump file
-	class IncFWriter : public FormWriter
-	{
-		// returns normalized score
-		static float NormScore(const Features::cItemsIter& it)
-		{
-			float score = it->Value;
-			if (score > 1)	score /= 1000;
-			return score;
-		}
-
-		IGVlocus _locus;
-
-	public:
-		IncFWriter(const char* fname) : FormWriter(fname)
-		{
-			Write("chrom\tiss start\tend  \tscore\tdev\tlocus\n");
-		}
-
-		void SetChrom(chrid cID) { _locus.SetChrom(cID); }
-
-		// Writes BC false feature line
-		void WriteFF(const Features::cItemsIter& it, BC::eBC bc)
-		{
-			Write("%s\t%-4s%d\t%d\t%.2f\t \t%s\n",
-				_locus.ChromAbbrName(),
-				BC::Title(bc),
-				it->Start,
-				it->End,
-				NormScore(it),
-				_locus.Print(it->Start, it->End)
-			);
-		}
-
-		// Writes deviation false feature line
-		void WriteFF(const Features::cItemsIter& it, short dev)
-		{
-			Write("%s\tdev %d\t%d\t%.2f\t%d\t%s\n",
-				_locus.ChromAbbrName(),
-				it->Start,
-				it->End,
-				NormScore(it),
-				dev,
-				_locus.Print(it->Start, it->End)
-			);
+			_abnormDevCnt[ALL] += _abnormDevCnt[CHR];
+			_abnormDevCnt[CHR] = 0;
 		}
 	};
 
@@ -148,53 +178,60 @@ class FeaturesStatTuple
 	//	Data is filled by 'FeaturesStatData' instance and read by 'FeaturesStatTuple' instance
 	class UniData
 	{
-		unique_ptr<IncFWriter> _oFile;		// dump file
-		StandDev _sd;
-		chrlen	 _abnormDevCnt[2]{ 0,0 };	// count of abnormal (too big) deviations for chrom, for all
-		short	 _minDev = 0;				// minimum deviation for the deviation issue accounting
+		unique_ptr<IssBedWriter> _oFile;		// issues file
+		StandDev<short> _cSD;	// centre standars deviation
+		StandDev<float> _wSD;	// width standars deviation
 
 	public:
-		// Returns count of abnormal deviations
+		// Returns count of centre abnormal deviations
 		//	@param t: for the current chromosome or for all
-		chrlen GetAbnormDevCount(eTarget t) const { return _abnormDevCnt[t]; }
+		chrlen GetCentreAbnormDevCount(eTarget t) const { return _cSD.GetAbnormDevCount(t); }
 
-		// Returns Standard Deviation
+		// Returns count of width abnormal deviations
 		//	@param t: for the current chromosome or for all
-		float GetSD(eTarget t) const { return _sd.GetSD(t); }
+		chrlen GetWidthAbnormDevCount(eTarget t) const { return _wSD.GetAbnormDevCount(t); }
+
+		// Returns centre Standard Deviation
+		//	@param t: for the current chromosome or for all
+		float GetCentreSD(eTarget t) const { return _cSD.GetSD(t); }
+
+		// Returns width Standard Deviation
+		//	@param t: for the current chromosome or for all
+		float GetWidthSD(eTarget t) const { return _wSD.GetSD(t); }
 
 		// Initializes the instance
 		//	@param capacity: standard deviation capacity
-		//	@param minDev: minimum deviation for the deviation issue accounting
-		//	@param fname: name of dump file or NULL
-		void Init(size_t capacity, short minDev, const char* fname)
+		//	@param minCDev: minimum centre deviation for the deviation issue accounting
+		//	@param minWDev: minimum width deviation for the deviation issue accounting
+		//	@param fname: name of issues file or NULL
+		void Init(size_t capacity, short minCDev, float minWDev, const char* fname)
 		{
-			_sd.Reserve(capacity);
-			_minDev = minDev;
-			if (fname)	_oFile.reset(new IncFWriter(fname));
+			if (fname)	_oFile.reset(new IssBedWriter(fname));
+			_cSD.Init(capacity, minCDev, _oFile.get());
+			_wSD.Init(capacity, minWDev, _oFile.get());
 		}
 
 		void SetChrom(chrid cID) { if (_oFile)	_oFile->SetChrom(cID); }
 
-		void ResetChrom() {
-			_sd.ResetChrom(); 
-			_abnormDevCnt[ALL] += _abnormDevCnt[CHR];
-			_abnormDevCnt[CHR] = 0;
-		}
+		void ResetChrom() { _cSD.ResetChrom(); _wSD.ResetChrom(); }
 
 		// Saves False Poitive/Negative issue
-		void Discard(Features::cItemsIter it, BC::eBC bc)
+		void Discard(const Features::cItemsIter it, BC::eBC bc)
 		{
 			if (_oFile)	_oFile->WriteFF(it, bc);
 		}
 
-		// Saves abnormal deviation issue
-		void AcceptDev(Features::cItemsIter it, short dev)
+		// Saves deviation issue
+		void AcceptDev(const Features::cItemsIter it[2])
 		{
-			_sd.AddDev(dev);
-			if (_minDev && dev > _minDev) {
-				_abnormDevCnt[CHR]++;
-				if (_oFile)	_oFile->WriteFF(it, dev);
-			}
+			bool acceptAbnorm = _cSD.AddDev(
+				short(int(it[0]->Centre()) - it[1]->Centre()),
+				true, it[1] 
+			);
+			_wSD.AddDev(
+				float(it[1]->Length()) / it[0]->Length(),
+				!acceptAbnorm, it[1]
+			);
 		}
 	};
 
@@ -209,12 +246,12 @@ class FeaturesStatTuple
 		UniData&	_uData;
 		iterator	_beginII;
 		iterator	_endII;
-		BC::eBC		_bc;				// needed for printing to dump file
+		BC::eBC		_bc;				// needed for printing to issues file
 		float		_minScore;
 		/*
 		* valid feature's counters (per chrom and total) are only needed
 		* for autonomous calculation of FNR and FDR (when printing).
-		* In FeaturesStatTuple::PrintF1() we can use _sd.size() as True Positive\a
+		* In FeaturesStatTuple::PrintF1() we can use _cSD.size() as True Positive\a
 		*/
 		chrlen	_cntBC[2][2]{
 			{ 0,0 },	// false, total valid feature's count for chromosome
@@ -254,14 +291,11 @@ class FeaturesStatTuple
 		iterator& begin() { return _beginII; }
 		iterator& end()	{ return _endII; }
 
-		static chrlen	Start(iterator it) { return it->Start; }
-		static chrlen	End(iterator it) { return it->End; }
-		static bool		IsWeak(iterator it) { return false; }	// stub
-		void Accept(const iterator it[2])
-		{
-			_uData.AcceptDev(it[1], short(int(it[0]->Centre()) - it[1]->Centre()));
-		}
-		void Discard(iterator it)
+		static chrlen	Start(const iterator it) { return it->Start; }
+		static chrlen	End	(const iterator it)	 { return it->End; }
+		static bool		IsWeak(const iterator it){ return false; }	// stub
+		void Accept	(const iterator it[2])		 { _uData.AcceptDev(it); }
+		void Discard(const iterator it)
 		{
 			if (it->Value < _minScore)
 				_cntBC[CHR][TTL]--;
@@ -273,7 +307,7 @@ class FeaturesStatTuple
 	};
 
 
-	static const USHORT titleLineLen = 59;
+	static const USHORT titleLineLen = 73;
 	static void PrintFooter()
 	{
 		PrintSolidLine(titleLineLen);
@@ -296,31 +330,33 @@ class FeaturesStatTuple
 	//	@param t: for the current chromosome or for all
 	void PrintStat(eTarget t) const
 	{
-		chrlen bigDev	= _uData.GetAbnormDevCount(t);
+		chrlen cDev	= _uData.GetCentreAbnormDevCount(t);
+		chrlen wDev = _uData.GetWidthAbnormDevCount(t);
 		chrlen sampleBC	= *_data[0].BC(t);
 		chrlen testBC	= *_data[1].BC(t);
 
-		dout << setw(4) << bigDev + sampleBC + testBC	// issues count
-			 << setw(6) << bigDev << setw(5) << sampleBC << setw(5) << testBC;
-		dout << TAB << setprecision(3) << _data[0].Rate(t) << TAB << _data[1].Rate(t)
-			 << TAB << GetF1(t) << TAB << _uData.GetSD(t) << LF;
+		dout << setprecision(3) << _data[0].Rate(t) << TAB << _data[1].Rate(t)
+			<< TAB << GetF1(t) << TAB << _uData.GetCentreSD(t) << TAB << _uData.GetWidthSD(t);
+		dout << TAB << '|' << setw(4) << cDev + wDev + sampleBC + testBC	// issues count
+			<< setw(5) << sampleBC << setw(5) << testBC << setw(5) << cDev << setw(5) << wDev << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
-		dout << setw(6) << SPACE << TAB << "total bigD"
-			 << setw(5) << BC::Title(BC::FN) << setw(5) << BC::Title(BC::FP)
-			 << TAB << "FNR" << SPACE << TAB << "FDR" <<  SPACE << TAB << "F1" << "  \t" << "SD\n";
+		dout << setw(6) << SPACE << TAB << "FNR" << SPACE << TAB << "FDR" << SPACE
+			<< TAB << "F1" << "  \t" << "c-SD" << TAB << "w-SD";
+		dout << "\t|total" << setw(4) << BC::Title(BC::FN) << setw(5) << BC::Title(BC::FP)
+			<< setw(5) << "c-D" << setw(5) << "w-D" << LF;
 		PrintSolidLine(titleLineLen);
 	}
 
-	FeaturesStatTuple(const Features& smpl, const Features& test, float minScore, short minDev, const char* fname)
+	FeaturesStatTuple(const Features& smpl, const Features& test, float minScore, short minCDev, float minWDev, const char* fname)
 		: _data{
 			FeaturesStatData(BC::FN, smpl, _uData, minScore),
 			FeaturesStatData(BC::FP, test, _uData, 0)
 		}
-	{ _uData.Init(smpl.ItemsCount(), minDev, fname); }
+	{ _uData.Init(smpl.ItemsCount(), minCDev, minWDev, fname); }
 
 	// calculates and print chromosome's statistics
 	//	@param sIt: sample chromosome's iterator
