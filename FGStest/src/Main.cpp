@@ -26,8 +26,6 @@ const string IssFileSuffix = ".issues";
 
 enum eOptGroup { gINPUT, gOUTPUT, gOTHER };	// gOTHER should be the last 
 const char* Options::OptGroups[] = { "Input", "Output", "Other" };
-//enum eOptGroup { gOTHER };						// the only member - no gropus in help
-//const char* Options::OptGroups[] = { NULL };	// no gropus in help
 const BYTE Options::GroupCount = ArrCnt(Options::OptGroups);
 
 const BYTE Options::Option::IndentInTabs = 3;
