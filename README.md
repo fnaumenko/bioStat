@@ -354,7 +354,7 @@ The feature name is the designation of the issue:<br>
 *FP* - False Positive case<br>
 *cD* - critical centre deviation case<br>
 *wD* - critical width deviation case<br>
-The sixth and seventh fields are non-standard.<br>
+The last two fields are non-standard.<br>
 The 6th field contains critical deviation values: integer for *cD* and floating point for *wD*.<br>
 In the first case, this is the deviation of the centre of the test feature from the centre of the reference one.<br> 
 In the second case, this is the ratio of the test feature length to the reference one.<br>
