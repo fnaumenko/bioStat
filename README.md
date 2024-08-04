@@ -7,7 +7,7 @@ It includes:<br>
  * [**valign**](#valign)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aligned reads verifier<br>
  * [**fqstatn**](#fqstatn)&nbsp;&nbsp;&nbsp;&nbsp;fastQ 'N' statistics calculator
 
-v3.0 in progress
+version 3.0 in progress
 
 ## Usage
 `biostat <command> [options] [<file>…]`<br>
@@ -290,16 +290,19 @@ or<br>
 
 ### Options
 ```
+Input:
   -c|--chr <name>       treat specified chromosome only
   -S|--sample <name>    sample file. Required
   -C|--min-cdev <int>   threshold centre deviation for writing a test feature to an issues file [10]
   -W|--min-wdev <float> threshold width deviation for writing a test feature to an issues file [0]
   -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
   -e|--expand <int>     expand sample features [0]
-  -I|--issues [<name>]  output locused issues to specified file
-                        or to <in-file>.issues.bed if <name> is not specified
-  -O|--out [<name>]     duplicate standard output to specified file
-                        or to <in-file>.output.txt if <name> is not specified
+Output:
+  -I|--issues [<name>]  output locused issues to <name>.bed file
+                        or to <in-file>.issues.bed file if <name> is not specified
+  -O|--out [<name>]     duplicate standard output to <name> file
+                        or to <in-file>.output.txt file if <name> is not specified
+Other:
   -t|--time             print run time
   -v|--version          print program's version and exit
   -h|--help             print usage information and exit
@@ -320,24 +323,48 @@ Required.
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
-Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
-of less than 2% (for a reliable number of fragments, exceeding thousand), 
-but significantly speeds up processing (e.g. about 8 times for the mouse genome).
+`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.
+
+`-C|--min-cdev <int>`<br>
+in progress.<br>
+Default: 10.
+
+`-W|--min-wdev <float>`<br>
+in progress.<br>
+Default: 0.
 
 `-s|--min-scr <float>`<br>
 specifies template features score threshold for testing.<br>
 Default: 0.
 
-`-D|--dump <name>`<br>
-specifies output file containing each False Positive and False Negative cases.<br>
+`-e|--expand <int>`<br>
+in progress.<br>
+Default: 0.
+
+`-I|--issues [<name>]`<br>
+specifies output file containing issued features in BED format.<br>
+The name of output file is constructed as *`name`.bed*, possible extension in <name> is truncated.<br>
+If `name` is not specified, the output file name is constructed as *`in-file`.issues.bed*,
+ where `in-file` is a program input file. Its extention is also truncated.<br>
+If `name` denotes an existing folder, the output file is created in it using `in-file` template, according to the rule described above.<br>
+File contents:<br>
+The first five fields are standard.<br>
+The feature name is the designation of the issue:<br>
+*FN* - False Negative case<br>
+*FP* - False Positive case<br>
+*cD* - critical centre deviation case<br>
+*wD* - critical width deviation case<br>
+The sixth and seventh fields are non-standard.<br>
+The 6th field contains critical deviation values: integer for *cD* and floating point for *wD*. 
+In the latter case, it is the ratio of the test feature width to the reference one<br>
+The 7th field contains the issue locus (coordinates for display in the genome browser).<br>
+The issues file is auxiliary and is intended mainly for quick viewing of problematic cases in the genome browser.
 
 `-O|--out [<name>]`<br>
 duplicates standard output to specified file (except alarm messages).<br>
-If <name> is not specified, duplicates output to file with name, 
-constructed as input file short name with extention *.dist*.<br>
-If the <name> denotes an existing folder, the output file is created in it according to the rule described above.<br>
-If the input file itself has a *.dist* extention, then the "_out" suffix is added to the name.<br>
+If <name> is not specified, the output file name is constructed as *<in-file>.ioutput.txt*,
+ where <in-file> is a program input file. Its extention is also truncated.<br>
+If <name> denotes an existing folder, the output file is created in it using <in-file> template, according to the rule described above.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
