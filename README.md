@@ -343,10 +343,10 @@ Default: 0.
 
 `-I|--issues [<name>]`<br>
 specifies output file containing issued features in [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
-The name of output file is constructed as *`name`.bed*, possible extension in <name> is truncated.<br>
+The name of output file is constructed as *`name`.bed*, possible extension in `name` is truncated.<br>
 If `name` is not specified, the output file name is constructed as *`in-file`.issues.bed*,
  where `in-file` is a program input file. Its extention is also truncated.<br>
-If `name` denotes an existing folder, the output file is created in it using `in-file` template, according to the rule described above.<br>
+If `name` denotes an existing folder, the output file is created inside it using `in-file` template, according to the rule described above.<br>
 *File contents:*<br>
 The first five fields are standard.<br>
 The feature name is the designation of the issue:<br>
@@ -364,7 +364,7 @@ The issues file is auxiliary and is intended mainly for quick viewing of problem
 duplicates standard output to specified file (except alarm messages).<br>
 If `name` is not specified, the output file name is constructed as *`in-file`.ioutput.txt*,
  where `in-file` is a program input file. Its extention is also truncated.<br>
-If `name` denotes an existing folder, the output file is created in it using `in-file` template, according to the rule described above.<br>
+If `name` denotes an existing folder, the output file is created inside it using `in-file` template, according to the rule described above.<br>
 It is an analogue of the **tee** Linux command and is constructed rather for the execution under Windows.
 
 ---
