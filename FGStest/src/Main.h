@@ -2,7 +2,7 @@
 Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 08/03/2024
+Last modified: 08/06/2024
 -------------------------
 ***********************************************************/
 
@@ -247,6 +247,7 @@ class FeaturesStatTuple
 		iterator	_beginII;
 		iterator	_endII;
 		BC::eBC		_bc;				// needed for printing to issues file
+		USHORT		_expandVal;
 		float		_minScore;
 		/*
 		* valid feature's counters (per chrom and total) are only needed
@@ -259,8 +260,8 @@ class FeaturesStatTuple
 		};
 
 	public:
-		FeaturesStatData(BC::eBC bc, const Features& fs, UniData& uData, float minScore)
-			: _bc(bc), _fs(fs), _uData(uData), _minScore(minScore) {}
+		FeaturesStatData(BC::eBC bc, const Features& fs, UniData& uData, USHORT	expandVal, float minScore)
+			: _bc(bc), _fs(fs), _uData(uData), _expandVal(expandVal), _minScore(minScore) {}
 
 		// Returns binary classifiers
 		//	@param t: for the current chromosome or for all
@@ -291,10 +292,10 @@ class FeaturesStatTuple
 		iterator& begin() { return _beginII; }
 		iterator& end()	{ return _endII; }
 
-		static chrlen	Start(const iterator it) { return it->Start; }
-		static chrlen	End	(const iterator it)	 { return it->End; }
-		static bool		IsWeak(const iterator it){ return false; }	// stub
-		void Accept	(const iterator it[2])		 { _uData.AcceptDev(it); }
+		chrlen	Start(const iterator it)	 { return it->Start - _expandVal; }
+		chrlen	End	(const iterator it)		 { return it->End + _expandVal; }
+		static bool	IsWeak(const iterator it){ return false; }	// stub
+		void Accept	(const iterator it[2])	 { _uData.AcceptDev(it); }
 		void Discard(const iterator it)
 		{
 			if (it->Value < _minScore)
@@ -351,10 +352,18 @@ public:
 		PrintSolidLine(titleLineLen);
 	}
 
-	FeaturesStatTuple(const Features& smpl, const Features& test, float minScore, short minCDev, float minWDev, const char* fname)
+	FeaturesStatTuple(
+		const Features& smpl,
+		const Features& test,
+		USHORT expandVal,
+		float minScore,
+		short minCDev,
+		float minWDev,
+		const char* fname
+	)
 		: _data{
-			FeaturesStatData(BC::FN, smpl, _uData, minScore),
-			FeaturesStatData(BC::FP, test, _uData, 0)
+			FeaturesStatData(BC::FN, smpl, _uData, expandVal, minScore),
+			FeaturesStatData(BC::FP, test, _uData, 0, 0)
 		}
 	{ _uData.Init(smpl.ItemsCount(), minCDev, minWDev, fname); }
 

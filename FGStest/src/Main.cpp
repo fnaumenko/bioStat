@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 08/04/2024
+Last modified: 08/06/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -40,7 +40,7 @@ Options::Option Options::List[] = {
 	{ 'C',"min-cdev",tOpt::NONE,tINT,	gINPUT, 10, 0, 1000, NULL, "threshold centre deviation for writing a test feature to an issues file" },
 	{ 'W',"min-wdev",tOpt::NONE,tFLOAT,	gINPUT, 0, 1, 100, NULL, "threshold width deviation for writing a test feature to an issues file" },
 	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gINPUT, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
-	{ 'e', "expand",tOpt::NONE,	tINT,	gINPUT, 0, 0, 100, NULL, "expand sample features" },
+	{ 'e', "expand",tOpt::NONE,	tINT,	gINPUT, 0, 0, 500, NULL, "virtually expand sample features while searching for sample/test intersecting" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
 	{ 'I', "issues",tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL,
 	OptFileNameHelp("output locused issues", ProgParam, IssFileSuffix, FT::Ext(FT::BED))},
@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 	Timer timer;
 	try {
 		const char* iName = FS::CheckedFileName(argv[fileInd]);	// input name
+		auto expVal = USHORT(Options::GetFVal(oEXPAND));
 
 		Options::SetDoutFile(oDOUT_FILE, iName);
 
@@ -92,15 +93,24 @@ int main(int argc, char* argv[])
 		Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD);
 		if (!smpl.ChromCount())	return 0;
+		{	// check expansion value
+			auto minDistance = smpl.GetMinDistance();
+			if (expVal >= minDistance / 2) {
+				cerr << Options::OptionToStr(oEXPAND, true)
+					<< " leads to the intersection of the sample features (the minimum distance between them is "
+					<< minDistance << ")\n";
+				return 1;
+			}
+		}
 		dout << "test:\t";
 		const Features test(iName, nullptr, false, eOInfo::STD);
 		if (!test.ChromCount())	return 0;
-		smpl.Expand(Options::GetIVal(oEXPAND), nullptr, UniBedReader::ABORT);
 
 		string oName;			// issues output file name
 		FeaturesStatTuple fst(
 			smpl,
 			test,
+			expVal,
 			Options::GetFVal(oMIN_SCORE),
 			short(Options::GetFVal(oMIN_CDEV)),
 			Options::GetFVal(oMIN_WDEV),
