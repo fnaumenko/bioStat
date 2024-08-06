@@ -93,7 +93,8 @@ int main(int argc, char* argv[])
 		Features smpl(FS::CheckedFileName(Options::GetSVal(oTEMPL)),
 			nullptr, false, eOInfo::STD);
 		if (!smpl.ChromCount())	return 0;
-		{	// check expansion value
+		// check expansion value
+		if (expVal) {
 			auto minDistance = smpl.GetMinDistance();
 			if (expVal >= minDistance / 2) {
 				cerr << Options::OptionToStr(oEXPAND, true)
