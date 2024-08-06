@@ -347,7 +347,7 @@ The choice of the option value should be based on an assessment of the maximum d
 of the test features in each specific case.<br>
 In particular, when testing peak detection results, it is recommended to set the value to 2-3 read lengths.<br>
 If the expansion value results in the intersection of reference features, the program displays a message and quit.<br>
-Note that the virtual expansion does not affect the estimate of the standard deviation of the center and width.<br>
+Note that the virtual expansion does not affect the estimate of the standard deviation of the centre and width.<br>
 Default: 0.
 
 `-I|--issues [<name>]`<br>
