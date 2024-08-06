@@ -296,7 +296,7 @@ Input:
   -C|--min-cdev <int>   threshold centre deviation for writing a test feature to an issues file [10]
   -W|--min-wdev <float> threshold width deviation for writing a test feature to an issues file [0]
   -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
-  -e|--expand <int>     expand sample features [0]
+  -e|--expand <int>     virtually expand sample features while searching for sample/test intersecting [0]
 Output:
   -I|--issues [<name>]  output locused issues to <name>.bed file
                         or to <in-file>.issues.bed file if <name> is not specified
