@@ -338,7 +338,17 @@ specifies template features score threshold for testing.<br>
 Default: 0.
 
 `-e|--expand <int>`<br>
-in progress.<br>
+specifies the value by which the start position of each reference feature is virtually decreased 
+and the end position is virtually increased while searching for intersecting reference/test features.<br>
+For narrow reference features, the situation when the actual corresponding test feature 
+does not intersect with the reference one is common. 
+This results in the detection of redundant pair of False Positive and False Negative cases.<br>
+Virtual expansion of reference features when comparing coordinates eliminates this effect.<br>
+The choice of the option value should be based on an assessment of the maximum deviation 
+of the test features in each specific case.<br>
+In particular, when testing peak detection results, it is recommended to set the value to 2-3 read lengths.<br>
+If the expansion value results in the intersection of reference features, the program displays a message and stops working.<br>
+Note that the virtual expansion does not affect the estimate of the standard deviation of the center and width.<br>
 Default: 0.
 
 `-I|--issues [<name>]`<br>
