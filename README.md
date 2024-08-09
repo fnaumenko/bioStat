@@ -337,7 +337,7 @@ Default: 10.
 `-L|--ldev <float>`<br>
 sets the ratio of the length of the test feature to the length of the corresponding reference one, 
 above which this case will be counted in the critical length deviations (*lD*) metric in the program output, 
-and recorded in the issue report (`-I|--issues` option).<br>
+and recorded in the issue report <nobr>(`-I|--issues` option).</nobr><br>
 Does not affect the length standard deviation in the program output.<br>
 Default: 0 (no counting).
 
