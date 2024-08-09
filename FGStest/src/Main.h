@@ -2,7 +2,7 @@
 Main.h for FGStest - Features Gold Standard test
 2024 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 08/06/2024
+Last modified: 08/09/2024
 -------------------------
 ***********************************************************/
 
@@ -15,7 +15,7 @@ enum optValue {		// options id
 	oCHROM,
 	oTEMPL,
 	oMIN_CDEV,
-	oMIN_WDEV,
+	oMIN_LDEV,
 	oMIN_SCORE,
 	oEXPAND,
 	oALARM,
@@ -107,7 +107,7 @@ class FeaturesStatTuple
 		// Writes width deviation false feature line
 		void WriteFF(const Features::cItemsIter& it, float dev)
 		{
-			WriteFF<float>("%s\t%d\t%d\t%s\t%.2f\t%.1f\t%s\n", "wD", it, dev);
+			WriteFF<float>("%s\t%d\t%d\t%s\t%.2f\t%.1f\t%s\n", "lD", it, dev);
 		}
 	};
 
@@ -180,40 +180,40 @@ class FeaturesStatTuple
 	{
 		unique_ptr<IssBedWriter> _oFile;		// issues file
 		StandDev<short> _cSD;	// centre standars deviation
-		StandDev<float> _wSD;	// width standars deviation
+		StandDev<float> _lSD;	// length standars deviation
 
 	public:
 		// Returns count of centre abnormal deviations
 		//	@param t: for the current chromosome or for all
 		chrlen GetCentreAbnormDevCount(eTarget t) const { return _cSD.GetAbnormDevCount(t); }
 
-		// Returns count of width abnormal deviations
+		// Returns count of length abnormal deviations
 		//	@param t: for the current chromosome or for all
-		chrlen GetWidthAbnormDevCount(eTarget t) const { return _wSD.GetAbnormDevCount(t); }
+		chrlen GetWidthAbnormDevCount(eTarget t) const { return _lSD.GetAbnormDevCount(t); }
 
 		// Returns centre Standard Deviation
 		//	@param t: for the current chromosome or for all
 		float GetCentreSD(eTarget t) const { return _cSD.GetSD(t); }
 
-		// Returns width Standard Deviation
+		// Returns length Standard Deviation
 		//	@param t: for the current chromosome or for all
-		float GetWidthSD(eTarget t) const { return _wSD.GetSD(t); }
+		float GetLengthSD(eTarget t) const { return _lSD.GetSD(t); }
 
 		// Initializes the instance
 		//	@param capacity: standard deviation capacity
 		//	@param minCDev: minimum centre deviation for the deviation issue accounting
-		//	@param minWDev: minimum width deviation for the deviation issue accounting
+		//	@param minLDev: minimum length deviation for the deviation issue accounting
 		//	@param fname: name of issues file or NULL
-		void Init(size_t capacity, short minCDev, float minWDev, const char* fname)
+		void Init(size_t capacity, short minCDev, float minLDev, const char* fname)
 		{
 			if (fname)	_oFile.reset(new IssBedWriter(fname));
 			_cSD.Init(capacity, minCDev, _oFile.get());
-			_wSD.Init(capacity, minWDev, _oFile.get());
+			_lSD.Init(capacity, minLDev, _oFile.get());
 		}
 
 		void SetChrom(chrid cID) { if (_oFile)	_oFile->SetChrom(cID); }
 
-		void ResetChrom() { _cSD.ResetChrom(); _wSD.ResetChrom(); }
+		void ResetChrom() { _cSD.ResetChrom(); _lSD.ResetChrom(); }
 
 		// Saves False Poitive/Negative issue
 		void Discard(const Features::cItemsIter it, BC::eBC bc)
@@ -228,7 +228,7 @@ class FeaturesStatTuple
 				short(int(it[0]->Centre()) - it[1]->Centre()),
 				true, it[1] 
 			);
-			_wSD.AddDev(
+			_lSD.AddDev(
 				float(it[1]->Length()) / it[0]->Length(),
 				!acceptAbnorm, it[1]
 			);
@@ -332,23 +332,23 @@ class FeaturesStatTuple
 	void PrintStat(eTarget t) const
 	{
 		chrlen cDev	= _uData.GetCentreAbnormDevCount(t);
-		chrlen wDev = _uData.GetWidthAbnormDevCount(t);
+		chrlen lDev = _uData.GetWidthAbnormDevCount(t);
 		chrlen sampleBC	= *_data[0].BC(t);
 		chrlen testBC	= *_data[1].BC(t);
 
 		dout << setprecision(3) << _data[0].Rate(t) << TAB << _data[1].Rate(t)
-			<< TAB << GetF1(t) << TAB << _uData.GetCentreSD(t) << TAB << _uData.GetWidthSD(t);
-		dout << TAB << '|' << setw(4) << cDev + wDev + sampleBC + testBC	// issues count
-			<< setw(5) << sampleBC << setw(5) << testBC << setw(5) << cDev << setw(5) << wDev << LF;
+			<< TAB << GetF1(t) << TAB << _uData.GetCentreSD(t) << TAB << _uData.GetLengthSD(t);
+		dout << TAB << '|' << setw(4) << cDev + lDev + sampleBC + testBC	// issues count
+			<< setw(5) << sampleBC << setw(5) << testBC << setw(5) << cDev << setw(5) << lDev << LF;
 	}
 
 public:
 	static void PrintHeader()
 	{
 		dout << setw(6) << SPACE << TAB << "FNR" << SPACE << TAB << "FDR" << SPACE
-			<< TAB << "F1" << "  \t" << "c-SD" << TAB << "w-SD";
+			<< TAB << "F1" << "  \t" << "c-SD" << TAB << "l-SD";
 		dout << "\t|total" << setw(4) << BC::Title(BC::FN) << setw(5) << BC::Title(BC::FP)
-			<< setw(5) << "c-D" << setw(5) << "w-D" << LF;
+			<< setw(5) << "c-D" << setw(5) << "l-D" << LF;
 		PrintSolidLine(titleLineLen);
 	}
 
@@ -358,14 +358,14 @@ public:
 		USHORT expandVal,
 		float minScore,
 		short minCDev,
-		float minWDev,
+		float minLDev,
 		const char* fname
 	)
 		: _data{
 			FeaturesStatData(BC::FN, smpl, _uData, expandVal, minScore),
 			FeaturesStatData(BC::FP, test, _uData, 0, 0)
 		}
-	{ _uData.Init(smpl.ItemsCount(), minCDev, minWDev, fname); }
+	{ _uData.Init(smpl.ItemsCount(), minCDev, minLDev, fname); }
 
 	// calculates and print chromosome's statistics
 	//	@param sIt: sample chromosome's iterator

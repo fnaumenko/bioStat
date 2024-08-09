@@ -1,7 +1,7 @@
 /************************************************************************************
 FGStest - Features Gold Standard test
 -------------------------
-Last modified: 08/06/2024
+Last modified: 08/09/2024
 -------------------------
 This program is free software. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY;
@@ -37,9 +37,11 @@ Options::Option Options::List[] = {
 	//{ 'g', sGen,	tOpt::NONE,	tNAME,	gINPUT, NO_DEF, 0, 0, NULL, "chromosome sizes file" },
 	{ 'c', sChrom,	tOpt::NONE,	tNAME,	gINPUT,	NO_DEF, 0, 0, NULL, sHelpChrom },
 	{ 'S',"sample",	tOpt::OBLIG,tNAME,	gINPUT, NO_DEF, 0, 0, NULL, "sample file." },
-	{ 'C',"min-cdev",tOpt::NONE,tINT,	gINPUT, 10, 0, 1000, NULL, "threshold centre deviation for writing a test feature to an issues file" },
-	{ 'W',"min-wdev",tOpt::NONE,tFLOAT,	gINPUT, 0, 1, 100, NULL, "threshold width deviation for writing a test feature to an issues file" },
-	{ 's',"min-scr",tOpt::NONE,	tFLOAT,	gINPUT, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
+	{ 'C',"cdev",	tOpt::NONE,tINT,	gINPUT, 10, 0, 1000, NULL,
+	"threshold centre deviation for counting critical centre deviations" },
+	{ 'L',"ldev",	tOpt::NONE,tFLOAT,	gINPUT, 0, 1, 100, NULL, 
+	"threshold ratio of test-feature-length/sample-feature-length\nfor counting critical length deviations" },
+	{ 's',"score",tOpt::NONE,	tFLOAT,	gINPUT, 0, 0, 1, NULL, "threshold score for taking sample features into accounts" },
 	{ 'e', "expand",tOpt::NONE,	tINT,	gINPUT, 0, 0, 500, NULL, "virtually expand sample features while searching for sample/test intersecting" },
 	{ 'w', "warn",	tOpt::HIDDEN,tENUM,	gOUTPUT,FALSE,	NO_VAL, 0, NULL, "print each feature ambiguity, if they exist" },
 	{ 'I', "issues",tOpt::FACULT,tNAME,	gOUTPUT,NO_DEF,	0,	0, NULL,
@@ -114,7 +116,7 @@ int main(int argc, char* argv[])
 			expVal,
 			Options::GetFVal(oMIN_SCORE),
 			short(Options::GetFVal(oMIN_CDEV)),
-			Options::GetFVal(oMIN_WDEV),
+			Options::GetFVal(oMIN_LDEV),
 			GetIssFileName(oName, iName, IssFileSuffix)
 		);
 		chrid	chrCount = 0;	// count of threated chromosomes
