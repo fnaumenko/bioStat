@@ -329,7 +329,7 @@ treats specified chromosome only.<br>
 `-C|--cdev <int>`<br>
 sets the deviation of the centre of the test feature from the centre of the corresponding reference one, 
 above which this case will be counted in the critical centre deviations (*cD*) metric in the program output, 
-and recorded in the issue report (`-I|--issues` option), in biases.<br>
+and recorded in the issue report (see `-I|--issues` option), in biases.<br>
 Value 0 means no counting ("off option").<br>
 Does not affect the centre standard deviation in the program output.<br>
 Default: 10.
@@ -337,7 +337,7 @@ Default: 10.
 `-L|--ldev <float>`<br>
 sets the ratio of the length of the test feature to the length of the corresponding reference one, 
 above which this case will be counted in the critical length deviations (*lD*) metric in the program output, 
-and recorded in the issue report (`&#x2011I|&#x2011&#x2011issues` option).<br>
+and recorded in the issue report (see `-I|--issues` option).<br>
 Does not affect the length standard deviation in the program output.<br>
 Default: 0 (no counting).
 
