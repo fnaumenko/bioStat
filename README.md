@@ -16,8 +16,8 @@ or<br>
 Yes, the utilities can be invoked separately. They all are packed in one archive bioStat.
 
 *Notes for all utilities:*<br>
-Enumerable option values are case-insensitive.<br>
-Single letter options with missing values can be merged.<br>
+String/letter option values ​​are case-insensitive. For example, `--chr X` is the same as `--chr x`.<br>
+Single letter options with missing values can be merged. For example, `-t -O` is equivalent to `-tO`.<br>
 Compressed input files in gzip format are acceptable.
 
 ## Installation
@@ -196,7 +196,7 @@ specifies chromosome sizes file. Required for BED and WIG files.
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
 Specifying one chromosome reduces processing time of multi-chromosomal data by 2-20  times.<br>
 *Ordinary* beds are treated quickly in any case.
 
@@ -293,9 +293,10 @@ or<br>
 Input:
   -c|--chr <name>       treat specified chromosome only
   -S|--sample <name>    sample file. Required
-  -C|--min-cdev <int>   threshold centre deviation for writing a test feature to an issues file [10]
-  -W|--min-wdev <float> threshold width deviation for writing a test feature to an issues file [0]
-  -s|--min-scr <float>  threshold score for taking sample features into accounts [0]
+  -C|--cdev <int>   	threshold centre deviation for counting critical centre deviations [10]
+  -L|--ldev <float>     threshold ratio of test-feature-length/sample-feature-length
+                        for counting critical length deviations [0]
+  -s|--score <float>  	threshold score for taking sample features into accounts [0]
   -e|--expand <int>     virtually expand sample features while searching for sample/test intersecting [0]
 Output:
   -I|--issues [<name>]  output locused issues to <name>.bed file
@@ -318,40 +319,47 @@ In progress.
 #### Options description
 
 `-S|--sample <name>`<br>
-name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing the real sites of interest ('gold standard')<br>
+specifies the name of [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file containing sample (reference) features ('gold standard')<br>
 Required.
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.
+`name` identifies chromosome by number or character, e.g. `10` or `X`.
 
-`-C|--min-cdev <int>`<br>
-in progress.<br>
+`-C|--cdev <int>`<br>
+sets the deviation of the centre of the test feature from the centre of the corresponding reference one, 
+above which this case will be counted in the critical centre deviations (*cD*) metric in the program output, 
+and recorded in the issue report (`-I|--issues` option), in biases.<br>
+Value 0 means no counting ("off option").<br>
+Does not affect the centre standard deviation in the program output.<br>
 Default: 10.
 
-`-W|--min-wdev <float>`<br>
-in progress.<br>
-Default: 0.
+`-L|--ldev <float>`<br>
+sets the ratio of the length of the test feature to the length of the corresponding reference one, 
+above which this case will be counted in the critical length deviations (*lD*) metric in the program output, 
+and recorded in the issue report (`-I|--issues` option).<br>
+Does not affect the length standard deviation in the program output.<br>
+Default: 0 (no counting).
 
-`-s|--min-scr <float>`<br>
-specifies template features score threshold for testing.<br>
+`-s|--score <float>`<br>
+specifies reference features score threshold ???.<br>
 Default: 0.
 
 `-e|--expand <int>`<br>
-specifies the value by which the start position of each reference feature is virtually decreased 
-and the end position is virtually increased while searching for intersecting reference/test features.<br>
-For narrow reference features, the situation of the non-intersection of the actual corresponding test feature with the reference one is common. 
-This results in the detection of redundant pair of False Positive and False Negative cases.<br>
-Virtual expansion of reference features when comparing coordinates eliminates this effect.<br>
+specifies the value by which for each reference feature the start position will be virtually decreased 
+and the stop position will be virtually increased while searching for intersecting reference/test features.<br>
+For short ('narrow') reference features, the case of the non-intersection with the actual corresponding test feature is common. 
+This results in the detection of redundant pair of False Positive and False Negative issues.<br>
+Virtual expansion of reference features in purpose of comparing coordinates eliminates this effect.<br>
 The choice of the option value should be based on an assessment of the maximum deviation 
 of the test features in each specific case.<br>
-In particular, when testing peak detection results, it is recommended to set the value to 2-3 read lengths.<br>
+In particular, when testing peak detection results, it is recommended to set the value to 1-2 read lengths.<br>
 If the expansion value results in the intersection of reference features, the program displays a message and quit.<br>
-Note that the virtual expansion does not affect the estimate of the standard deviation of the centre and width.<br>
+Does not affect the calculation of the centre- and length- standard deviations.<br>
 Default: 0.
 
 `-I|--issues [<name>]`<br>
-specifies output file containing issued features in [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
+if specified, sets output file (report) containing issued features in [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) format.<br>
 The name of output file is constructed as *`name`.bed*, possible extension in `name` is truncated.<br>
 If `name` is not specified, the output file name is constructed as *`in-file`.issues.bed*,
  where `in-file` is a program input file. Its extention is also truncated.<br>
@@ -362,9 +370,9 @@ The feature name is the designation of the issue:<br>
 *FN* - False Negative case<br>
 *FP* - False Positive case<br>
 *cD* - critical centre deviation case<br>
-*wD* - critical width deviation case<br>
+*lD* - critical length deviation case<br>
 The last two fields are non-standard.<br>
-The 6th field contains critical deviation values: integer for *cD* and floating point for *wD*.<br>
+The 6th field contains critical deviation values: integer for *cD* and floating point for *lD*.<br>
 In the first case, this is the deviation of the centre of the test feature from the centre of the reference one.<br> 
 In the second case, this is the ratio of the test feature length to the reference one.<br>
 The 7th field contains the issue locus (coordinates for display in the genome browser).<br>
@@ -463,14 +471,14 @@ Default: `FRAG` for BAM/BED, `READ` for FASTQ
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
 Specifying one first chromosome gives a difference from the distribution parameters of the whole sequence 
 of less than 2% (for a reliable number of fragments, exceeding thousand), 
 but significantly speeds up processing (e.g. about 8 times for the mouse genome).
 
 `-D|--dist <N,LN,G>`<br>
 specifies the desired distribution type to call: `N` – normal, `LN` – lognormal, `G` – gamma.<br>
-Сan be assigned independently of each other in any order. Characters are case-insensitive.<br>
+Сan be assigned independently of each other in any order.<br>
 For each specified type, the called distribution parameters are displayed, as well as the Pearson correlation coefficient 
 (PCC) with the original sequence. The coefficient is calculated on the basis from the beginning of the distribution 
 to the first point with an ordinate that is less than 0.1% of the maximum.<br>
@@ -596,7 +604,7 @@ This option is required.
 
 `-c|--chr <name>`<br>
 treats specified chromosome only.<br>
-`name` identifies chromosome by number or character, e.g. `10` or `X`. Character is case-insensitive.<br>
+`name` identifies chromosome by number or character, e.g. `10` or `X`.<br>
 The indication of one chromosome reduces run time on 1.5-20 times but reduces statistical completeness.
 
 `--min-scr <int>`<br>
