@@ -2,7 +2,7 @@
 callDist.h (c) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 All rights reserved.
 -------------------------
-Last modified: 01/09/25
+Last modified: 02/05/25
 -------------------------
 Provides main functionality
 ***********************************************************/
@@ -12,6 +12,7 @@ Provides main functionality
 #include "Options.h"
 #include "ChromData.h"
 #include "Distrib.h"
+#include "DataReader.h"
 #include "FqReader.h"
 
 enum optValue {		// options id
