@@ -7,7 +7,7 @@ each of which contains one pair <fragment length><TAB><frequency>.
 
 Copyright (C) 2021 Fedor Naumenko (fedor.naumenko@gmail.com)
 -------------------------
-Last modified: 01/03/2025
+Last modified: 02/07/2025
 -------------------------
 ************************************************************************************/
 
@@ -102,11 +102,11 @@ int main(int argc, char* argv[])
 			FqReadDist(iName).Print(GetType(Distrib::NORM), prDist);
 			break;
 		case FT::eType::DIST:
-			dout << iName;
 			{
+				dout << iName;
 				Distrib d(iName, dout);
-				d.CalcADParams(Distrib::eDType(Options::GetIVal(oDTYPE)));
-				d.Print(dout, true, false);
+				d.CalcADParams(Distrib::eDType(Options::GetIVal(oDTYPE)), Distrib::AUTO);
+				d.PrintADParams(dout, true, false);
 			}
 			break;
 		default:
